@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react"
 
 const CartContext = createContext(null)
 
+
 const STORAGE_KEY = "su_rice_cart_v1"
 
 function safeParse(json, fallback) {
@@ -16,6 +17,7 @@ function safeParse(json, fallback) {
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]) // [{id, slug, name, price, image_main, quantity}]
+  
 
   // Load from localStorage once
   useEffect(() => {

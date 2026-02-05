@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { api } from "@/services/api"
+import { useCart } from "@/components/context/CartContext"
 
 function formatEURFromCents(cents) {
   const euros = (Number(cents) || 0) / 100
@@ -11,14 +12,20 @@ function formatEURFromCents(cents) {
 }
 
 export default function SuccessPage() {
+  // ✅ Hooks TOUJOURS en haut
   const sp = useSearchParams()
   const orderId = sp.get("order_id")
+  const { clear } = useCart()
 
   const [order, setOrder] = useState(null)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
 
+  // 1) fetch + polling
   useEffect(() => {
+    setError("")
+    setOrder(null)
+
     if (!orderId) {
       setLoading(false)
       setError("order_id manquant dans l’URL.")
@@ -32,11 +39,10 @@ export default function SuccessPage() {
       try {
         const res = await api.get(`orders/${orderId}/`)
         if (cancelled) return
+
         setOrder(res.data)
-        setError("")
         setLoading(false)
 
-        // ✅ Poll tant que pas "paid" (utile quand l’IPN met quelques secondes)
         if (res.data.status !== "paid" && tries < 10) {
           tries += 1
           setTimeout(fetchOrder, 1500)
@@ -49,9 +55,27 @@ export default function SuccessPage() {
     }
 
     fetchOrder()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [orderId])
 
+  // 2) clear cart only when paid (once)
+  useEffect(() => {
+    if (!order) return
+    if (order.status !== "paid") return
+
+    const key = `cart_cleared_for_order_${order.id}`
+    if (typeof window !== "undefined" && localStorage.getItem(key)) return
+
+    clear()
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(key, "1")
+    }
+  }, [order, clear])
+
+  // ✅ Ensuite seulement on return
   if (loading) {
     return <div className="max-w-3xl mx-auto px-6 py-20">Chargement...</div>
   }
@@ -61,7 +85,10 @@ export default function SuccessPage() {
       <div className="max-w-3xl mx-auto px-6 py-20 text-center">
         <h1 className="text-3xl font-bold">Oups</h1>
         <p className="text-gray-600 mt-3">{error}</p>
-        <Link href="/menu" className="inline-block mt-8 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition">
+        <Link
+          href="/menu"
+          className="inline-block mt-8 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
+        >
           Revenir au menu
         </Link>
       </div>
@@ -73,13 +100,13 @@ export default function SuccessPage() {
   return (
     <div className="max-w-3xl mx-auto px-6 py-20 text-center">
       <h1 className="text-3xl font-bold">
-  {paid ? "Paiement confirmé ✅" : "Paiement refusé / non confirmé ❌"}
-</h1>
+        {paid ? "Paiement confirmé ✅" : "Paiement refusé / non confirmé ❌"}
+      </h1>
 
       <p className="text-gray-600 mt-3">
         {paid
           ? "Merci ! Votre commande est confirmée et va être préparée."
-          : "Votre paiement est en cours de confirmation. Cela peut prendre quelques secondes."}
+          : "Votre paiement n’a pas été validé. Vous pouvez réessayer ou revenir au panier."}
       </p>
 
       <div className="mt-8 bg-white border rounded-2xl p-6 text-left">
@@ -108,37 +135,42 @@ export default function SuccessPage() {
           <div className="space-y-2 text-sm">
             {order.items?.map((it) => (
               <div key={it.id} className="flex justify-between">
-                <span>{it.product_name} × {it.quantity}</span>
+                <span>
+                  {it.product_name} × {it.quantity}
+                </span>
                 <span>{formatEURFromCents(it.line_total_cents)}</span>
               </div>
             ))}
           </div>
-          {!paid && (
-  <div className="mt-8 flex gap-3 justify-center flex-wrap">
-    <button
-      onClick={() => {
-        if (order.payment_url) window.location.href = order.payment_url
-      }}
-      className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
-    >
-      Réessayer le paiement
-    </button>
-
-    <Link
-      href="/cart"
-      className="px-6 py-3 rounded-xl border hover:bg-gray-100 transition"
-    >
-      Retour au panier
-    </Link>
-  </div>
-)}
         </div>
-        
       </div>
 
-      <Link href="/menu" className="inline-block mt-10 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition">
-        Revenir au menu
-      </Link>
+      {!paid ? (
+        <div className="mt-10 flex gap-3 justify-center flex-wrap">
+          <button
+            onClick={() => {
+              if (order.payment_url) window.location.href = order.payment_url
+            }}
+            className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
+          >
+            Réessayer le paiement
+          </button>
+
+          <Link
+            href="/cart"
+            className="px-6 py-3 rounded-xl border hover:bg-gray-100 transition"
+          >
+            Retour au panier
+          </Link>
+        </div>
+      ) : (
+        <Link
+          href="/menu"
+          className="inline-block mt-10 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
+        >
+          Revenir au menu
+        </Link>
+      )}
     </div>
   )
 }
