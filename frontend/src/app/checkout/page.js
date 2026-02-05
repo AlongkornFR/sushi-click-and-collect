@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useCart } from "@/components/context/CartContext"
+import { api } from "@/services/api"
 
 function formatEUR(value) {
   const n = Number(value) || 0
@@ -58,6 +59,8 @@ export default function CheckoutPage() {
 
   const pickupSlots = useMemo(() => buildPickupSlots(), [])
 
+
+
   useEffect(() => {
     // Si panier vide -> retour menu
     if (items.length === 0) router.replace("/cart")
@@ -88,54 +91,55 @@ export default function CheckoutPage() {
 
   const markTouched = (name) => setTouched((t) => ({ ...t, [name]: true }))
 
-  async function handlePay() {
-    setError("")
-    setTouched({
-      full_name: true,
-      email: true,
-      phone: true,
-      pickup_time: true,
-      notes: true,
-    })
+async function handlePay() {
+  setError("")
+  setTouched({
+    full_name: true,
+    email: true,
+    phone: true,
+    pickup_time: true,
+    notes: true,
+  })
 
-    if (!canSubmit) {
-      setError("Veuillez corriger les champs en rouge.")
-      return
-    }
-
-    setLoading(true)
-    try {
-      // ✅ Ici on appellera le backend pour créer la commande + init Payplug
-      // Pour l’instant : on simule une création et on redirige vers une future page success.
-      // Prochaine étape: POST /api/checkout/ -> returns { payment_url } puis router.push(payment_url)
-
-      // Exemple payload attendu côté backend:
-      const payload = {
-        customer: {
-          full_name: form.full_name.trim(),
-          email: form.email.trim(),
-          phone: form.phone.trim(),
-        },
-        pickup_time: form.pickup_time,
-        notes: form.notes?.trim() || "",
-        items: itemsPayload,
-      }
-
-      console.log("CHECKOUT PAYLOAD:", payload)
-
-      // Simulation (à remplacer par appel API)
-      await new Promise((r) => setTimeout(r, 600))
-
-      // On vide le panier au succès (en vrai: après confirmation paiement webhook)
-      clear()
-      router.push("/success")
-    } catch (e) {
-      console.error(e)
-      setError("Impossible de démarrer le paiement. Réessayez.")
-    } finally {
-      setLoading(false)
-    }
+  if (!canSubmit) {
+    setError("Veuillez corriger les champs en rouge.")
+    return
   }
+
+  setLoading(true)
+  try {
+    const payload = {
+      customer: {
+        full_name: form.full_name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+      },
+      pickup_time: form.pickup_time,
+      notes: form.notes?.trim() || "",
+      items: items.map((x) => ({
+        product_id: x.id,
+        quantity: x.quantity,
+      })),
+    }
+
+    // ✅ appel backend
+    const res = await api.post("checkout/", payload)
+
+    const paymentUrl = res?.data?.payment_url
+    if (!paymentUrl) {
+      throw new Error("payment_url missing in response")
+    }
+
+    // ✅ redirection Payplug
+    window.location.href = paymentUrl
+  } catch (e) {
+    console.error(e)
+    setError("Impossible de démarrer le paiement. Réessayez.")
+  } finally {
+    setLoading(false)
+  }
+}
+
 
   if (items.length === 0) return null
 
