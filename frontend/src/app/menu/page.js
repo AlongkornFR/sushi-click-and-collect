@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { api } from "@/services/api"
-import ProductCard from "@/components/ProductCard"
+import ProductCard from "@/components/common/ProductCard"
 
 export default function MenuPage() {
   const [products, setProducts] = useState([])

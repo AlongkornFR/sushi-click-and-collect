@@ -4,10 +4,12 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { api } from "@/services/api"
 import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant"
+import { useCart } from "@/components/context/CartContext"
 
 export default function ProductPage() {
   const { slug } = useParams()
   const [product, setProduct] = useState(null)
+  const { addItem } = useCart()
 
   useEffect(() => {
     if (!slug) return
@@ -42,9 +44,12 @@ export default function ProductPage() {
           {product.price} €
         </div>
 
-        <button className="mt-6 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition">
-          Ajouter au panier
-        </button>
+        <button
+  onClick={() => addItem(product, 1)}
+  className="mt-6 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
+>
+  Ajouter au panier
+</button>
       </div>
     </div>
   )
