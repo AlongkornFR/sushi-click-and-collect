@@ -45,3 +45,5 @@ class OrderItem(models.Model):
 
     def line_total_cents(self):
         return self.unit_price_cents * self.quantity
+
+

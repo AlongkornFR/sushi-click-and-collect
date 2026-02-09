@@ -25,6 +25,8 @@ load_dotenv(BASE_DIR / ".env")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-1w1w0g93*57)7h+hwcd8t4l3*e(hzputg2y2eb3qt400=a(78('
 
+PAYPLUG_SECRET_KEY = os.getenv("PAYPLUG_SECRET_KEY", "")
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -41,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    "rest_framework.authtoken",
     'corsheaders',
     'products',
     'orders',
@@ -73,6 +76,13 @@ TEMPLATES = [
         },
     },
 ]
+
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+    ],
+}
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
