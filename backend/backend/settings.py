@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'products',
     'orders',
+    'reviews',
 ]
 
 MIDDLEWARE = [
@@ -143,3 +144,5 @@ PAYPLUG_SECRET_KEY = os.environ.get("PAYPLUG_SECRET_KEY", "")
 PAYPLUG_API_VERSION = os.environ.get("PAYPLUG_API_VERSION", "2019-08-06")
 FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://localhost:3000")
 BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://127.0.0.1:8000")
+GOOGLE_PLACES_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY", "")
+GOOGLE_PLACE_ID = os.getenv("GOOGLE_PLACE_ID", "")
