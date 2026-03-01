@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { api } from "@/services/api"
 import ProductCard from "@/components/common/ProductCard"
+import ReviewSection from "@/components/common/ReviewSection"
 
 export default function HomePage() {
   const [products, setProducts] = useState([])
@@ -196,7 +197,7 @@ export default function HomePage() {
             <ProductCard key={p.id} product={p} />
           ))}
         </div>
-
+          <ReviewSection />
         {/* CTA bottom */}
         <div className="mt-14 rounded-3xl bg-black text-white p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
@@ -211,6 +212,8 @@ export default function HomePage() {
           >
             Accéder au menu
           </Link>
+        </div>
+        <div>
         </div>
       </section>
     </main>
