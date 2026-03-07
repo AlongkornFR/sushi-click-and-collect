@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { api } from "@/services/api"
 import ProductCard from "@/components/common/ProductCard"
+import { FaShieldAlt, FaClock, FaLeaf } from "react-icons/fa";
+import TrustCard from "@/components/common/TrustCard";
 
 export default function HomePage() {
   const [products, setProducts] = useState([])
@@ -30,152 +32,71 @@ export default function HomePage() {
   return (
     <main className="bg-white">
       {/* HERO */}
-      <section className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 py-16 md:py-24 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div>
-            <p className="text-sm tracking-widest text-gray-500 uppercase">
-              Click & Collect • Paiement sécurisé
-            </p>
-
-            <h1 className="mt-4 text-4xl md:text-6xl font-bold leading-tight">
-              Des sushis modernes,
-              <span className="block font-light">une expérience premium.</span>
-            </h1>
-
-            <p className="mt-5 text-gray-600 max-w-xl">
-              Commandez en ligne en quelques clics, payez en toute sécurité, puis récupérez
-              votre commande à l’heure. Simple, rapide, délicieux.
-            </p>
-
-            <div className="mt-8 flex gap-3 flex-wrap">
-              <Link
-                href="/menu"
-                className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
-              >
-                Commander maintenant
-              </Link>
-              <Link
-                href="/menu"
-                className="px-6 py-3 rounded-xl border hover:bg-gray-100 transition"
-              >
-                Voir le menu
-              </Link>
-            </div>
-
-            {/* trust line */}
-            <div className="mt-8 flex items-center gap-6 text-sm text-gray-500 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-full bg-black" />
-                Paiement sécurisé (Payplug)
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-full bg-black" />
-                Retrait rapide
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block h-2 w-2 rounded-full bg-black" />
-                Produits frais
-              </div>
-            </div>
-          </div>
-
-          {/* Hero visual */}
-          <div className="relative">
-            <div className="absolute -top-10 -right-10 h-64 w-64 rounded-full bg-gray-100 blur-2xl" />
-            <div className="absolute -bottom-10 -left-10 h-64 w-64 rounded-full bg-gray-100 blur-2xl" />
-
-            <div className="relative bg-white border rounded-3xl shadow-sm overflow-hidden">
-              <div className="p-6 border-b">
-                <p className="text-sm text-gray-500">Sélection du moment</p>
-                <h2 className="text-2xl font-semibold mt-1">Plateau Signature</h2>
-              </div>
-
-              <div className="p-6 grid grid-cols-2 gap-4">
-                {(bestSellers.length ? bestSellers : Array.from({ length: 4 })).slice(0, 4).map((p, idx) => (
-                  <div
-                    key={p?.id ?? idx}
-                    className="rounded-2xl border p-4 hover:shadow-sm transition"
-                  >
-                    <div className="text-sm text-gray-500">
-                      {p?.category?.name ?? "Sélection"}
-                    </div>
-                    <div className="font-semibold mt-1">
-                      {p?.name ?? "Produit premium"}
-                    </div>
-                    <div className="mt-2 text-sm">
-                      {p?.price ? `${p.price} €` : "—"}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-6 border-t flex items-center justify-between">
-                <span className="text-sm text-gray-500">Prêt en 15–25 min</span>
-                <Link href="/menu" className="text-sm font-medium hover:underline">
-                  Commander →
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* TRUST STRIP */}
-      <section className="border-y bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <TrustCard
-            title="Paiement sécurisé"
-            desc="Transactions protégées via Payplug. Vos données sont traitées en toute sécurité."
-          />
-          <TrustCard
-            title="Click & Collect"
-            desc="Choisissez votre heure de retrait, on prépare votre commande pour qu’elle soit prête."
-          />
-          <TrustCard
-            title="Qualité & fraîcheur"
-            desc="Sélection rigoureuse des ingrédients, préparation minute, goût premium."
-          />
-        </div>
-      </section>
-
-      {/* CATEGORIES */}
-      <section className="max-w-7xl mx-auto px-6 py-16">
-        <div className="flex items-end justify-between gap-6 flex-wrap">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold">Explorer le menu</h2>
-            <p className="text-gray-500 mt-2">Choisissez votre catégorie préférée.</p>
-          </div>
-          <Link href="/menu" className="text-sm font-medium hover:underline">
-            Tout le menu →
-          </Link>
-        </div>
-
-        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {(categories.length ? categories : [
-            { name: "Maki", count: 0 },
-            { name: "California", count: 0 },
-            { name: "Sushi", count: 0 },
-            { name: "Sashimi", count: 0 },
-          ]).map((c) => (
+      <section className="relative h-96 md:h-[75vh] bg-cover bg-center bg-[url('https://img-3.journaldesfemmes.fr/KXlxZdShrVsMutkNGfPPKxGiJqg=/1500x/smart/b6bbd8cda8f945949fb78307a9f067f5/ccmcms-jdf/35195140.jpg')] flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/40" />
+        <div className="relative max-w-7xl mx-auto px-6 text-center text-white">
+          <p className="text-lg md:text-2xl font-light mb-8 max-w-2xl mx-auto">
+            Commandez en ligne en quelques clics, payez en toute sécurité, puis récupérez votre commande à l'heure. Simple, rapide, délicieux.
+          </p>
+          <div className="flex gap-3 justify-center flex-wrap">
             <Link
-              key={c.name}
               href="/menu"
-              className="group rounded-3xl border bg-white p-6 hover:shadow-sm transition"
+              className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
             >
-              <div className="text-sm text-gray-500 uppercase tracking-widest">
-                Catégorie
-              </div>
-              <div className="mt-2 text-xl font-semibold">{c.name}</div>
-              <div className="mt-2 text-sm text-gray-500">
-                {c.count ? `${c.count} produits` : "Découvrir"}
-              </div>
-              <div className="mt-6 text-sm font-medium group-hover:underline">
-                Voir →
-              </div>
+              Commander maintenant
             </Link>
-          ))}
+            <Link
+              href="/menu"
+              className="px-6 py-3 rounded-xl border border-white hover:bg-white hover:text-black transition"
+            >
+              Voir le menu
+            </Link>
+          </div>
         </div>
       </section>
+
+<section className="border-y bg-gray-50">
+  <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-3 gap-8">
+
+    <TrustCard
+      icon={<FaShieldAlt />}
+      title="Paiement sécurisé"
+      desc="Transactions protégées via Payplug."
+    />
+
+    <TrustCard
+      icon={<FaClock />}
+      title="Click & Collect"
+      desc="Choisissez votre heure de retrait."
+    />
+
+    <TrustCard
+      icon={<FaLeaf />}
+      title="Qualité & fraîcheur"
+      desc="Produits frais et préparation minute."
+    />
+
+  </div>
+</section>
+
+      <section className="max-w-7xl mx-auto px-6 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div>
+            <h2 className="text-4xl md:text-5xl font-bold">Votre boutique de cuisine japonaise et thaïlandaise à Cannes</h2>
+            <p className="text-gray-600 mt-4 leading-relaxed">
+              Vous appréciez les mets aux saveurs asiatiques ? Poussez les portes de notre magasin de cuisine japonaise à Cannes. Nos chefs vous concoctent des plats japonais et thaïlandais, qui régaleront vos papilles. Chez <strong>SU-RICE</strong>, nous privilégions toujours le goût. Nous travaillons des produits frais et proposons une cuisine faite maison, d'excellente qualité. 
+            </p>
+          </div>
+          <div className="rounded-3xl overflow-hidden">
+            <img
+              src="https://www.su-rice.com/media/images/upload/ill-home3.jpg"
+              alt="Section image"
+              className="w-full h-auto aspect-square object-cover"
+            />
+          </div>
+        </div>
+      </section>
+
 
       {/* BEST SELLERS */}
       <section className="max-w-7xl mx-auto px-6 pb-20">
@@ -214,14 +135,5 @@ export default function HomePage() {
         </div>
       </section>
     </main>
-  )
-}
-
-function TrustCard({ title, desc }) {
-  return (
-    <div className="bg-white rounded-3xl border p-6">
-      <div className="text-lg font-semibold">{title}</div>
-      <div className="text-gray-600 mt-2 text-sm leading-relaxed">{desc}</div>
-    </div>
   )
 }
