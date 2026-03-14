@@ -3,30 +3,25 @@ import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
 
 export default function ProductCard({ product }) {
   return (
-    <Link href={`/product/${product.slug}`}>
+    <Link href={`/product/${product.slug}`} className="block">
       <div className="cursor-pointer group">
-
-        {/* Image */}
-        <div className="aspect-square flex items-center justify-center overflow-hidden">
+        <div className="bg-gray-200 aspect-square overflow-hidden">
           <img
             src={product.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
             onError={(e) => (e.currentTarget.src = DEFAULT_PRODUCT_IMAGE)}
             alt={product.name}
-            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         </div>
 
-        {/* Texte */}
-        <div className="pt-3 space-y-1">
-          <h3 className="font-medium text-sm">
+        <div className="pt-2">
+          <p className="text-sm text-black leading-snug line-clamp-2">
             {product.name}
-          </h3>
-
-          <p className="font-semibold text-sm">
+          </p>
+          <p className="text-sm font-medium text-black">
             {product.price} €
           </p>
         </div>
-
       </div>
     </Link>
   );

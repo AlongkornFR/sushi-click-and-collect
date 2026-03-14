@@ -6,6 +6,8 @@ import { api } from "@/services/api"
 import ProductCard from "@/components/common/ProductCard"
 import { FaShieldAlt, FaClock, FaLeaf } from "react-icons/fa";
 import TrustCard from "@/components/common/TrustCard";
+import FeatureCard from "@/components/common/FeatureCard";
+import FeaturedProductCard from "@/components/common/FeatureProductCard"
 
 export default function HomePage() {
   const [products, setProducts] = useState([])
@@ -99,41 +101,61 @@ export default function HomePage() {
 
 
       {/* BEST SELLERS */}
-      <section className="max-w-7xl mx-auto px-6 pb-20">
-        <div className="flex items-end justify-between gap-6 flex-wrap">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold">Les incontournables</h2>
-            <p className="text-gray-500 mt-2">
-              Une sélection de produits appréciés pour commencer.
-            </p>
-          </div>
-          <Link href="/menu" className="text-sm font-medium hover:underline">
-            Commander →
-          </Link>
-        </div>
 
-        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          {(bestSellers.length ? bestSellers : []).slice(0, 8).map((p) => (
+<section className="max-w-7xl mx-auto px-6 pb-20">
+  <div className="flex items-end justify-between gap-6 flex-wrap mb-10">
+    <div>
+      <h2 className="text-2xl md:text-3xl font-bold">Les incontournables</h2>
+      <p className="text-gray-500 mt-2">
+        Une sélection de produits appréciés pour commencer.
+      </p>
+    </div>
+
+    <Link href="/menu" className="text-sm font-medium hover:underline">
+      Voir tout le menu →
+    </Link>
+  </div>
+
+  {bestSellers.length > 0 && (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+      {/* Grand produit à gauche */}
+      <div className="lg:col-span-6">
+        <FeaturedProductCard product={bestSellers[0]} />
+      </div>
+
+      {/* Produits à droite */}
+      <div className="lg:col-span-6">
+        <div className="grid grid-cols-2 gap-6">
+          {bestSellers.slice(1, 7).map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
         </div>
+      </div>
+    </div>
+  )}
+</section>
 
-        {/* CTA bottom */}
-        <div className="mt-14 rounded-3xl bg-black text-white p-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div>
-            <h3 className="text-2xl font-semibold">Prêt à commander ?</h3>
-            <p className="text-white/70 mt-2">
-              Paiement sécurisé, préparation rapide, retrait simple.
-            </p>
-          </div>
-          <Link
-            href="/menu"
-            className="bg-white text-black px-6 py-3 rounded-xl hover:bg-gray-200 transition"
-          >
-            Accéder au menu
-          </Link>
-        </div>
-      </section>
+        <section className="bg-white py-16">
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+
+        <FeatureCard
+          image="/images/sushi1.jpg"
+          text="Produits frais sélectionnés avec soin pour garantir un goût authentique."
+        />
+
+        <FeatureCard
+          image="/images/sushi2.jpg"
+          text="Préparation minute par nos chefs pour préserver toute la qualité."
+        />
+
+        <FeatureCard
+          image="/images/sushi3.jpg"
+          text="Un savoir-faire japonais allié à des ingrédients premium."
+        />
+
+      </div>
+    </section>
+
     </main>
   )
 }

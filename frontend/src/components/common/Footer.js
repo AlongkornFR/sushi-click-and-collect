@@ -1,5 +1,5 @@
 import React from "react";
-import { FaFacebookF, FaInstagram, FaPinterestP } from "react-icons/fa";
+import { FaFacebookF, FaInstagram,FaClock  } from "react-icons/fa";
 
 const Footer = () => {
   return (
@@ -19,8 +19,6 @@ const Footer = () => {
         </div>
 
         {/* Colonne 2 */}
-
-        {/* Colonne 3 */}
         <div>
           <h3 className="text-3xl font-bold mb-6">Nous suivre</h3>
           <ul className="space-y-4 text-lg font-medium text-gray-100">
@@ -48,6 +46,23 @@ const Footer = () => {
               </a>
             </li>
           </ul>
+
+          <h3 className="text-3xl font-bold mb-4 mt-6">Horaires</h3>
+
+<div className="flex items-start gap-3 text-gray-200">
+
+  <div className="text-md leading-relaxed">
+    <p>
+      <strong>Du lundi au vendredi :</strong>
+    </p>
+
+    <p>12h - 14h30 et 19h - 21h45</p>
+
+    <p className="mt-2">
+      <strong>Fermé samedi et dimanche</strong>
+    </p>
+  </div>
+</div>
         </div>
         <div>
             <h3 className="text-3xl font-bold mb-6">Localisation</h3>
