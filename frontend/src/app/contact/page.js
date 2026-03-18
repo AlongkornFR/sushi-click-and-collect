@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { FaArrowRight } from "react-icons/fa6";
 import { api } from "@/services/api";
-import Image from 'next/image'
+import Image from "next/image";
 
 const emptyForm = {
   firstName: "",
@@ -68,9 +68,9 @@ export default function ContactPage() {
               </h1>
 
               <p className="mt-5 text-base leading-7 text-zinc-600 md:text-lg">
-                Contactez notre équipe pour toute demande concernant la boutique,
-                les plats japonais et thaïlandais, les commandes à emporter ou
-                les informations pratiques.
+                Contactez notre équipe pour toute demande concernant la
+                boutique, les plats japonais et thaïlandais, les commandes à
+                emporter ou les informations pratiques.
               </p>
             </div>
 

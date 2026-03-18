@@ -73,5 +73,16 @@ export function useStaffAuth() {
     setMe(null);
   }
 
-  return { API, token, me, ready, error, setError, headers, fetchMe, login, logout };
+  return {
+    API,
+    token,
+    me,
+    ready,
+    error,
+    setError,
+    headers,
+    fetchMe,
+    login,
+    logout,
+  };
 }

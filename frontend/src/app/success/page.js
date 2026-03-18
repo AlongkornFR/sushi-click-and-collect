@@ -1,83 +1,83 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
-import { api } from "@/services/api"
-import { useCart } from "@/components/context/CartContext"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { api } from "@/services/api";
+import { useCart } from "@/components/context/CartContext";
 
 function formatEURFromCents(cents) {
-  const euros = (Number(cents) || 0) / 100
-  return euros.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })
+  const euros = (Number(cents) || 0) / 100;
+  return euros.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 }
 
 export default function SuccessPage() {
   // ✅ Hooks TOUJOURS en haut
-  const sp = useSearchParams()
-  const orderId = sp.get("order_id")
-  const { clear } = useCart()
+  const sp = useSearchParams();
+  const orderId = sp.get("order_id");
+  const { clear } = useCart();
 
-  const [order, setOrder] = useState(null)
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(true)
+  const [order, setOrder] = useState(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   // 1) fetch + polling
   useEffect(() => {
-    setError("")
-    setOrder(null)
+    setError("");
+    setOrder(null);
 
     if (!orderId) {
-      setLoading(false)
-      setError("order_id manquant dans l’URL.")
-      return
+      setLoading(false);
+      setError("order_id manquant dans l’URL.");
+      return;
     }
 
-    let cancelled = false
-    let tries = 0
+    let cancelled = false;
+    let tries = 0;
 
     const fetchOrder = async () => {
       try {
-        const res = await api.get(`orders/${orderId}/`)
-        if (cancelled) return
+        const res = await api.get(`orders/${orderId}/`);
+        if (cancelled) return;
 
-        setOrder(res.data)
-        setLoading(false)
+        setOrder(res.data);
+        setLoading(false);
 
         if (res.data.status !== "paid" && tries < 10) {
-          tries += 1
-          setTimeout(fetchOrder, 1500)
+          tries += 1;
+          setTimeout(fetchOrder, 1500);
         }
       } catch (e) {
-        if (cancelled) return
-        setLoading(false)
-        setError("Impossible de récupérer la commande.")
+        if (cancelled) return;
+        setLoading(false);
+        setError("Impossible de récupérer la commande.");
       }
-    }
+    };
 
-    fetchOrder()
+    fetchOrder();
     return () => {
-      cancelled = true
-    }
-  }, [orderId])
+      cancelled = true;
+    };
+  }, [orderId]);
 
   // 2) clear cart only when paid (once)
   useEffect(() => {
-    if (!order) return
-    if (order.status !== "paid") return
+    if (!order) return;
+    if (order.status !== "paid") return;
 
-    const key = `cart_cleared_for_order_${order.id}`
-    if (typeof window !== "undefined" && localStorage.getItem(key)) return
+    const key = `cart_cleared_for_order_${order.id}`;
+    if (typeof window !== "undefined" && localStorage.getItem(key)) return;
 
-    clear()
+    clear();
 
     if (typeof window !== "undefined") {
-      localStorage.setItem(key, "1")
+      localStorage.setItem(key, "1");
     }
-  }, [order, clear])
+  }, [order, clear]);
 
   // ✅ Ensuite seulement on return
   if (loading) {
-    return <div className="max-w-3xl mx-auto px-6 py-20">Chargement...</div>
+    return <div className="max-w-3xl mx-auto px-6 py-20">Chargement...</div>;
   }
 
   if (error) {
@@ -92,10 +92,10 @@ export default function SuccessPage() {
           Revenir au menu
         </Link>
       </div>
-    )
+    );
   }
 
-  const paid = order?.status === "paid"
+  const paid = order?.status === "paid";
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-20 text-center">
@@ -122,7 +122,9 @@ export default function SuccessPage() {
 
         <div className="flex justify-between mt-2 text-sm text-gray-600">
           <span>Total</span>
-          <span className="font-semibold">{formatEURFromCents(order.total_cents)}</span>
+          <span className="font-semibold">
+            {formatEURFromCents(order.total_cents)}
+          </span>
         </div>
 
         <div className="flex justify-between mt-2 text-sm text-gray-600">
@@ -149,7 +151,7 @@ export default function SuccessPage() {
         <div className="mt-10 flex gap-3 justify-center flex-wrap">
           <button
             onClick={() => {
-              if (order.payment_url) window.location.href = order.payment_url
+              if (order.payment_url) window.location.href = order.payment_url;
             }}
             className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
           >
@@ -172,5 +174,5 @@ export default function SuccessPage() {
         </Link>
       )}
     </div>
-  )
+  );
 }

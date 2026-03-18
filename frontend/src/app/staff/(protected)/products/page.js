@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useStaffAuth } from "../../_components/useStaffAuth";
-import {DEFAULT_PRODUCT_IMAGE} from "@/utils/constant"
+import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
 
 const emptyForm = {
   name: "",
@@ -297,7 +297,7 @@ export default function StaffProductsPage() {
     if (!form.category_id) return [];
     return subcategories.filter(
       (sc) =>
-        String(sc.category?.id || sc.category_id) === String(form.category_id)
+        String(sc.category?.id || sc.category_id) === String(form.category_id),
     );
   }, [subcategories, form.category_id]);
 
@@ -305,7 +305,7 @@ export default function StaffProductsPage() {
     if (!selectedCategory) return subcategories;
     return subcategories.filter(
       (sc) =>
-        String(sc.category?.id || sc.category_id) === String(selectedCategory)
+        String(sc.category?.id || sc.category_id) === String(selectedCategory),
     );
   }, [subcategories, selectedCategory]);
 
@@ -325,7 +325,7 @@ export default function StaffProductsPage() {
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE)
+    Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE),
   );
 
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -458,8 +458,8 @@ export default function StaffProductsPage() {
               {loading
                 ? "Enregistrement..."
                 : editingId
-                ? "Mettre à jour"
-                : "Créer"}
+                  ? "Mettre à jour"
+                  : "Créer"}
             </button>
 
             {editingId ? (

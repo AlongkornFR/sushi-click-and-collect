@@ -201,7 +201,9 @@ export default function MenuPage() {
             ${mobileFiltersOpen ? "translate-x-0" : "-translate-x-full"}
           `}
           style={{
-            top: mobileFiltersOpen ? `${MOBILE_GLOBAL_HEADER_OFFSET}px` : undefined,
+            top: mobileFiltersOpen
+              ? `${MOBILE_GLOBAL_HEADER_OFFSET}px`
+              : undefined,
             height: mobileFiltersOpen
               ? `calc(100dvh - ${MOBILE_GLOBAL_HEADER_OFFSET}px)`
               : undefined,
@@ -231,7 +233,9 @@ export default function MenuPage() {
             </div>
 
             {categoryNames.map((categoryName) => {
-              const subcategories = Object.keys(groupedData[categoryName] || {});
+              const subcategories = Object.keys(
+                groupedData[categoryName] || {},
+              );
               const categoryId = `category-${slugify(categoryName)}`;
 
               return (
@@ -266,7 +270,7 @@ export default function MenuPage() {
                     <div className="mt-3 space-y-2 pl-4">
                       {subcategories.map((subcategoryName) => {
                         const subcategoryId = `subcategory-${slugify(
-                          categoryName
+                          categoryName,
                         )}-${slugify(subcategoryName)}`;
 
                         return (
@@ -299,7 +303,9 @@ export default function MenuPage() {
 
           <div className="space-y-12 md:space-y-16">
             {categoryNames.map((categoryName) => {
-              const subcategories = Object.keys(groupedData[categoryName] || {});
+              const subcategories = Object.keys(
+                groupedData[categoryName] || {},
+              );
               const categoryId = `category-${slugify(categoryName)}`;
 
               return (
@@ -318,7 +324,7 @@ export default function MenuPage() {
                   <div className="space-y-10 md:space-y-14">
                     {subcategories.map((subcategoryName) => {
                       const subcategoryId = `subcategory-${slugify(
-                        categoryName
+                        categoryName,
                       )}-${slugify(subcategoryName)}`;
 
                       const subcategoryProducts =

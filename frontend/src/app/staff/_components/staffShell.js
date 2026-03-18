@@ -58,9 +58,13 @@ export default function StaffShell({ children, requireAuth = true }) {
                 <>
                   {me.username}{" "}
                   {me.is_superuser ? (
-                    <span className="ml-2 text-xs font-bold bg-zinc-200 px-2 py-0.5 rounded-full">SUPERUSER</span>
+                    <span className="ml-2 text-xs font-bold bg-zinc-200 px-2 py-0.5 rounded-full">
+                      SUPERUSER
+                    </span>
                   ) : (
-                    <span className="ml-2 text-xs font-bold bg-zinc-200 px-2 py-0.5 rounded-full">STAFF</span>
+                    <span className="ml-2 text-xs font-bold bg-zinc-200 px-2 py-0.5 rounded-full">
+                      STAFF
+                    </span>
                   )}
                 </>
               ) : (

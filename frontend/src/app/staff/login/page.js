@@ -43,11 +43,15 @@ export default function StaffLoginPage() {
     <StaffShell requireAuth={false}>
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <h1 className="text-xl font-extrabold">Connexion Staff</h1>
-        <p className="text-zinc-600 mt-1">Connecte-toi pour accéder au dashboard.</p>
+        <p className="text-zinc-600 mt-1">
+          Connecte-toi pour accéder au dashboard.
+        </p>
 
         <form onSubmit={onSubmit} className="mt-5 grid gap-3">
           <div>
-            <label className="text-sm font-medium text-zinc-700">Username</label>
+            <label className="text-sm font-medium text-zinc-700">
+              Username
+            </label>
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -57,7 +61,9 @@ export default function StaffLoginPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-zinc-700">Password</label>
+            <label className="text-sm font-medium text-zinc-700">
+              Password
+            </label>
             <input
               type="password"
               value={password}

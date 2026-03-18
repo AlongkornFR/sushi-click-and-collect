@@ -27,11 +27,9 @@ export default function RootLayout({ children }) {
       >
         <CartProvider>
           <Navbar />
-          <div className="pt-20">
-            {children}
-          </div>
+          <div className="pt-20">{children}</div>
           <Footer />
-          </CartProvider>
+        </CartProvider>
       </body>
     </html>
   );

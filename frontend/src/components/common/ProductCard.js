@@ -153,7 +153,8 @@ export default function ProductCard({ product }) {
                 <div className="relative h-[240px] bg-zinc-200 sm:h-[280px] lg:h-full">
                   <img
                     src={
-                      displayedProduct.image_main?.trim() || DEFAULT_PRODUCT_IMAGE
+                      displayedProduct.image_main?.trim() ||
+                      DEFAULT_PRODUCT_IMAGE
                     }
                     onError={(e) => {
                       e.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
@@ -274,8 +275,8 @@ export default function ProductCard({ product }) {
                       {isAdding
                         ? "Ajout..."
                         : added
-                        ? "Ajouté ✔"
-                        : "Ajouter au panier"}
+                          ? "Ajouté ✔"
+                          : "Ajouter au panier"}
                     </button>
                   </div>
                 </div>

@@ -1,7 +1,6 @@
 export default function FeatureCard({ image, title, children }) {
   return (
     <div className="flex flex-col group">
-      
       <div className="aspect-square overflow-hidden rounded-2xl bg-gray-200">
         <img
           src={image}
@@ -15,9 +14,7 @@ export default function FeatureCard({ image, title, children }) {
           {title}
         </h3>
 
-        <p className="text-sm text-gray-600 leading-relaxed">
-          {children}
-        </p>
+        <p className="text-sm text-gray-600 leading-relaxed">{children}</p>
       </div>
     </div>
   );
