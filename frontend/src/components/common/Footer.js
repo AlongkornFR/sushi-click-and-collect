@@ -4,17 +4,21 @@ import { FaFacebookF, FaInstagram,FaClock  } from "react-icons/fa";
 const Footer = () => {
   return (
     <footer className="bg-black text-white px-6 md:px-12 py-14">
+        <h3 className="text-center pb-16 font-bold">
+          L'abus d'alcool est dangereux pour la santé, à consommer avec modération. La vente d'alcool est interdite aux mineurs.
+          </h3>
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
         
         {/* Colonne 1 */}
         <div>
           <h3 className="text-3xl font-bold mb-6">Su-Rice</h3>
           <ul className="space-y-3 text-lg font-medium text-gray-100">
-            <li><a href="#shops" className="hover:text-gray-400 transition">Nos Shops</a></li>
-            <li><a href="#news" className="hover:text-gray-400 transition">Actualités</a></li>
+            <li><a href="menu" className="hover:text-gray-400 transition">Nos Shops</a></li>
             <li><a href="#allergens" className="hover:text-gray-400 transition">Allergènes</a></li>
             <li><a href="#products" className="hover:text-gray-400 transition">Origine de nos produits</a></li>
             <li><a href="#ingredients" className="hover:text-gray-400 transition">Glossaire des ingrédients</a></li>
+            <li><a href="cgv" className="hover:text-gray-400 transition">CGV</a></li>
+            <li><a href="mentions-legales" className="hover:text-gray-400 transition">Mentions légales</a></li>
           </ul>
         </div>
 
@@ -24,7 +28,7 @@ const Footer = () => {
           <ul className="space-y-4 text-lg font-medium text-gray-100">
             <li>
               <a
-                href="https://facebook.com"
+                href="https://www.facebook.com/p/Su-Rice-100094653054085/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-4 hover:text-gray-400 transition"
@@ -36,7 +40,7 @@ const Footer = () => {
 
             <li>
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/surice.cannes/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-4 hover:text-gray-400 transition"

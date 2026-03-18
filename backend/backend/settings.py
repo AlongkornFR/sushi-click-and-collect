@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'products',
     'orders',
+    'contact',
 ]
 
 MIDDLEWARE = [
@@ -143,3 +144,9 @@ PAYPLUG_SECRET_KEY = os.environ.get("PAYPLUG_SECRET_KEY", "")
 PAYPLUG_API_VERSION = os.environ.get("PAYPLUG_API_VERSION", "2019-08-06")
 FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://localhost:3000")
 BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://127.0.0.1:8000")
+
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+DEFAULT_FROM_EMAIL = "contact@tonsite.com"
+CONTACT_RECEIVER_EMAIL = "tonadresseperso@gmail.com"

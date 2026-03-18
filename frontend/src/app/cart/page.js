@@ -14,23 +14,26 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-16 text-center">
-        <h1 className="text-3xl font-bold">Votre panier est vide</h1>
-        <p className="text-gray-500 mt-2">
-          Ajoutez des produits depuis le menu pour commencer votre commande.
-        </p>
-        <Link
-          href="/menu"
-          className="inline-block mt-8 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
-        >
-          Voir le menu
-        </Link>
+      <div className="min-h-[90vh] flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-2xl text-center">
+          <h1 className="text-3xl md:text-4xl font-bold">Votre panier est vide</h1>
+          <p className="text-gray-500 mt-3 text-base md:text-lg">
+            Ajoutez des produits depuis le menu pour commencer votre commande.
+          </p>
+
+          <Link
+            href="/menu"
+            className="inline-block mt-8 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
+          >
+            Voir le menu
+          </Link>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="max-w-6xl mx-auto px-6 py-12 min-h-screen">
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold">Panier</h1>
@@ -90,7 +93,6 @@ export default function CartPage() {
                     </div>
 
                     <div className="mt-4 flex items-center justify-between gap-4">
-                      {/* Quantity controls */}
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => decrement(it.id)}

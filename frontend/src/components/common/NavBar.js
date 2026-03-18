@@ -31,7 +31,7 @@ export default function Navbar() {
           {/* Links */}
         <div className="flex items-center gap-8 text-sm font-medium">
           
-          <Link href="/menu" className="hover:text-gray-500 transition">
+          <Link href="/contact" className="hover:text-gray-500 transition">
             Contact
           </Link>
           <Link href="/cart" className="relative hover:text-gray-500 transition">

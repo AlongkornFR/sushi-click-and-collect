@@ -312,7 +312,7 @@ export default function MenuPage() {
                     <h2 className="text-2xl font-semibold text-zinc-900 md:text-3xl">
                       {categoryName}
                     </h2>
-                    <div className="mt-3 h-px w-1/ bg-zinc-200" />
+                    <div className="mt-3 h-px w-1/12 bg-zinc-200" />
                   </div>
 
                   <div className="space-y-10 md:space-y-14">
