@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FaArrowRight } from "react-icons/fa6";
 import { api } from "@/services/api";
+import Image from 'next/image'
 
 const emptyForm = {
   firstName: "",
@@ -151,12 +152,12 @@ export default function ContactPage() {
           </div>
 
           <div className="flex flex-col gap-5">
-            <div className="overflow-hidden rounded-[24px] bg-zinc-100">
-              <div className="flex min-h-[320px] items-center justify-center md:min-h-[420px]">
-                <span className="text-3xl text-zinc-700 md:text-4xl">
-                  IMAGE
-                </span>
-              </div>
+            <div className="overflow-hidden rounded-3xl bg-zinc-100">
+              <img
+                src="https://lh3.googleusercontent.com/p/AF1QipNnfxorl-c8P8g83SbzeD1kxqt95m8yYms2kPOk=s680-w680-h510-rw"
+                alt="Su-Rice"
+                className="min-h-80 maw-h-50 w-full object-cover md:min-h-105"
+              />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

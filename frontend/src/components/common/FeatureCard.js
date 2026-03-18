@@ -1,19 +1,24 @@
-export default function FeatureCard({ image, text }) {
+export default function FeatureCard({ image, title, children }) {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col group">
       
-      <div className="bg-gray-200 aspect-square rounded-2xl overflow-hidden">
+      <div className="aspect-square overflow-hidden rounded-2xl bg-gray-200">
         <img
           src={image}
-          alt="feature"
-          className="w-full h-full object-cover"
+          alt={title}
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
       </div>
 
-      <p className="mt-4 text-sm text-gray-700 leading-relaxed">
-        {text}
-      </p>
+      <div className="mt-4 space-y-1">
+        <h3 className="text-base font-semibold text-black tracking-tight">
+          {title}
+        </h3>
 
+        <p className="text-sm text-gray-600 leading-relaxed">
+          {children}
+        </p>
+      </div>
     </div>
   );
 }
