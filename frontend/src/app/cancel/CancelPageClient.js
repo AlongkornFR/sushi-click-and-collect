@@ -15,7 +15,7 @@ export default function CancelPageClient() {
         payée.
       </p>
 
-      <div className="mt-10 flex gap-3 justify-center flex-wrap">
+      <div className="mt-8 flex gap-3 justify-center flex-wrap">
         <Link
           href="/cart"
           className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
