@@ -23,14 +23,12 @@ load_dotenv(BASE_DIR / ".env")
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-1w1w0g93*57)7h+hwcd8t4l3*e(hzputg2y2eb3qt400=a(78('
-
-PAYPLUG_SECRET_KEY = os.getenv("PAYPLUG_SECRET_KEY", "")
+SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-1w1w0g93*57)7h+hwcd8t4l3*e(hzputg2y2eb3qt400=a(78(")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".ngrok-free.app", ".ngrok-free.dev"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".ngrok-free.app", ".ngrok-free.dev", ".onrender.com"]
 
 
 # Application definition
@@ -90,12 +88,20 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if DATABASE_URL:
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -133,13 +139,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://localhost:3000")
+BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://127.0.0.1:8000")
 
-CORS_ALLOW_ALL_ORIGINS = True
-
-
+CORS_ALLOWED_ORIGINS = [
+    FRONTEND_BASE_URL,
+    "http://localhost:3000",
+]
 
 PAYPLUG_SECRET_KEY = os.environ.get("PAYPLUG_SECRET_KEY", "")
 PAYPLUG_API_VERSION = os.environ.get("PAYPLUG_API_VERSION", "2019-08-06")
-FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://localhost:3000")
-BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://127.0.0.1:8000")
