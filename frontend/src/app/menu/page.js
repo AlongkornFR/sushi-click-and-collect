@@ -15,19 +15,39 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "");
 }
 
-/**
- * Ajuste cette valeur à la hauteur réelle de ton header principal mobile.
- * D'après ta capture, 84px est une bonne base.
- */
 const MOBILE_GLOBAL_HEADER_OFFSET = 80;
-
-/**
- * Hauteur approximative de la barre flottante "Notre Menu"
- */
 const MOBILE_MENU_BAR_HEIGHT = 30;
 
+function ProductCardSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="skeleton aspect-square w-full rounded-2xl" />
+      <div className="skeleton h-3.5 w-3/4 rounded-full" />
+      <div className="skeleton h-3 w-1/3 rounded-full" />
+    </div>
+  );
+}
+
+function MenuSkeleton() {
+  return (
+    <div className="space-y-14">
+      {[1, 2].map((section) => (
+        <div key={section}>
+          <div className="skeleton mb-8 h-7 w-40 rounded-xl" />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function MenuPage() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts]             = useState([]);
+  const [loading, setLoading]               = useState(true);
   const [openCategories, setOpenCategories] = useState({});
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
@@ -39,32 +59,23 @@ export default function MenuPage() {
       } catch (error) {
         console.error("Erreur lors du chargement des produits :", error);
         setProducts([]);
+      } finally {
+        setLoading(false);
       }
     }
-
     fetchProducts();
   }, []);
 
   const groupedData = useMemo(() => {
     const groups = {};
-
     products.forEach((product) => {
       if (!product.category?.name || !product.subcategory?.name) return;
-
-      const categoryName = product.category.name;
-      const subcategoryName = product.subcategory.name;
-
-      if (!groups[categoryName]) {
-        groups[categoryName] = {};
-      }
-
-      if (!groups[categoryName][subcategoryName]) {
-        groups[categoryName][subcategoryName] = [];
-      }
-
-      groups[categoryName][subcategoryName].push(product);
+      const cat = product.category.name;
+      const sub = product.subcategory.name;
+      if (!groups[cat]) groups[cat] = {};
+      if (!groups[cat][sub]) groups[cat][sub] = [];
+      groups[cat][sub].push(product);
     });
-
     return groups;
   }, [products]);
 
@@ -72,213 +83,174 @@ export default function MenuPage() {
 
   useEffect(() => {
     if (categoryNames.length === 0) return;
-
     const initialState = {};
-    categoryNames.forEach((cat) => {
-      initialState[cat] = true;
-    });
+    categoryNames.forEach((cat) => { initialState[cat] = true; });
     setOpenCategories(initialState);
   }, [categoryNames]);
 
   useEffect(() => {
-    if (mobileFiltersOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-
-    return () => {
-      document.body.style.overflow = "";
-    };
+    document.body.style.overflow = mobileFiltersOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
   }, [mobileFiltersOpen]);
 
   function toggleCategory(categoryName) {
-    setOpenCategories((prev) => ({
-      ...prev,
-      [categoryName]: !prev[categoryName],
-    }));
+    setOpenCategories((prev) => ({ ...prev, [categoryName]: !prev[categoryName] }));
   }
 
   function scrollToSection(sectionId) {
     const element = document.getElementById(sectionId);
     if (!element) return;
-
     const isMobile = window.innerWidth < 1024;
     const extraOffset = isMobile
       ? MOBILE_GLOBAL_HEADER_OFFSET + MOBILE_MENU_BAR_HEIGHT + 12
       : 120;
-
-    const y =
-      element.getBoundingClientRect().top + window.pageYOffset - extraOffset;
-
-    window.scrollTo({
-      top: y,
-      behavior: "smooth",
-    });
+    const y = element.getBoundingClientRect().top + window.pageYOffset - extraOffset;
+    window.scrollTo({ top: y, behavior: "smooth" });
   }
 
   function handleGoToAll() {
     setMobileFiltersOpen(false);
-
-    setTimeout(() => {
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    }, 120);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 120);
   }
 
-  function handleGoToCategory(categoryId) {
+  function handleGoToCategory(id) {
     setMobileFiltersOpen(false);
-
-    setTimeout(() => {
-      scrollToSection(categoryId);
-    }, 150);
+    setTimeout(() => scrollToSection(id), 150);
   }
 
-  function handleGoToSubcategory(subcategoryId) {
+  function handleGoToSubcategory(id) {
     setMobileFiltersOpen(false);
-
-    setTimeout(() => {
-      scrollToSection(subcategoryId);
-    }, 150);
+    setTimeout(() => scrollToSection(id), 150);
   }
 
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6">
-      {/* Barre flottante mobile sous le header principal */}
+
+      {/* ── Barre flottante mobile ── */}
       <div
         className="fixed inset-x-0 z-30 border-b border-zinc-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 lg:hidden"
         style={{ top: `${MOBILE_GLOBAL_HEADER_OFFSET}px` }}
       >
-        <div className="mx-auto max-w-7xl px-4 py-4">
-          <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 py-3">
+          <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm">
             <div className="min-w-0 pr-4">
-              <h1 className="text-2xl font-semibold text-zinc-900">
-                Notre Menu
-              </h1>
-              <p className="mt-1 text-sm text-zinc-500">
-                Commandez en ligne, récupérez sur place
-              </p>
+              <h1 className="text-xl font-bold text-zinc-900">Notre Menu</h1>
+              <p className="text-xs text-zinc-400">Commandez en ligne · Click & Collect</p>
             </div>
-
             <button
               type="button"
               onClick={() => setMobileFiltersOpen(true)}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-800 transition hover:bg-zinc-100"
+              className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700 transition hover:bg-zinc-100 active:scale-95"
               aria-label="Ouvrir les filtres"
             >
-              <FaBars className="text-lg" />
+              <FaBars className="text-base" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Espace réservé header principal + barre flottante menu */}
+      {/* Espace réservé mobile */}
       <div
         className="lg:hidden"
-        style={{
-          height: `${MOBILE_GLOBAL_HEADER_OFFSET + MOBILE_MENU_BAR_HEIGHT + 16}px`,
-        }}
+        style={{ height: `${MOBILE_GLOBAL_HEADER_OFFSET + MOBILE_MENU_BAR_HEIGHT + 20}px` }}
       />
 
       <div className="grid grid-cols-1 gap-8 py-6 md:py-10 lg:grid-cols-12">
-        {/* Overlay mobile */}
+
+        {/* ── Overlay mobile ── */}
         {mobileFiltersOpen && (
           <button
             type="button"
             onClick={() => setMobileFiltersOpen(false)}
-            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
             aria-label="Fermer les filtres"
           />
         )}
 
-        {/* Sidebar / Drawer */}
+        {/* ── Sidebar ── */}
         <aside
           className={`
-            fixed inset-y-0 left-0 z-50 w-[85%] max-w-[320px] overflow-y-auto bg-zinc-100 p-6 transition-transform duration-300
-            lg:sticky lg:top-24 lg:z-auto lg:block lg:min-h-full lg:w-auto lg:max-w-none lg:translate-x-0 lg:self-start lg:overflow-visible lg:bg-zinc-100 lg:p-6 lg:col-span-3
+            fixed inset-y-0 left-0 z-50 w-[82%] max-w-[300px] overflow-y-auto bg-white p-6 shadow-2xl transition-transform duration-300 ease-in-out
+            lg:sticky lg:top-24 lg:z-auto lg:block lg:h-fit lg:w-auto lg:max-w-none lg:translate-x-0 lg:self-start lg:overflow-visible lg:rounded-2xl lg:border lg:border-zinc-100 lg:bg-zinc-50 lg:p-6 lg:shadow-sm lg:col-span-3
             ${mobileFiltersOpen ? "translate-x-0" : "-translate-x-full"}
           `}
           style={{
-            top: mobileFiltersOpen
-              ? `${MOBILE_GLOBAL_HEADER_OFFSET}px`
-              : undefined,
-            height: mobileFiltersOpen
-              ? `calc(100dvh - ${MOBILE_GLOBAL_HEADER_OFFSET}px)`
-              : undefined,
+            top:    mobileFiltersOpen ? `${MOBILE_GLOBAL_HEADER_OFFSET}px` : undefined,
+            height: mobileFiltersOpen ? `calc(100dvh - ${MOBILE_GLOBAL_HEADER_OFFSET}px)` : undefined,
           }}
         >
+          {/* Mobile header */}
           <div className="mb-6 flex items-center justify-between lg:hidden">
-            <h2 className="text-lg font-semibold text-zinc-900">Filtres</h2>
+            <h2 className="text-lg font-bold text-zinc-900">Filtres</h2>
             <button
               type="button"
               onClick={() => setMobileFiltersOpen(false)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-800 transition hover:bg-zinc-100"
+              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 text-zinc-700 transition hover:bg-zinc-100 active:scale-95"
               aria-label="Fermer les filtres"
             >
-              <FaXmark className="text-lg" />
+              <FaXmark className="text-base" />
             </button>
           </div>
 
-          <div className="space-y-4">
-            <div className="border-b border-zinc-400/60 pb-3">
-              <button
-                type="button"
-                onClick={handleGoToAll}
-                className="block text-left text-base font-semibold text-zinc-700 transition hover:text-black md:text-lg"
-              >
-                Tous les produits
-              </button>
-            </div>
+          <nav className="space-y-1">
+            {/* Tous les produits */}
+            <button
+              type="button"
+              onClick={handleGoToAll}
+              className="flex w-full cursor-pointer items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-zinc-800 transition hover:bg-zinc-200 active:scale-[.98]"
+            >
+              Tous les produits
+            </button>
 
+            <div className="my-3 h-px bg-zinc-200" />
+
+            {/* Skeleton sidebar */}
+            {loading && (
+              <div className="space-y-3 pt-1">
+                {[80, 60, 70, 55].map((w, i) => (
+                  <div key={i} className={`skeleton h-4 rounded-full`} style={{ width: `${w}%` }} />
+                ))}
+              </div>
+            )}
+
+            {/* Categories */}
             {categoryNames.map((categoryName) => {
-              const subcategories = Object.keys(
-                groupedData[categoryName] || {},
-              );
+              const subcategories = Object.keys(groupedData[categoryName] || {});
               const categoryId = `category-${slugify(categoryName)}`;
 
               return (
-                <div
-                  key={categoryName}
-                  className="border-b border-zinc-400/60 pb-3"
-                >
-                  <div className="flex items-center justify-between gap-2">
+                <div key={categoryName}>
+                  <div className="flex items-center justify-between gap-1 rounded-xl px-3 py-2 transition hover:bg-zinc-200">
                     <button
                       type="button"
                       onClick={() => handleGoToCategory(categoryId)}
-                      className="text-left text-xl font-light lowercase text-zinc-700 transition hover:text-black md:text-2xl"
+                      className="flex-1 cursor-pointer text-left text-sm font-semibold text-zinc-800 transition hover:text-black"
                     >
                       {categoryName}
                     </button>
-
                     <button
                       type="button"
                       onClick={() => toggleCategory(categoryName)}
-                      className="text-zinc-700 transition hover:text-black"
+                      className="cursor-pointer p-1 text-zinc-400 transition hover:text-zinc-700"
                       aria-label={`Ouvrir ou fermer ${categoryName}`}
                     >
-                      {openCategories[categoryName] ? (
-                        <FaChevronUp className="text-sm" />
-                      ) : (
-                        <FaChevronDown className="text-sm" />
-                      )}
+                      {openCategories[categoryName]
+                        ? <FaChevronUp className="text-xs" />
+                        : <FaChevronDown className="text-xs" />
+                      }
                     </button>
                   </div>
 
                   {openCategories[categoryName] && (
-                    <div className="mt-3 space-y-2 pl-4">
+                    <div className="mb-1 ml-3 mt-0.5 space-y-0.5 border-l-2 border-zinc-200 pl-3">
                       {subcategories.map((subcategoryName) => {
-                        const subcategoryId = `subcategory-${slugify(
-                          categoryName,
-                        )}-${slugify(subcategoryName)}`;
-
+                        const subcategoryId = `subcategory-${slugify(categoryName)}-${slugify(subcategoryName)}`;
                         return (
                           <button
-                            key={`${categoryName}-${subcategoryName}`}
+                            key={subcategoryName}
                             type="button"
                             onClick={() => handleGoToSubcategory(subcategoryId)}
-                            className="block text-left text-base text-zinc-600 transition hover:text-black md:text-lg"
+                            className="block w-full cursor-pointer rounded-lg px-2 py-1.5 text-left text-sm text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-900"
                           >
                             {subcategoryName}
                           </button>
@@ -289,81 +261,78 @@ export default function MenuPage() {
                 </div>
               );
             })}
-          </div>
+          </nav>
         </aside>
 
-        {/* Contenu */}
+        {/* ── Contenu principal ── */}
         <main className="lg:col-span-9">
-          <div className="mb-8 hidden lg:block">
-            <h1 className="text-4xl font-semibold md:text-5xl">Notre Menu</h1>
-            <p className="mt-2 text-lg text-gray-600">
-              Commandez en ligne, récupérez sur place
-            </p>
+
+          {/* Header desktop */}
+          <div className="mb-10 hidden lg:block">
+            <h1 className="text-5xl font-bold tracking-tight text-zinc-900">Notre Menu</h1>
+            <p className="mt-2 text-base text-zinc-400">Commandez en ligne · Récupérez sur place</p>
+            <div className="mt-5 h-px bg-zinc-100" />
           </div>
 
-          <div className="space-y-12 md:space-y-16">
-            {categoryNames.map((categoryName) => {
-              const subcategories = Object.keys(
-                groupedData[categoryName] || {},
-              );
-              const categoryId = `category-${slugify(categoryName)}`;
+          {/* ── Skeleton loading ── */}
+          {loading && <MenuSkeleton />}
 
-              return (
-                <section
-                  key={categoryName}
-                  id={categoryId}
-                  className="scroll-mt-32"
-                >
-                  <div className="mb-6 md:mb-8">
-                    <h2 className="text-2xl font-semibold text-zinc-900 md:text-3xl">
-                      {categoryName}
-                    </h2>
-                    <div className="mt-3 h-px w-1/ bg-zinc-200" />
-                  </div>
+          {/* ── Produits ── */}
+          {!loading && (
+            <div className="space-y-16">
+              {categoryNames.map((categoryName) => {
+                const subcategories = Object.keys(groupedData[categoryName] || {});
+                const categoryId = `category-${slugify(categoryName)}`;
 
-                  <div className="space-y-10 md:space-y-14">
-                    {subcategories.map((subcategoryName) => {
-                      const subcategoryId = `subcategory-${slugify(
-                        categoryName,
-                      )}-${slugify(subcategoryName)}`;
+                return (
+                  <section key={categoryName} id={categoryId} className="scroll-mt-36">
+                    {/* Category header */}
+                    <div className="mb-8 flex items-center gap-4">
+                      <h2 className="text-2xl font-bold text-zinc-900 md:text-3xl">
+                        {categoryName}
+                      </h2>
+                      <div className="h-px flex-1 bg-zinc-100" />
+                    </div>
 
-                      const subcategoryProducts =
-                        groupedData[categoryName][subcategoryName] || [];
+                    <div className="space-y-12">
+                      {subcategories.map((subcategoryName) => {
+                        const subcategoryId = `subcategory-${slugify(categoryName)}-${slugify(subcategoryName)}`;
+                        const subcategoryProducts = groupedData[categoryName][subcategoryName] || [];
 
-                      return (
-                        <section
-                          key={`${categoryName}-${subcategoryName}`}
-                          id={subcategoryId}
-                          className="scroll-mt-32"
-                        >
-                          <div className="mb-5 md:mb-6">
-                            <h3 className="text-xl font-medium text-zinc-800 md:text-2xl">
-                              {subcategoryName}
-                            </h3>
-                            <div className="mt-3 h-px w-full bg-zinc-300" />
-                          </div>
+                        return (
+                          <section key={subcategoryName} id={subcategoryId} className="scroll-mt-36">
+                            {/* Subcategory header */}
+                            <div className="mb-6 flex items-center gap-3">
+                              <h3 className="text-base font-semibold uppercase tracking-widest text-zinc-400">
+                                {subcategoryName}
+                              </h3>
+                              <div className="h-px flex-1 bg-zinc-100" />
+                              <span className="text-xs text-zinc-300">
+                                {subcategoryProducts.length} produit{subcategoryProducts.length > 1 ? "s" : ""}
+                              </span>
+                            </div>
 
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-                            {subcategoryProducts.map((product) => (
-                              <div key={product.id} className="flex flex-col">
-                                <div className="relative">
-                                  <ProductCard product={product} />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-8 xl:grid-cols-3">
+                              {subcategoryProducts.map((product) => (
+                                <ProductCard key={product.id} product={product} />
+                              ))}
+                            </div>
+                          </section>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          )}
 
-          {categoryNames.length === 0 && (
-            <div className="mt-10 rounded-2xl border border-dashed border-zinc-300 p-8 text-center text-zinc-500">
-              Aucun produit disponible pour le moment.
+          {/* ── Empty state ── */}
+          {!loading && categoryNames.length === 0 && (
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-200 py-24 text-center">
+              <span className="text-5xl">🍣</span>
+              <p className="mt-4 text-base font-medium text-zinc-500">Aucun produit disponible pour le moment.</p>
+              <p className="mt-1 text-sm text-zinc-400">Revenez bientôt !</p>
             </div>
           )}
         </main>
