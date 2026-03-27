@@ -18,7 +18,7 @@ const emptyForm = {
 const PRODUCTS_PER_PAGE = 8;
 
 export default function StaffProductsPage() {
-  const { API, headers, token } = useStaffAuth();
+  const { API, headers, token, authFetch } = useStaffAuth();
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -41,8 +41,7 @@ export default function StaffProductsPage() {
 
   async function fetchProducts() {
     try {
-      const res = await fetch(`${API}/staff/products/`, {
-        headers,
+      const res = await authFetch(`${API}/staff/products/`, {
         cache: "no-store",
       });
 
@@ -59,8 +58,7 @@ export default function StaffProductsPage() {
 
   async function fetchCategories() {
     try {
-      const res = await fetch(`${API}/staff/categories/`, {
-        headers,
+      const res = await authFetch(`${API}/staff/categories/`, {
         cache: "no-store",
       });
 
@@ -81,10 +79,7 @@ export default function StaffProductsPage() {
         ? `${API}/staff/subcategories/?category_id=${categoryId}`
         : `${API}/staff/subcategories/`;
 
-      const res = await fetch(url, {
-        headers,
-        cache: "no-store",
-      });
+      const res = await authFetch(url, { cache: "no-store" });
 
       if (!res.ok) {
         throw new Error(await res.text());
@@ -189,12 +184,9 @@ export default function StaffProductsPage() {
 
       const method = editingId ? "PATCH" : "POST";
 
-      const res = await fetch(url, {
+      const res = await authFetch(url, {
         method,
-        headers: {
-          "Content-Type": "application/json",
-          ...headers,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -225,12 +217,9 @@ export default function StaffProductsPage() {
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g, "-");
 
-      const res = await fetch(`${API}/staff/categories/create/`, {
+      const res = await authFetch(`${API}/staff/categories/create/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...headers,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newCategory.trim(),
           slug,
@@ -269,12 +258,9 @@ export default function StaffProductsPage() {
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g, "-");
 
-      const res = await fetch(`${API}/staff/subcategories/create/`, {
+      const res = await authFetch(`${API}/staff/subcategories/create/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...headers,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newSubCategory.trim(),
           slug,

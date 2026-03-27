@@ -13,7 +13,7 @@ const STATUSES = [
 ];
 
 export default function StaffOrdersPage() {
-  const { API, headers, token } = useStaffAuth();
+  const { API, headers, token, authFetch } = useStaffAuth();
   const [statusFilter, setStatusFilter] = useState("");
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState("");
@@ -26,7 +26,7 @@ export default function StaffOrdersPage() {
       const url = new URL(`${API}/staff/orders/`);
       if (statusFilter) url.searchParams.set("status", statusFilter);
 
-      const res = await fetch(url.toString(), { headers, cache: "no-store" });
+      const res = await authFetch(url.toString(), { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status} - ${await res.text()}`);
       const data = await res.json();
       setOrders(Array.isArray(data) ? data : []);
@@ -39,9 +39,9 @@ export default function StaffOrdersPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API}/staff/orders/${orderId}/status/`, {
+      const res = await authFetch(`${API}/staff/orders/${orderId}/status/`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...headers },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status} - ${await res.text()}`);

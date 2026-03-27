@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export function useStaffAuth() {
   const API = process.env.NEXT_PUBLIC_API_URL;
+  const router = useRouter();
 
   const [token, setToken] = useState("");
   const [me, setMe] = useState(null);
@@ -73,6 +75,19 @@ export function useStaffAuth() {
     setMe(null);
   }
 
+  async function authFetch(url, options = {}) {
+    const res = await fetch(url, {
+      ...options,
+      headers: { ...options.headers, ...headers },
+    });
+    if (res.status === 401) {
+      logout();
+      router.replace("/staff/login");
+      throw new Error("Session expirée. Veuillez vous reconnecter.");
+    }
+    return res;
+  }
+
   return {
     API,
     token,
@@ -84,5 +99,6 @@ export function useStaffAuth() {
     fetchMe,
     login,
     logout,
+    authFetch,
   };
 }
