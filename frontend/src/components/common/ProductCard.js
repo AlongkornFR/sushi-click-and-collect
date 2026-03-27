@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "@/services/api";
 import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
 import { useCart } from "@/components/context/CartContext";
@@ -117,8 +118,8 @@ export default function ProductCard({ product }) {
         </div>
       </button>
 
-      {/* ── Modal ── */}
-      {open && (
+      {/* ── Modal (portal → hors de tout parent overflow/stacking) ── */}
+      {open && createPortal(
         <div className="fixed inset-0 z-[120]">
           {/* Backdrop */}
           <button
@@ -256,7 +257,8 @@ export default function ProductCard({ product }) {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
