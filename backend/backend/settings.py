@@ -149,8 +149,14 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
 ]
 
+# Support comma-separated extra origins via env var (e.g. staging URLs)
+_extra = os.environ.get("CORS_EXTRA_ORIGINS", "")
+if _extra:
+    CORS_ALLOWED_ORIGINS += [o.strip() for o in _extra.split(",") if o.strip()]
+
+# Covers all *.vercel.app preview/staging deployments
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://[\w.-]+\.vercel\.app$",
+    r"^https://[\w-]+\.vercel\.app$",
 ]
 PAYPLUG_SECRET_KEY = os.environ.get("PAYPLUG_SECRET_KEY", "")
 PAYPLUG_API_VERSION = os.environ.get("PAYPLUG_API_VERSION", "2019-08-06")
