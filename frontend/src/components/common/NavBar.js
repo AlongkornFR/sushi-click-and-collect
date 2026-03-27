@@ -3,62 +3,222 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/components/context/CartContext";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { FaBars, FaXmark } from "react-icons/fa6";
+import { FaShoppingBag, FaPhone, FaMapMarkerAlt } from "react-icons/fa";
 import Logo from "../../../public/Surice_logo.webp";
 
+const MAPS_URL =
+  "https://www.google.com/maps/place/Su-Rice/@43.5585923,7.0140804,17z/data=!3m1!4b1!4m6!3m5!1s0x12ce816d613a0a6d:0xccffb8a670629cf8!8m2!3d43.5585884!4d7.0166553!16s%2Fg%2F11krh5b4jt?entry=ttu&g_ep=EgoyMDI2MDMwNC4xIKXMDSoASAFQAw%3D%3D";
+
+const PHONE = "+33 4 93 XX XX XX"; // 👈 remplace par le vrai numéro
+const PHONE_HREF = "tel:+3349XXXXXXX";
+
+const NAV_LINKS = [
+  { href: "/",       label: "Accueil" },
+  { href: "/menu",   label: "Carte"   },
+  { href: "/contact",label: "Contact" },
+];
+
 export default function Navbar() {
-  const { count } = useCart();
+  const { count }     = useCart();
+  const pathname      = usePathname();
+  const [open, setOpen] = useState(false);
+
+  /* lock scroll when drawer is open */
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
+
+  /* close drawer on route change */
+  useEffect(() => { setOpen(false); }, [pathname]);
+
+  const isActive = (href) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  const desktopLinkClass = (href) =>
+    `text-sm font-medium transition-colors duration-200 ${
+      isActive(href) ? "text-black" : "text-zinc-500 hover:text-black"
+    }`;
 
   return (
-    <nav className="w-full border-b bg-white fixed top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        {/* Logo */}
-        <div className="flex items-center gap-6 text-sm font-medium">
-          <Link href="/" className="text-2xl font-bold tracking-tight">
-            <Image
-              src={Logo}
-              alt="Su Rice Logo"
-              className=""
-              width={50}
-              height={50}
-            />
-          </Link>
-          <Link href="/menu" className="hover:text-gray-500 transition">
-            Carte
-          </Link>
-          <div className="w-px h-6 bg-gray-300"></div>
-          <Link
-            href="https://www.google.com/maps/place/Su-Rice/@43.5585923,7.0140804,17z/data=!3m1!4b1!4m6!3m5!1s0x12ce816d613a0a6d:0xccffb8a670629cf8!8m2!3d43.5585884!4d7.0166553!16s%2Fg%2F11krh5b4jt?entry=ttu&g_ep=EgoyMDI2MDMwNC4xIKXMDSoASAFQAw%3D%3D"
-            target="_blank"
-            className="hover:text-gray-500 transition flex items-center gap-2"
-          >
-            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </Link>
-        </div>
+    <>
+      <nav className="fixed inset-x-0 top-0 z-50 border-b border-zinc-200/70 bg-white/85 backdrop-blur-md">
+        <div className="mx-auto max-w-7xl px-4 md:px-6">
 
-        {/* Links */}
-        <div className="flex items-center gap-8 text-sm font-medium">
-          <Link href="/contact" className="hover:text-gray-500 transition">
-            Contact
-          </Link>
-          <Link
-            href="/cart"
-            className="relative hover:text-gray-500 transition"
-          >
-            Panier
-            {count > 0 && (
-              <span className="absolute -top-2 -right-3 bg-black text-white text-xs rounded-full px-2 py-0.5">
-                {count}
-              </span>
-            )}
-          </Link>
+          {/* ── Desktop ── */}
+          <div className="hidden h-16 items-center justify-between md:flex">
+
+            {/* Left */}
+            <div className="flex items-center gap-5">
+              <Link href="/">
+                <Image src={Logo} alt="Su Rice" width={44} height={44} />
+              </Link>
+
+              <div className="h-5 w-px bg-zinc-200" />
+
+              {NAV_LINKS.filter((l) => l.href !== "/").map(({ href, label }) => (
+                <Link key={href} href={href} className={desktopLinkClass(href)}>
+                  {label}
+                </Link>
+              ))}
+
+              <div className="h-5 w-px bg-zinc-200" />
+
+              <Link
+                href={MAPS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Voir sur Google Maps"
+                className="text-zinc-400 transition-colors hover:text-zinc-700"
+              >
+                <FaMapMarkerAlt className="h-4 w-4" />
+              </Link>
+
+              <a
+                href={PHONE_HREF}
+                className="flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-black"
+              >
+                <FaPhone className="h-3 w-3" />
+                {PHONE}
+              </a>
+            </div>
+
+            {/* Right */}
+            <Link
+              href="/cart"
+              className="relative flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-zinc-700 active:scale-95"
+            >
+              <FaShoppingBag className="text-base" />
+              Panier
+              {count > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-black text-[10px] font-bold text-white">
+                  {count}
+                </span>
+              )}
+            </Link>
+          </div>
+
+          {/* ── Mobile ── */}
+          <div className="flex h-16 items-center justify-between md:hidden">
+
+            {/* Left: hamburger */}
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-zinc-700 transition hover:bg-zinc-100 active:scale-95"
+              aria-label="Ouvrir le menu"
+            >
+              <FaBars className="text-lg" />
+            </button>
+
+            {/* Center: logo */}
+            <Link href="/">
+              <Image src={Logo} alt="Su Rice" width={42} height={42} />
+            </Link>
+
+            {/* Right: cart */}
+            <Link
+              href="/cart"
+              className="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-zinc-700 transition hover:bg-zinc-100 active:scale-95"
+              aria-label="Panier"
+            >
+              <FaShoppingBag className="text-lg" />
+              {count > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[9px] font-bold text-white">
+                  {count}
+                </span>
+              )}
+            </Link>
+          </div>
+
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* ── Mobile drawer ── */}
+      {open && (
+        <div className="fixed inset-0 z-60 md:hidden">
+          {/* Overlay */}
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            aria-label="Fermer le menu"
+          />
+
+          {/* Drawer */}
+          <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-white shadow-2xl">
+
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
+              <Image src={Logo} alt="Su Rice" width={38} height={38} />
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-zinc-600 transition hover:bg-zinc-100 active:scale-95"
+                aria-label="Fermer"
+              >
+                <FaXmark className="text-lg" />
+              </button>
+            </div>
+
+            {/* Links */}
+            <nav className="flex-1 space-y-1 px-4 py-5">
+              {NAV_LINKS.map(({ href, label }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center rounded-xl px-4 py-3 text-base font-medium transition ${
+                    isActive(href)
+                      ? "bg-zinc-100 text-black"
+                      : "text-zinc-600 hover:bg-zinc-50 hover:text-black"
+                  }`}
+                >
+                  {label}
+                </Link>
+              ))}
+
+              <Link
+                href="/cart"
+                className={`flex items-center justify-between rounded-xl px-4 py-3 text-base font-medium transition ${
+                  isActive("/cart")
+                    ? "bg-zinc-100 text-black"
+                    : "text-zinc-600 hover:bg-zinc-50 hover:text-black"
+                }`}
+              >
+                Panier
+                {count > 0 && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black text-[10px] font-bold text-white">
+                    {count}
+                  </span>
+                )}
+              </Link>
+            </nav>
+
+            {/* Bottom info */}
+            <div className="space-y-3 border-t border-zinc-100 px-5 py-5">
+              <a
+                href={PHONE_HREF}
+                className="flex items-center gap-3 text-sm text-zinc-600 transition hover:text-black"
+              >
+                <FaPhone className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                {PHONE}
+              </a>
+              <Link
+                href={MAPS_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-sm text-zinc-600 transition hover:text-black"
+              >
+                <FaMapMarkerAlt className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                Voir sur Google Maps
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
