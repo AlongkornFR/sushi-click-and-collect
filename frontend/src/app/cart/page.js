@@ -3,127 +3,116 @@
 import Link from "next/link";
 import { useCart } from "@/components/context/CartContext";
 import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
+import { FaXmark, FaMinus, FaPlus, FaShoppingBag } from "react-icons/fa6";
+import { FaShieldAlt, FaMapMarkerAlt } from "react-icons/fa";
 
 function formatEUR(value) {
-  const n = Number(value) || 0;
-  return n.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+  return (Number(value) || 0).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 }
 
 export default function CartPage() {
-  const { items, subtotal, increment, decrement, removeItem, clear } =
-    useCart();
+  const { items, subtotal, increment, decrement, removeItem, clear } = useCart();
 
+  /* ── Empty state ── */
   if (items.length === 0) {
     return (
-      <div className="min-h-[90vh] flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-2xl text-center">
-          <h1 className="text-3xl md:text-4xl font-bold">
-            Votre panier est vide
-          </h1>
-          <p className="text-gray-500 mt-3 text-base md:text-lg">
-            Ajoutez des produits depuis le menu pour commencer votre commande.
-          </p>
-
-          <Link
-            href="/menu"
-            className="inline-block mt-8 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
-          >
-            Voir le menu
-          </Link>
+      <div className="flex min-h-[80vh] flex-col items-center justify-center px-6 py-16 text-center">
+        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-zinc-100">
+          <FaShoppingBag className="text-3xl text-zinc-300" />
         </div>
+        <h1 className="text-2xl font-bold text-zinc-900">Votre panier est vide</h1>
+        <p className="mt-2 max-w-xs text-sm text-zinc-400">
+          Ajoutez des produits depuis le menu pour commencer votre commande.
+        </p>
+        <Link
+          href="/menu"
+          className="mt-8 rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 active:scale-95"
+        >
+          Voir le menu
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12 min-h-screen">
-      <div className="flex items-end justify-between gap-6 flex-wrap">
+    <div className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-14">
+
+      {/* Header */}
+      <div className="mb-8 flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Panier</h1>
-          <p className="text-gray-500 mt-1">
-            Vérifiez votre sélection avant de passer au paiement.
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Panier</h1>
+          <p className="mt-1 text-sm text-zinc-400">
+            {items.length} article{items.length > 1 ? "s" : ""} · Retrait sur place
           </p>
         </div>
-
         <button
+          type="button"
           onClick={clear}
-          className="text-sm px-4 py-2 rounded-full border hover:bg-gray-100 transition"
+          className="cursor-pointer text-xs text-zinc-400 transition hover:text-red-500"
         >
           Vider le panier
         </button>
       </div>
 
-      <div className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Items */}
-        <div className="lg:col-span-2 space-y-4">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+
+        {/* ── Items ── */}
+        <div className="space-y-3 lg:col-span-2">
           {items.map((it) => {
             const lineTotal = Number(it.price) * it.quantity;
-
             return (
-              <div
-                key={it.id}
-                className="bg-white rounded-2xl shadow-sm border overflow-hidden"
-              >
-                <div className="p-4 flex gap-4">
-                  <img
-                    src={it.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
-                    onError={(e) =>
-                      (e.currentTarget.src = DEFAULT_PRODUCT_IMAGE)
-                    }
-                    alt={it.name}
-                    className="h-24 w-24 rounded-xl object-cover"
-                  />
+              <div key={it.id} className="flex gap-4 rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
 
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <Link
-                          href={`/product/${it.slug}`}
-                          className="font-semibold text-lg hover:underline"
-                        >
-                          {it.name}
-                        </Link>
-                        <div className="text-gray-500 text-sm mt-1">
-                          {formatEUR(it.price)} / unité
-                        </div>
-                      </div>
+                {/* Image */}
+                <img
+                  src={it.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
+                  onError={e => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE; }}
+                  alt={it.name}
+                  className="h-20 w-20 shrink-0 rounded-xl object-cover"
+                />
 
+                {/* Content */}
+                <div className="flex min-w-0 flex-1 flex-col justify-between">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-zinc-900">{it.name}</p>
+                      <p className="mt-0.5 text-xs text-zinc-400">{formatEUR(it.price)} / unité</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(it.id)}
+                      className="shrink-0 cursor-pointer rounded-lg p-1.5 text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-600"
+                      aria-label={`Supprimer ${it.name}`}
+                    >
+                      <FaXmark className="text-xs" />
+                    </button>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between">
+                    {/* Qty controls */}
+                    <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-1 py-1">
                       <button
-                        onClick={() => removeItem(it.id)}
-                        className="text-sm text-gray-500 hover:text-black transition"
-                        aria-label={`Supprimer ${it.name}`}
+                        type="button"
+                        onClick={() => decrement(it.id)}
+                        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition hover:bg-white hover:text-zinc-900 active:scale-95"
+                        aria-label="Diminuer"
                       >
-                        Supprimer
+                        <FaMinus className="text-[10px]" />
+                      </button>
+                      <span className="min-w-6 text-center text-sm font-semibold text-zinc-900">
+                        {it.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => increment(it.id)}
+                        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition hover:bg-white hover:text-zinc-900 active:scale-95"
+                        aria-label="Augmenter"
+                      >
+                        <FaPlus className="text-[10px]" />
                       </button>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => decrement(it.id)}
-                          className="h-9 w-9 rounded-full border hover:bg-gray-100 transition"
-                          aria-label="Diminuer"
-                        >
-                          −
-                        </button>
-
-                        <div className="min-w-10 text-center font-semibold">
-                          {it.quantity}
-                        </div>
-
-                        <button
-                          onClick={() => increment(it.id)}
-                          className="h-9 w-9 rounded-full border hover:bg-gray-100 transition"
-                          aria-label="Augmenter"
-                        >
-                          +
-                        </button>
-                      </div>
-
-                      <div className="font-semibold">
-                        {formatEUR(lineTotal)}
-                      </div>
-                    </div>
+                    <p className="text-sm font-bold text-zinc-900">{formatEUR(lineTotal)}</p>
                   </div>
                 </div>
               </div>
@@ -131,44 +120,57 @@ export default function CartPage() {
           })}
         </div>
 
-        {/* Summary */}
-        <div className="bg-white rounded-2xl shadow-sm border p-6 h-fit">
-          <h2 className="text-xl font-semibold">Résumé</h2>
+        {/* ── Summary ── */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-24 rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm">
+            <h2 className="text-base font-bold text-zinc-900">Récapitulatif</h2>
 
-          <div className="mt-4 space-y-2 text-sm">
-            <div className="flex justify-between text-gray-600">
-              <span>Sous-total</span>
-              <span>{formatEUR(subtotal)}</span>
+            <div className="mt-4 space-y-2 text-sm">
+              <div className="flex justify-between text-zinc-500">
+                <span>Sous-total ({items.length} article{items.length > 1 ? "s" : ""})</span>
+                <span className="font-medium text-zinc-700">{formatEUR(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-zinc-500">
+                <span>Frais de service</span>
+                <span className="text-emerald-600 font-medium">Gratuit</span>
+              </div>
             </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Frais</span>
-              <span>—</span>
+
+            <div className="my-5 h-px bg-zinc-100" />
+
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-zinc-600">Total</span>
+              <span className="text-xl font-bold text-zinc-900">{formatEUR(subtotal)}</span>
+            </div>
+
+            <Link
+              href="/checkout"
+              className="mt-5 block cursor-pointer rounded-xl bg-zinc-900 px-6 py-3.5 text-center text-sm font-semibold text-white transition hover:bg-zinc-700 active:scale-[.98]"
+            >
+              Passer au paiement →
+            </Link>
+
+            <Link
+              href="/menu"
+              className="mt-2.5 block cursor-pointer rounded-xl border border-zinc-200 px-6 py-3 text-center text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 active:scale-[.98]"
+            >
+              Continuer mes achats
+            </Link>
+
+            {/* Trust indicators */}
+            <div className="mt-5 space-y-2 border-t border-zinc-100 pt-4">
+              <div className="flex items-center gap-2 text-xs text-zinc-400">
+                <FaShieldAlt className="shrink-0 text-zinc-300" />
+                Paiement 100 % sécurisé via Payplug
+              </div>
+              <div className="flex items-center gap-2 text-xs text-zinc-400">
+                <FaMapMarkerAlt className="shrink-0 text-zinc-300" />
+                Retrait sur place à Cannes
+              </div>
             </div>
           </div>
-
-          <div className="mt-6 pt-6 border-t flex justify-between items-center">
-            <span className="text-gray-600">Total</span>
-            <span className="text-lg font-bold">{formatEUR(subtotal)}</span>
-          </div>
-
-          <Link
-            href="/checkout"
-            className="mt-6 block text-center bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
-          >
-            Passer au paiement
-          </Link>
-
-          <Link
-            href="/menu"
-            className="mt-3 block text-center px-6 py-3 rounded-xl border hover:bg-gray-100 transition"
-          >
-            Continuer vos achats
-          </Link>
-
-          <p className="mt-4 text-xs text-gray-500">
-            Paiement sécurisé. Préparation rapide. Retrait sur place.
-          </p>
         </div>
+
       </div>
     </div>
   );
