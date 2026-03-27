@@ -150,8 +150,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://[\w-]+\.vercel\.app$",
+    r"^https://[\w.-]+\.vercel\.app$",
 ]
-
 PAYPLUG_SECRET_KEY = os.environ.get("PAYPLUG_SECRET_KEY", "")
 PAYPLUG_API_VERSION = os.environ.get("PAYPLUG_API_VERSION", "2019-08-06")
