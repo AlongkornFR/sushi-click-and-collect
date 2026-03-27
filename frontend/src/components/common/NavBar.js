@@ -16,24 +16,31 @@ const PHONE = "+33 4 93 XX XX XX"; // 👈 remplace par le vrai numéro
 const PHONE_HREF = "tel:+3349XXXXXXX";
 
 const NAV_LINKS = [
-  { href: "/",       label: "Accueil" },
-  { href: "/menu",   label: "Carte"   },
-  { href: "/contact",label: "Contact" },
+  { href: "/",        label: "Accueil" },
+  { href: "/menu",    label: "Carte"   },
+  { href: "/contact", label: "Contact" },
 ];
 
 export default function Navbar() {
-  const { count }     = useCart();
-  const pathname      = usePathname();
-  const [open, setOpen] = useState(false);
+  const { count }         = useCart();
+  const pathname          = usePathname();
+  const [open, setOpen]   = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
 
-  /* lock scroll when drawer is open */
+  /* all hooks must come before any conditional return */
+  useEffect(() => {
+    setIsStaff(!!localStorage.getItem("staff_token"));
+  }, [pathname]); // re-check on route change (login/logout)
+
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  /* close drawer on route change */
   useEffect(() => { setOpen(false); }, [pathname]);
+
+  /* hide on staff pages — staff has its own header */
+  if (pathname.startsWith("/staff")) return null;
 
   const isActive = (href) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -87,18 +94,28 @@ export default function Navbar() {
             </div>
 
             {/* Right */}
-            <Link
-              href="/cart"
-              className="relative flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-zinc-700 active:scale-95"
-            >
-              <FaShoppingBag className="text-base" />
-              Panier
-              {count > 0 && (
-                <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-black text-[10px] font-bold text-white">
-                  {count}
-                </span>
+            <div className="flex items-center gap-3">
+              {isStaff && (
+                <Link
+                  href="/staff/orders"
+                  className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
+                >
+                  Admin
+                </Link>
               )}
-            </Link>
+              <Link
+                href="/cart"
+                className="relative flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-zinc-700 active:scale-95"
+              >
+                <FaShoppingBag className="text-base" />
+                Panier
+                {count > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-black text-[10px] font-bold text-white">
+                    {count}
+                  </span>
+                )}
+              </Link>
+            </div>
           </div>
 
           {/* ── Mobile ── */}
@@ -140,7 +157,6 @@ export default function Navbar() {
       {/* ── Mobile drawer ── */}
       {open && (
         <div className="fixed inset-0 z-60 md:hidden">
-          {/* Overlay */}
           <button
             type="button"
             onClick={() => setOpen(false)}
@@ -148,10 +164,8 @@ export default function Navbar() {
             aria-label="Fermer le menu"
           />
 
-          {/* Drawer */}
           <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-white shadow-2xl">
 
-            {/* Header */}
             <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
               <Image src={Logo} alt="Su Rice" width={38} height={38} />
               <button
@@ -164,7 +178,6 @@ export default function Navbar() {
               </button>
             </div>
 
-            {/* Links */}
             <nav className="flex-1 space-y-1 px-4 py-5">
               {NAV_LINKS.map(({ href, label }) => (
                 <Link
@@ -195,9 +208,17 @@ export default function Navbar() {
                   </span>
                 )}
               </Link>
+
+              {isStaff && (
+                <Link
+                  href="/staff/orders"
+                  className="flex items-center rounded-xl px-4 py-3 text-base font-medium text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-700"
+                >
+                  Espace Admin
+                </Link>
+              )}
             </nav>
 
-            {/* Bottom info */}
             <div className="space-y-3 border-t border-zinc-100 px-5 py-5">
               <a
                 href={PHONE_HREF}

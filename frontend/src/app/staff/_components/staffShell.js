@@ -5,93 +5,100 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useStaffAuth } from "./useStaffAuth";
 
-function NavItem({ href, label }) {
-  const pathname = usePathname();
-  const active = pathname === href;
-
-  return (
-    <Link
-      href={href}
-      className={
-        "block rounded-xl px-3 py-2 text-sm font-semibold " +
-        (active ? "bg-black text-white" : "text-zinc-700 hover:bg-zinc-100")
-      }
-    >
-      {label}
-    </Link>
-  );
-}
+const NAV = [
+  { href: "/staff/orders",   label: "Commandes" },
+  { href: "/staff/products", label: "Produits"  },
+];
 
 export default function StaffShell({ children, requireAuth = true }) {
-  const router = useRouter();
+  const router   = useRouter();
+  const pathname = usePathname();
   const { token, me, ready, fetchMe, logout } = useStaffAuth();
 
   useEffect(() => {
     if (!ready) return;
-
-    if (requireAuth && !token) {
-      router.replace("/staff/login");
-      return;
-    }
-
+    if (requireAuth && !token) { router.replace("/staff/login"); return; }
     if (token && !me) fetchMe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, token]);
 
   if (!ready) {
-    return <div className="p-6 text-zinc-600">Chargement…</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+        <p className="text-sm text-zinc-400">Chargement…</p>
+      </div>
+    );
   }
 
-  if (requireAuth && !token) {
-    return null; // redirection en cours
-  }
+  if (requireAuth && !token) return null;
+
+  const isSuperuser = me?.is_superuser;
 
   return (
     <div className="min-h-screen bg-zinc-50">
-      <div className="mx-auto max-w-7xl p-4 md:p-8 grid gap-4 md:grid-cols-12">
-        {/* Sidebar */}
-        <aside className="md:col-span-3">
-          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-            <div className="text-lg font-extrabold">Espace Staff</div>
-            <div className="mt-1 text-sm text-zinc-600">
-              {me ? (
-                <>
-                  {me.username}{" "}
-                  {me.is_superuser ? (
-                    <span className="ml-2 text-xs font-bold bg-zinc-200 px-2 py-0.5 rounded-full">
-                      SUPERUSER
-                    </span>
-                  ) : (
-                    <span className="ml-2 text-xs font-bold bg-zinc-200 px-2 py-0.5 rounded-full">
-                      STAFF
-                    </span>
-                  )}
-                </>
-              ) : (
-                "Connecté"
-              )}
-            </div>
 
-            <nav className="mt-4 grid gap-2">
-              <NavItem href="/staff/orders" label="Commandes" />
-              <NavItem href="/staff/products" label="Produits / Stock" />
-            </nav>
+      {/* ── Staff top bar ── */}
+      <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/90 backdrop-blur-md">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 md:px-6">
 
+          {/* Brand */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold text-zinc-900">Su-Rice</span>
+            <span className="h-4 w-px bg-zinc-200" />
+            <span className="text-xs font-medium text-zinc-400">
+              {isSuperuser ? "Super Admin" : "Staff"}
+            </span>
+          </div>
+
+          {/* Nav links */}
+          <nav className="flex items-center gap-1">
+            {NAV.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  pathname === href
+                    ? "bg-zinc-900 text-white"
+                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                }`}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* User + logout */}
+          <div className="flex items-center gap-3">
+            {me && (
+              <div className="hidden items-center gap-2 sm:flex">
+                <span className="text-sm text-zinc-500">{me.username}</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                    isSuperuser
+                      ? "bg-zinc-900 text-white"
+                      : "bg-zinc-100 text-zinc-600"
+                  }`}
+                >
+                  {isSuperuser ? "Admin" : "Staff"}
+                </span>
+              </div>
+            )}
             <button
-              onClick={() => {
-                logout();
-                router.replace("/staff/login");
-              }}
-              className="mt-4 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-zinc-100"
+              type="button"
+              onClick={() => { logout(); router.replace("/staff/login"); }}
+              className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-500 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
             >
               Déconnexion
             </button>
           </div>
-        </aside>
 
-        {/* Content */}
-        <main className="md:col-span-9">{children}</main>
-      </div>
+        </div>
+      </header>
+
+      {/* ── Content ── */}
+      <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">
+        {children}
+      </main>
     </div>
   );
 }

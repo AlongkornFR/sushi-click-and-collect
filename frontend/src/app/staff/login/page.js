@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import StaffShell from "../_components/staffShell";
 import { useStaffAuth } from "../_components/useStaffAuth";
 
 export default function StaffLoginPage() {
@@ -11,9 +10,8 @@ export default function StaffLoginPage() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]   = useState(false);
 
-  // ✅ Redirection après render (pas pendant render)
   useEffect(() => {
     if (!ready) return;
     if (token) router.replace("/staff/orders");
@@ -23,68 +21,80 @@ export default function StaffLoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     const t = await login(username, password);
     setLoading(false);
-
     if (t) router.replace("/staff/orders");
   }
 
-  // Pendant la redirection, on peut afficher un petit message
   if (ready && token) {
     return (
-      <StaffShell requireAuth={false}>
-        <div className="p-6 text-zinc-600">Redirection…</div>
-      </StaffShell>
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+        <p className="text-sm text-zinc-400">Redirection…</p>
+      </div>
     );
   }
 
   return (
-    <StaffShell requireAuth={false}>
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-extrabold">Connexion Staff</h1>
-        <p className="text-zinc-600 mt-1">
-          Connecte-toi pour accéder au dashboard.
-        </p>
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4">
+      <div className="w-full max-w-sm">
 
-        <form onSubmit={onSubmit} className="mt-5 grid gap-3">
-          <div>
-            <label className="text-sm font-medium text-zinc-700">
-              Username
-            </label>
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2"
-              autoComplete="username"
-            />
+        {/* Brand mark */}
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900 text-2xl shadow-lg">
+            🍣
           </div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Espace Admin</h1>
+          <p className="mt-1 text-sm text-zinc-400">Connectez-vous pour accéder au dashboard</p>
+        </div>
 
-          <div>
-            <label className="text-sm font-medium text-zinc-700">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2"
-              autoComplete="current-password"
-            />
-          </div>
+        {/* Card */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-7 shadow-sm">
+          <form onSubmit={onSubmit} className="grid gap-5">
 
-          <button className="rounded-xl bg-black px-4 py-2 font-semibold text-white hover:opacity-90">
-            {loading ? "Connexion…" : "Se connecter"}
-          </button>
-        </form>
+            <div>
+              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
+                Identifiant
+              </label>
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-0"
+                autoComplete="username"
+                required
+              />
+            </div>
 
-        {error ? (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-800">
-            <div className="font-semibold">Erreur</div>
-            <div className="text-sm mt-1 break-words">{error}</div>
-          </div>
-        ) : null}
+            <div>
+              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-0"
+                autoComplete="current-password"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full cursor-pointer rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? "Connexion…" : "Se connecter"}
+            </button>
+          </form>
+        </div>
+
       </div>
-    </StaffShell>
+    </div>
   );
 }

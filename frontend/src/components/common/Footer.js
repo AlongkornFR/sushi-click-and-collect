@@ -1,7 +1,12 @@
+"use client";
+
 import React from "react";
-import { FaFacebookF, FaInstagram, FaClock } from "react-icons/fa";
+import { usePathname } from "next/navigation";
+import { FaFacebookF, FaInstagram } from "react-icons/fa";
 
 const Footer = () => {
+  const pathname = usePathname();
+  if (pathname.startsWith("/staff")) return null;
   return (
     <footer className="bg-black text-white px-6 md:px-12 py-14">
       <h3 className="text-center pb-16 font-bold">
