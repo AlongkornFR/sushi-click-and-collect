@@ -80,8 +80,8 @@ export default function HomePage() {
       </section>
 
       {/* ── TRUST CARDS ── */}
-      <section ref={trustRef} className="border-y bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-3 gap-8">
+      <section ref={trustRef} className="border-y border-zinc-100 bg-zinc-50/60">
+        <div className="max-w-7xl mx-auto px-6 py-10 grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { icon: <FaShieldAlt />, title: "Paiement sécurisé",  desc: "Transactions protégées via Payplug." },
             { icon: <FaClock />,     title: "Click & Collect",     desc: "Choisissez votre heure de retrait." },
@@ -102,12 +102,12 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div className={`reveal ${aboutVisible ? "visible" : ""}`}>
             <h2 className="text-4xl md:text-5xl font-bold leading-tight">
-              Votre boutique de cuisine japonaise et thaïlandaise à Cannes
+              Votre restaurant de cuisine thaïlandaise et japonaise à Cannes
             </h2>
             <p className="text-gray-600 mt-5 leading-relaxed">
-              Vous appréciez les mets aux saveurs asiatiques ? Poussez les portes de notre
-              magasin de cuisine japonaise à Cannes. Nos chefs vous concoctent des plats
-              japonais et thaïlandais, qui régaleront vos papilles. Chez{" "}
+              Vous appréciez les saveurs asiatiques ? Poussez les portes de notre
+              restaurant de cuisine thaïlandaise à Cannes. Nos chefs vous concoctent des plats
+              thaï et japonais, qui régaleront vos papilles. Chez{" "}
               <strong>SU-RICE</strong>, nous privilégions toujours le goût. Nous travaillons
               des produits frais et proposons une cuisine faite maison, d'excellente qualité.
             </p>
