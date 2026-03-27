@@ -2,286 +2,721 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useStaffAuth } from "../../_components/useStaffAuth";
+import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
 
+const emptyForm = {
+  name: "",
+  description: "",
+  price: "",
+  stock: 0,
+  is_available: true,
+  image_main: "",
+  category_id: "",
+  subcategory_id: "",
+};
 
-function centsFromPriceInput(v) {
-  // accepte "12.50" ou "12,50"
-  const s = String(v ?? "").trim().replace(",", ".");
-  const n = Number(s);
-  if (!Number.isFinite(n) || n < 0) return null;
-  return Math.round(n * 100);
-}
-
-function priceInputFromCents(cents) {
-  if (cents == null) return "";
-  return (Number(cents) / 100).toFixed(2);
-}
+const PRODUCTS_PER_PAGE = 8;
 
 export default function StaffProductsPage() {
   const { API, headers, token } = useStaffAuth();
 
-  const [q, setQ] = useState("");
   const [products, setProducts] = useState([]);
-  const [drafts, setDrafts] = useState({}); // { [id]: { stock, priceStr, is_available } }
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
+
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState(null);
+
+  const [newCategory, setNewCategory] = useState("");
+  const [newSubCategory, setNewSubCategory] = useState("");
+  const [newSubCategoryParentId, setNewSubCategoryParentId] = useState("");
+
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedSubCategory, setSelectedSubCategory] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+
   const [error, setError] = useState("");
-  const [savingId, setSavingId] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const hasToken = useMemo(() => Boolean(token), [token]);
-
   async function fetchProducts() {
-    if (!hasToken) return;
-    setError("");
-    setLoading(true);
     try {
-      const url = new URL(`${API}/staff/products/`);
-      if (q.trim()) url.searchParams.set("q", q.trim());
+      const res = await fetch(`${API}/staff/products/`, {
+        headers,
+        cache: "no-store",
+      });
 
-      const res = await fetch(url.toString(), { headers, cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status} - ${await res.text()}`);
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
 
       const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
-      setProducts(list);
-
-      // init drafts (ne pas écraser les modifs en cours si déjà présentes)
-      setDrafts((prev) => {
-        const next = { ...prev };
-        for (const p of list) {
-          if (!next[p.id]) {
-            next[p.id] = {
-              stock: p.stock ?? 0,
-              priceStr: priceInputFromCents(p.price_cents),
-              is_available: Boolean(p.is_available),
-            };
-          }
-        }
-        return next;
-      });
+      setProducts(Array.isArray(data) ? data : []);
     } catch (e) {
       setError(String(e.message || e));
+    }
+  }
+
+  async function fetchCategories() {
+    try {
+      const res = await fetch(`${API}/staff/categories/`, {
+        headers,
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      const data = await res.json();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(String(e.message || e));
+    }
+  }
+
+  async function fetchSubcategories(categoryId = "") {
+    try {
+      const url = categoryId
+        ? `${API}/staff/subcategories/?category_id=${categoryId}`
+        : `${API}/staff/subcategories/`;
+
+      const res = await fetch(url, {
+        headers,
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      const data = await res.json();
+      setSubcategories(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(String(e.message || e));
+    }
+  }
+
+  useEffect(() => {
+    if (!token) return;
+    fetchProducts();
+    fetchCategories();
+    fetchSubcategories();
+  }, [token]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, selectedSubCategory]);
+
+  function onChange(e) {
+    const { name, value, type, checked } = e.target;
+
+    setForm((prev) => {
+      const updated = {
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      };
+
+      if (name === "category_id") {
+        updated.subcategory_id = "";
+        fetchSubcategories(value);
+      }
+
+      return updated;
+    });
+  }
+
+  function startEdit(product) {
+    const categoryId = product.category?.id ? String(product.category.id) : "";
+
+    setEditingId(product.id);
+    setForm({
+      name: product.name || "",
+      description: product.description || "",
+      price: product.price || "",
+      stock: product.stock ?? 0,
+      is_available: !!product.is_available,
+      image_main: product.image_main || "",
+      category_id: categoryId,
+      subcategory_id: product.subcategory?.id
+        ? String(product.subcategory.id)
+        : "",
+    });
+
+    if (categoryId) {
+      fetchSubcategories(categoryId);
+    } else {
+      fetchSubcategories();
+    }
+
+    setError("");
+  }
+
+  function resetForm() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setError("");
+    fetchSubcategories();
+  }
+
+  async function saveProduct(e) {
+    e.preventDefault();
+    setError("");
+
+    if (!form.category_id) {
+      setError("La catégorie est obligatoire.");
+      return;
+    }
+
+    if (!form.subcategory_id) {
+      setError("La sous-catégorie est obligatoire.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const payload = {
+        ...form,
+        stock: Number(form.stock),
+        category_id: Number(form.category_id),
+        subcategory_id: Number(form.subcategory_id),
+      };
+
+      const url = editingId
+        ? `${API}/staff/products/${editingId}/`
+        : `${API}/staff/products/create/`;
+
+      const method = editingId ? "PATCH" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          ...headers,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      await fetchProducts();
+      setCurrentPage(1);
+      resetForm();
+    } catch (e2) {
+      setError(String(e2.message || e2));
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    if (!hasToken) return;
-    fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasToken]);
-
-  function updateDraft(id, patch) {
-    setDrafts((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], ...patch },
-    }));
-  }
-
-  function isDirty(p) {
-    const d = drafts[p.id];
-    if (!d) return false;
-    const stockSame = Number(d.stock) === Number(p.stock ?? 0);
-    const priceSame = centsFromPriceInput(d.priceStr) === Number(p.price_cents ?? 0);
-    const availSame = Boolean(d.is_available) === Boolean(p.is_available);
-    return !(stockSame && priceSame && availSame);
-  }
-
-  async function saveProduct(p) {
-    const d = drafts[p.id];
-    if (!d) return;
-
-    const stock = Number(d.stock);
-    if (!Number.isInteger(stock) || stock < 0) {
-      setError("Stock invalide (entier >= 0).");
-      return;
-    }
-
-    const price_cents = centsFromPriceInput(d.priceStr);
-    if (price_cents == null) {
-      setError("Prix invalide (ex: 12.50).");
-      return;
-    }
-
+  async function createCategory(e) {
+    e.preventDefault();
     setError("");
-    setSavingId(p.id);
+
+    if (!newCategory.trim()) return;
 
     try {
-      const res = await fetch(`${API}/staff/products/${p.id}/`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...headers },
+      const slug = newCategory
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "-");
+
+      const res = await fetch(`${API}/staff/categories/create/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...headers,
+        },
         body: JSON.stringify({
-          stock,
-          price_cents,
-          is_available: Boolean(d.is_available),
+          name: newCategory.trim(),
+          slug,
         }),
       });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status} - ${await res.text()}`);
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
 
-      // refresh list
-      await fetchProducts();
-    } catch (e) {
-      setError(String(e.message || e));
-    } finally {
-      setSavingId(null);
+      const createdCategory = await res.json();
+
+      setNewCategory("");
+      setNewSubCategoryParentId(String(createdCategory.id));
+      await fetchCategories();
+    } catch (e2) {
+      setError(String(e2.message || e2));
     }
   }
 
-  async function saveAllDirty() {
-    for (const p of products) {
-      if (isDirty(p)) {
-        // eslint-disable-next-line no-await-in-loop
-        await saveProduct(p);
-      }
+  async function createSubCategory(e) {
+    e.preventDefault();
+    setError("");
+
+    if (!newSubCategoryParentId) {
+      setError("Choisis une catégorie pour cette sous-catégorie.");
+      return;
     }
+
+    if (!newSubCategory.trim()) return;
+
+    try {
+      const slug = newSubCategory
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, "-");
+
+      const res = await fetch(`${API}/staff/subcategories/create/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...headers,
+        },
+        body: JSON.stringify({
+          name: newSubCategory.trim(),
+          slug,
+          category_id: Number(newSubCategoryParentId),
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      setNewSubCategory("");
+      await fetchSubcategories();
+    } catch (e2) {
+      setError(String(e2.message || e2));
+    }
+  }
+
+  const formSubcategories = useMemo(() => {
+    if (!form.category_id) return [];
+    return subcategories.filter(
+      (sc) =>
+        String(sc.category?.id || sc.category_id) === String(form.category_id),
+    );
+  }, [subcategories, form.category_id]);
+
+  const visibleSubcategories = useMemo(() => {
+    if (!selectedCategory) return subcategories;
+    return subcategories.filter(
+      (sc) =>
+        String(sc.category?.id || sc.category_id) === String(selectedCategory),
+    );
+  }, [subcategories, selectedCategory]);
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchCategory = selectedCategory
+        ? String(p.category?.id) === String(selectedCategory)
+        : true;
+
+      const matchSubCategory = selectedSubCategory
+        ? String(p.subcategory?.id) === String(selectedSubCategory)
+        : true;
+
+      return matchCategory && matchSubCategory;
+    });
+  }, [products, selectedCategory, selectedSubCategory]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE),
+  );
+
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedProducts = useMemo(() => {
+    const start = (safeCurrentPage - 1) * PRODUCTS_PER_PAGE;
+    const end = start + PRODUCTS_PER_PAGE;
+    return filteredProducts.slice(start, end);
+  }, [filteredProducts, safeCurrentPage]);
+
+  const pageNumbers = useMemo(() => {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }, [totalPages]);
+
+  function goToPage(page) {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 md:p-5 shadow-sm">
-      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h2 className="text-xl font-extrabold">Produits / Stock</h2>
-          <p className="text-zinc-600 text-sm">Gère le stock, le prix et la disponibilité.</p>
-        </div>
+    <div className="grid gap-6 lg:grid-cols-12">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm lg:col-span-5">
+        <h2 className="mb-4 text-xl font-bold">
+          {editingId ? "Modifier le produit" : "Créer un produit"}
+        </h2>
 
-        <div className="flex gap-2 items-center">
-          <button
-            onClick={fetchProducts}
-            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-zinc-100"
+        <form onSubmit={saveProduct} className="space-y-3">
+          <input
+            name="name"
+            value={form.name}
+            onChange={onChange}
+            placeholder="Nom"
+            className="w-full rounded-xl border border-zinc-200 px-3 py-2 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+          />
+
+          <textarea
+            name="description"
+            value={form.description}
+            onChange={onChange}
+            placeholder="Description"
+            className="w-full rounded-xl border border-zinc-200 px-3 py-2 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+          />
+
+          <input
+            name="price"
+            value={form.price}
+            onChange={onChange}
+            placeholder="Prix (ex: 12.50)"
+            className="w-full rounded-xl border border-zinc-200 px-3 py-2 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+          />
+
+          <input
+            name="stock"
+            type="number"
+            value={form.stock}
+            onChange={onChange}
+            placeholder="Stock"
+            className="w-full rounded-xl border border-zinc-200 px-3 py-2 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+          />
+
+          <input
+            name="image_main"
+            value={form.image_main}
+            onChange={onChange}
+            placeholder="URL image"
+            className="w-full rounded-xl border border-zinc-200 px-3 py-2 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+          />
+
+          <select
+            name="category_id"
+            required
+            value={form.category_id}
+            onChange={onChange}
+            className="w-full rounded-xl border border-zinc-200 px-3 py-2 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
           >
-            Rafraîchir
-          </button>
-          <button
-            onClick={saveAllDirty}
-            className="rounded-xl bg-black text-white px-3 py-2 text-sm font-semibold hover:opacity-90"
+            <option value="" disabled>
+              Sélectionner une catégorie
+            </option>
+
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            name="subcategory_id"
+            required
+            value={form.subcategory_id}
+            onChange={onChange}
+            disabled={!form.category_id}
+            className="w-full rounded-xl border border-zinc-200 px-3 py-2 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-100"
           >
-            Enregistrer tout
-          </button>
-        </div>
-      </div>
+            <option value="" disabled>
+              {form.category_id
+                ? "Sélectionner une sous-catégorie"
+                : "Choisis d'abord une catégorie"}
+            </option>
 
-      <div className="mt-4 flex flex-col md:flex-row gap-2 md:items-center">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Rechercher un produit…"
-          className="w-full md:max-w-md rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm"
-        />
-        <button
-          onClick={fetchProducts}
-          className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-zinc-100"
-        >
-          Rechercher
-        </button>
+            {formSubcategories.map((sc) => (
+              <option key={sc.id} value={sc.id}>
+                {sc.name}
+              </option>
+            ))}
+          </select>
 
-        {loading ? <span className="text-sm text-zinc-500">Chargement…</span> : null}
-      </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="is_available"
+              checked={form.is_available}
+              onChange={onChange}
+              className="h-4 w-4"
+            />
+            Disponible
+          </label>
 
-      {error ? (
-        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-800">
-          {error}
-        </div>
-      ) : null}
+          <div className="flex gap-2">
+            <button
+              disabled={loading}
+              className="
+                rounded-xl bg-black px-4 py-2 font-semibold text-white
+                transition-all duration-200
+                hover:bg-zinc-800 hover:shadow-md
+                active:scale-95
+                disabled:cursor-not-allowed disabled:opacity-50
+              "
+            >
+              {loading
+                ? "Enregistrement..."
+                : editingId
+                  ? "Mettre à jour"
+                  : "Créer"}
+            </button>
 
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full border-separate border-spacing-0">
-          <thead>
-            <tr className="text-left text-xs uppercase text-zinc-500">
-              <th className="py-2 pr-3">Produit</th>
-              <th className="py-2 pr-3">Prix (€)</th>
-              <th className="py-2 pr-3">Stock</th>
-              <th className="py-2 pr-3">Disponible</th>
-              <th className="py-2 pr-3"></th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {products.map((p) => {
-              const d = drafts[p.id] || {
-                stock: p.stock ?? 0,
-                priceStr: priceInputFromCents(p.price_cents),
-                is_available: Boolean(p.is_available),
-              };
-              const dirty = isDirty(p);
-
-              return (
-                <tr key={p.id} className="border-t border-zinc-100">
-                  <td className="py-3 pr-3">
-                    <div className="font-semibold text-zinc-900">{p.name}</div>
-                    <div className="text-xs text-zinc-500">id: {p.id}</div>
-                  </td>
-
-                  <td className="py-3 pr-3">
-                    <input
-                      value={d.priceStr}
-                      onChange={(e) => updateDraft(p.id, { priceStr: e.target.value })}
-                      className="w-28 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm"
-                      inputMode="decimal"
-                    />
-                  </td>
-
-                  <td className="py-3 pr-3">
-                    <input
-                      value={d.stock}
-                      onChange={(e) => updateDraft(p.id, { stock: e.target.value === "" ? "" : Number(e.target.value) })}
-                      className="w-24 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm"
-                      inputMode="numeric"
-                    />
-                  </td>
-
-                  <td className="py-3 pr-3">
-                    <label className="inline-flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(d.is_available)}
-                        onChange={(e) => updateDraft(p.id, { is_available: e.target.checked })}
-                      />
-                      <span className={Boolean(d.is_available) ? "text-zinc-900" : "text-zinc-500"}>
-                        {Boolean(d.is_available) ? "Oui" : "Non"}
-                      </span>
-                    </label>
-                  </td>
-
-                  <td className="py-3 pr-3">
-                    <div className="flex items-center gap-2">
-                      {dirty ? (
-                        <span className="text-xs font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">
-                          Modifié
-                        </span>
-                      ) : (
-                        <span className="text-xs bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded-full">
-                          OK
-                        </span>
-                      )}
-
-                      <button
-                        onClick={() => saveProduct(p)}
-                        disabled={!dirty || savingId === p.id}
-                        className={
-                          "rounded-xl px-3 py-2 text-sm font-semibold " +
-                          (!dirty || savingId === p.id
-                            ? "bg-zinc-100 text-zinc-400 cursor-not-allowed"
-                            : "bg-black text-white hover:opacity-90")
-                        }
-                      >
-                        {savingId === p.id ? "Sauvegarde…" : "Enregistrer"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-
-            {products.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="py-6 text-zinc-600">
-                  Aucun produit (ou recherche vide).
-                </td>
-              </tr>
+            {editingId ? (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="
+                  rounded-xl border border-zinc-300 px-4 py-2
+                  transition-all duration-200
+                  hover:border-zinc-400 hover:bg-zinc-100
+                  active:scale-95
+                "
+              >
+                Annuler
+              </button>
             ) : null}
-          </tbody>
-        </table>
+          </div>
+        </form>
+
+        <div className="mt-8 space-y-5 border-t pt-6">
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-zinc-900">
+                Ajouter une catégorie
+              </h3>
+              <p className="mt-1 text-sm text-zinc-500">
+                Crée une nouvelle catégorie principale pour organiser ton menu.
+              </p>
+            </div>
+
+            <form onSubmit={createCategory} className="space-y-3">
+              <input
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="Ex: Sushi"
+                className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+              />
+
+              <button
+                className="
+                  inline-flex items-center justify-center rounded-xl bg-black px-4 py-2 font-medium text-white
+                  transition-all duration-200
+                  hover:bg-zinc-800 hover:shadow-md
+                  active:scale-95
+                "
+              >
+                Ajouter la catégorie
+              </button>
+            </form>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-zinc-900">
+                Ajouter une sous-catégorie
+              </h3>
+              <p className="mt-1 text-sm text-zinc-500">
+                Choisis d’abord la catégorie dans laquelle la sous-catégorie
+                sera rangée.
+              </p>
+            </div>
+
+            <form onSubmit={createSubCategory} className="space-y-3">
+              <select
+                value={newSubCategoryParentId}
+                onChange={(e) => setNewSubCategoryParentId(e.target.value)}
+                className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+              >
+                <option value="">Choisir la catégorie parente</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                value={newSubCategory}
+                onChange={(e) => setNewSubCategory(e.target.value)}
+                placeholder="Ex: Maki"
+                className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+              />
+
+              <button
+                disabled={!newSubCategoryParentId}
+                className="
+                  inline-flex items-center justify-center rounded-xl bg-black px-4 py-2 font-medium text-white
+                  transition-all duration-200
+                  hover:bg-zinc-800 hover:shadow-md
+                  active:scale-95
+                  disabled:cursor-not-allowed disabled:opacity-50
+                "
+              >
+                Ajouter la sous-catégorie
+              </button>
+            </form>
+
+            {categories.length === 0 ? (
+              <p className="mt-3 text-xs text-amber-600">
+                Crée d’abord une catégorie avant d’ajouter une sous-catégorie.
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        {error ? (
+          <div className="mt-4 break-words text-sm text-red-600">{error}</div>
+        ) : null}
+      </div>
+
+      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm lg:col-span-7">
+        <div className="mb-4 flex flex-col gap-4 md:items-center md:justify-between">
+          <h2 className="text-xl font-bold">Liste des produits</h2>
+
+          <div className="flex w-full gap-3 md:w-auto flex-row">
+            <div className="w-full md:w-64">
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setSelectedSubCategory("");
+                }}
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+              >
+                <option value="">Toutes les catégories</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="w-full md:w-64">
+              <select
+                value={selectedSubCategory}
+                onChange={(e) => setSelectedSubCategory(e.target.value)}
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200"
+              >
+                <option value="">Toutes les sous-catégories</option>
+                {visibleSubcategories.map((sc) => (
+                  <option key={sc.id} value={sc.id}>
+                    {sc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4 flex items-center justify-between text-sm text-zinc-500">
+          <span>
+            {filteredProducts.length} produit
+            {filteredProducts.length > 1 ? "s" : ""} trouvé
+            {filteredProducts.length > 1 ? "s" : ""}
+          </span>
+          <span>
+            Page {safeCurrentPage} / {totalPages}
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          {paginatedProducts.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-start justify-between gap-4 rounded-xl border p-4 transition hover:shadow-sm"
+            >
+              <div className="flex min-w-0 items-start gap-4">
+                <img
+                  src={p.image_main || DEFAULT_PRODUCT_IMAGE}
+                  alt={p.name}
+                  className="h-20 w-20 shrink-0 rounded-xl border border-zinc-200 bg-zinc-100 object-cover"
+                />
+
+                <div className="min-w-0">
+                  <div className="truncate font-semibold">{p.name}</div>
+
+                  <div className="text-sm text-zinc-500">
+                    {p.category?.name} • {p.subcategory?.name} • {p.price} € •
+                    Stock: {p.stock}
+                  </div>
+
+                  <div className="mt-1 text-xs text-zinc-400">
+                    {p.is_available ? "Disponible" : "Indisponible"}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => startEdit(p)}
+                className="
+                  shrink-0 rounded-xl border border-zinc-300 px-3 py-2 text-sm font-medium
+                  transition-all duration-200
+                  hover:border-zinc-400 hover:bg-zinc-100 hover:shadow-sm
+                  active:scale-95
+                "
+              >
+                Modifier
+              </button>
+            </div>
+          ))}
+
+          {filteredProducts.length === 0 ? (
+            <div className="rounded-xl border border-dashed p-6 text-center text-sm text-zinc-500">
+              Aucun produit trouvé pour ce filtre.
+            </div>
+          ) : null}
+        </div>
+
+        {filteredProducts.length > 0 && totalPages > 1 ? (
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => goToPage(safeCurrentPage - 1)}
+              disabled={safeCurrentPage === 1}
+              className="
+                rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium
+                transition-all duration-200
+                hover:border-zinc-400 hover:bg-zinc-100
+                active:scale-95
+                disabled:cursor-not-allowed disabled:opacity-50
+              "
+            >
+              Précédent
+            </button>
+
+            {pageNumbers.map((page) => (
+              <button
+                key={page}
+                type="button"
+                onClick={() => goToPage(page)}
+                className={`rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 active:scale-95 ${
+                  page === safeCurrentPage
+                    ? "bg-black text-white"
+                    : "border border-zinc-300 hover:border-zinc-400 hover:bg-zinc-100"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => goToPage(safeCurrentPage + 1)}
+              disabled={safeCurrentPage === totalPages}
+              className="
+                rounded-xl border border-zinc-300 px-4 py-2 text-sm font-medium
+                transition-all duration-200
+                hover:border-zinc-400 hover:bg-zinc-100
+                active:scale-95
+                disabled:cursor-not-allowed disabled:opacity-50
+              "
+            >
+              Suivant
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

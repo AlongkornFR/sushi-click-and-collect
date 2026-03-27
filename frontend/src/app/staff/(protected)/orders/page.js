@@ -3,8 +3,14 @@
 import { useEffect, useState } from "react";
 import { useStaffAuth } from "../../_components/useStaffAuth";
 
-
-const STATUSES = ["pending", "paid", "preparing", "ready", "collected", "cancelled"];
+const STATUSES = [
+  "pending",
+  "paid",
+  "preparing",
+  "ready",
+  "collected",
+  "cancelled",
+];
 
 export default function StaffOrdersPage() {
   const { API, headers, token } = useStaffAuth();
@@ -71,7 +77,9 @@ export default function StaffOrdersPage() {
           >
             <option value="">Tous</option>
             {STATUSES.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>
+                {s}
+              </option>
             ))}
           </select>
 
@@ -94,7 +102,10 @@ export default function StaffOrdersPage() {
 
       <div className="mt-4 grid gap-3">
         {orders.map((o) => (
-          <div key={o.id} className="rounded-2xl border border-zinc-200 bg-white p-4">
+          <div
+            key={o.id}
+            className="rounded-2xl border border-zinc-200 bg-white p-4"
+          >
             <div className="flex flex-col gap-3 md:flex-row md:justify-between">
               <div>
                 <div className="font-extrabold">
@@ -104,26 +115,46 @@ export default function StaffOrdersPage() {
                   </span>
                 </div>
                 <div className="text-sm text-zinc-700 mt-1">
-                  <span className="font-semibold">{o.full_name}</span> • {o.phone} • Retrait{" "}
+                  <span className="font-semibold">{o.full_name}</span> •{" "}
+                  {o.phone} • Retrait{" "}
                   <span className="font-semibold">{o.pickup_time}</span>
                 </div>
                 <div className="text-sm text-zinc-600 mt-1">
-                  Total <span className="font-semibold">{(o.total_cents / 100).toFixed(2)} €</span>
+                  Total{" "}
+                  <span className="font-semibold">
+                    {(o.total_cents / 100).toFixed(2)} €
+                  </span>
                 </div>
-                {o.notes ? <div className="text-sm mt-2"><span className="font-semibold">Notes:</span> {o.notes}</div> : null}
+                {o.notes ? (
+                  <div className="text-sm mt-2">
+                    <span className="font-semibold">Notes:</span> {o.notes}
+                  </div>
+                ) : null}
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setStatus(o.id, "preparing")} className="rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-zinc-50">
+                <button
+                  onClick={() => setStatus(o.id, "preparing")}
+                  className="rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-zinc-50"
+                >
                   Preparing
                 </button>
-                <button onClick={() => setStatus(o.id, "ready")} className="rounded-xl bg-black text-white px-3 py-2 text-sm font-semibold hover:opacity-90">
+                <button
+                  onClick={() => setStatus(o.id, "ready")}
+                  className="rounded-xl bg-black text-white px-3 py-2 text-sm font-semibold hover:opacity-90"
+                >
                   Ready
                 </button>
-                <button onClick={() => setStatus(o.id, "collected")} className="rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-zinc-50">
+                <button
+                  onClick={() => setStatus(o.id, "collected")}
+                  className="rounded-xl border px-3 py-2 text-sm font-semibold hover:bg-zinc-50"
+                >
                   Collected
                 </button>
-                <button onClick={() => setStatus(o.id, "cancelled")} className="rounded-xl border border-red-200 text-red-700 px-3 py-2 text-sm font-semibold hover:bg-red-50">
+                <button
+                  onClick={() => setStatus(o.id, "cancelled")}
+                  className="rounded-xl border border-red-200 text-red-700 px-3 py-2 text-sm font-semibold hover:bg-red-50"
+                >
                   Cancel
                 </button>
               </div>
@@ -134,7 +165,8 @@ export default function StaffOrdersPage() {
               <ul className="mt-1 text-sm text-zinc-700 space-y-1">
                 {(o.items || []).map((it) => (
                   <li key={it.id}>
-                    {it.quantity}× {it.product_name} — {(it.line_total_cents / 100).toFixed(2)} €
+                    {it.quantity}× {it.product_name} —{" "}
+                    {(it.line_total_cents / 100).toFixed(2)} €
                   </li>
                 ))}
               </ul>
@@ -142,7 +174,9 @@ export default function StaffOrdersPage() {
           </div>
         ))}
 
-        {orders.length === 0 ? <div className="text-zinc-600">Aucune commande.</div> : null}
+        {orders.length === 0 ? (
+          <div className="text-zinc-600">Aucune commande.</div>
+        ) : null}
       </div>
     </div>
   );

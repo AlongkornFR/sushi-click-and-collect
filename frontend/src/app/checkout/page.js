@@ -1,49 +1,54 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useCart } from "@/components/context/CartContext"
-import { api } from "@/services/api"
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCart } from "@/components/context/CartContext";
+import { api } from "@/services/api";
 
 function formatEUR(value) {
-  const n = Number(value) || 0
-  return n.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })
+  const n = Number(value) || 0;
+  return n.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 }
 
 function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim())
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
 }
 
 function isValidPhone(phone) {
   // simple validation FR-ish (light)
-  const p = String(phone || "").replace(/\s/g, "")
-  return p.length >= 9
+  const p = String(phone || "").replace(/\s/g, "");
+  return p.length >= 9;
 }
 
 function buildPickupSlots() {
   // slots toutes les 15 min, de 11:30 à 14:00 puis 18:00 à 22:00 (modifiable)
-  const slots = []
+  const slots = [];
 
-  const make = (h, m) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+  const make = (h, m) =>
+    `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   const pushRange = (h1, m1, h2, m2) => {
-    let h = h1, m = m1
+    let h = h1,
+      m = m1;
     while (h < h2 || (h === h2 && m <= m2)) {
-      slots.push(make(h, m))
-      m += 15
-      if (m >= 60) { m = 0; h += 1 }
+      slots.push(make(h, m));
+      m += 15;
+      if (m >= 60) {
+        m = 0;
+        h += 1;
+      }
     }
-  }
+  };
 
-  pushRange(11, 30, 14, 0)
-  pushRange(18, 0, 22, 0)
+  pushRange(11, 30, 14, 0);
+  pushRange(18, 0, 22, 0);
 
-  return slots
+  return slots;
 }
 
 export default function CheckoutPage() {
-  const router = useRouter()
-  const { items, subtotal, clear } = useCart()
+  const router = useRouter();
+  const { items, subtotal, clear } = useCart();
 
   const [form, setForm] = useState({
     full_name: "",
@@ -51,97 +56,94 @@ export default function CheckoutPage() {
     phone: "",
     pickup_time: "",
     notes: "",
-  })
+  });
 
-  const [touched, setTouched] = useState({})
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [touched, setTouched] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const pickupSlots = useMemo(() => buildPickupSlots(), [])
-
-
+  const pickupSlots = useMemo(() => buildPickupSlots(), []);
 
   useEffect(() => {
     // Si panier vide -> retour menu
-    if (items.length === 0) router.replace("/cart")
-  }, [items.length, router])
+    if (items.length === 0) router.replace("/cart");
+  }, [items.length, router]);
 
   const itemsPayload = useMemo(() => {
     return items.map((x) => ({
       product_id: x.id,
       quantity: x.quantity,
-    }))
-  }, [items])
+    }));
+  }, [items]);
 
   const validation = useMemo(() => {
-    const e = {}
-    if (!form.full_name.trim()) e.full_name = "Nom obligatoire"
-    if (!isValidEmail(form.email)) e.email = "Email invalide"
-    if (!isValidPhone(form.phone)) e.phone = "Téléphone invalide"
-    if (!form.pickup_time) e.pickup_time = "Choisissez une heure de retrait"
-    if (items.length === 0) e.cart = "Panier vide"
-    return e
-  }, [form, items.length])
+    const e = {};
+    if (!form.full_name.trim()) e.full_name = "Nom obligatoire";
+    if (!isValidEmail(form.email)) e.email = "Email invalide";
+    if (!isValidPhone(form.phone)) e.phone = "Téléphone invalide";
+    if (!form.pickup_time) e.pickup_time = "Choisissez une heure de retrait";
+    if (items.length === 0) e.cart = "Panier vide";
+    return e;
+  }, [form, items.length]);
 
-  const canSubmit = Object.keys(validation).length === 0 && !loading
+  const canSubmit = Object.keys(validation).length === 0 && !loading;
 
   const setField = (name, value) => {
-    setForm((p) => ({ ...p, [name]: value }))
-  }
+    setForm((p) => ({ ...p, [name]: value }));
+  };
 
-  const markTouched = (name) => setTouched((t) => ({ ...t, [name]: true }))
+  const markTouched = (name) => setTouched((t) => ({ ...t, [name]: true }));
 
-async function handlePay() {
-  setError("")
-  setTouched({
-    full_name: true,
-    email: true,
-    phone: true,
-    pickup_time: true,
-    notes: true,
-  })
+  async function handlePay() {
+    setError("");
+    setTouched({
+      full_name: true,
+      email: true,
+      phone: true,
+      pickup_time: true,
+      notes: true,
+    });
 
-  if (!canSubmit) {
-    setError("Veuillez corriger les champs en rouge.")
-    return
-  }
-
-  setLoading(true)
-  try {
-    const payload = {
-      customer: {
-        full_name: form.full_name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-      },
-      pickup_time: form.pickup_time,
-      notes: form.notes?.trim() || "",
-      items: items.map((x) => ({
-        product_id: x.id,
-        quantity: x.quantity,
-      })),
+    if (!canSubmit) {
+      setError("Veuillez corriger les champs en rouge.");
+      return;
     }
 
-    // ✅ appel backend
-    const res = await api.post("checkout/", payload)
+    setLoading(true);
+    try {
+      const payload = {
+        customer: {
+          full_name: form.full_name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+        },
+        pickup_time: form.pickup_time,
+        notes: form.notes?.trim() || "",
+        items: items.map((x) => ({
+          product_id: x.id,
+          quantity: x.quantity,
+        })),
+      };
 
-    const paymentUrl = res?.data?.payment_url
-    if (!paymentUrl) {
-      throw new Error("payment_url missing in response")
+      // ✅ appel backend
+      const res = await api.post("checkout/", payload);
+
+      const paymentUrl = res?.data?.payment_url;
+      if (!paymentUrl) {
+        throw new Error("payment_url missing in response");
+      }
+
+      // ✅ redirection Payplug
+      window.location.href = paymentUrl;
+    } catch (e) {
+      console.error(e);
+      setError("Impossible de démarrer le paiement. Réessayez.");
+    } finally {
+      setLoading(false);
     }
-
-    // ✅ redirection Payplug
-    window.location.href = paymentUrl
-  } catch (e) {
-    console.error(e)
-    setError("Impossible de démarrer le paiement. Réessayez.")
-  } finally {
-    setLoading(false)
   }
-}
 
-
-  if (items.length === 0) return null
+  if (items.length === 0) return null;
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-12">
@@ -204,9 +206,7 @@ async function handlePay() {
 
             {/* Pickup */}
             <div className="md:col-span-2">
-              <label className="text-sm font-medium">
-                Heure de retrait
-              </label>
+              <label className="text-sm font-medium">Heure de retrait</label>
 
               <select
                 className={`mt-2 w-full rounded-xl border px-4 py-3 outline-none transition ${
@@ -227,11 +227,14 @@ async function handlePay() {
               </select>
 
               {touched.pickup_time && validation.pickup_time && (
-                <p className="mt-2 text-sm text-red-600">{validation.pickup_time}</p>
+                <p className="mt-2 text-sm text-red-600">
+                  {validation.pickup_time}
+                </p>
               )}
 
               <p className="mt-2 text-xs text-gray-500">
-                Les créneaux proposés sont indicatifs. Nous préparons au plus proche de l’heure choisie.
+                Les créneaux proposés sont indicatifs. Nous préparons au plus
+                proche de l’heure choisie.
               </p>
             </div>
 
@@ -251,7 +254,8 @@ async function handlePay() {
           <div className="mt-8 flex items-start gap-3">
             <div className="h-2 w-2 rounded-full bg-black mt-2" />
             <p className="text-sm text-gray-600">
-              Paiement sécurisé : vos informations sont protégées. Vous recevrez un récapitulatif par email.
+              Paiement sécurisé : vos informations sont protégées. Vous recevrez
+              un récapitulatif par email.
             </p>
           </div>
         </div>
@@ -303,12 +307,13 @@ async function handlePay() {
           </button>
 
           <p className="mt-4 text-xs text-gray-500">
-            En cliquant sur “Payer maintenant”, vous serez redirigé vers le paiement sécurisé Payplug.
+            En cliquant sur “Payer maintenant”, vous serez redirigé vers le
+            paiement sécurisé Payplug.
           </p>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function Field({ label, value, onChange, onBlur, placeholder, error }) {
@@ -326,5 +331,5 @@ function Field({ label, value, onChange, onBlur, placeholder, error }) {
       />
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
     </div>
-  )
+  );
 }

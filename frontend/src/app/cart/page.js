@@ -1,36 +1,42 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useCart } from "@/components/context/CartContext"
-import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant"
+import Link from "next/link";
+import { useCart } from "@/components/context/CartContext";
+import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
 
 function formatEUR(value) {
-  const n = Number(value) || 0
-  return n.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })
+  const n = Number(value) || 0;
+  return n.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 }
 
 export default function CartPage() {
-  const { items, subtotal, increment, decrement, removeItem, clear } = useCart()
+  const { items, subtotal, increment, decrement, removeItem, clear } =
+    useCart();
 
   if (items.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-16 text-center">
-        <h1 className="text-3xl font-bold">Votre panier est vide</h1>
-        <p className="text-gray-500 mt-2">
-          Ajoutez des produits depuis le menu pour commencer votre commande.
-        </p>
-        <Link
-          href="/menu"
-          className="inline-block mt-8 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
-        >
-          Voir le menu
-        </Link>
+      <div className="min-h-[90vh] flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-2xl text-center">
+          <h1 className="text-3xl md:text-4xl font-bold">
+            Votre panier est vide
+          </h1>
+          <p className="text-gray-500 mt-3 text-base md:text-lg">
+            Ajoutez des produits depuis le menu pour commencer votre commande.
+          </p>
+
+          <Link
+            href="/menu"
+            className="inline-block mt-8 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
+          >
+            Voir le menu
+          </Link>
+        </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="max-w-6xl mx-auto px-6 py-12 min-h-screen">
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold">Panier</h1>
@@ -51,7 +57,7 @@ export default function CartPage() {
         {/* Items */}
         <div className="lg:col-span-2 space-y-4">
           {items.map((it) => {
-            const lineTotal = Number(it.price) * it.quantity
+            const lineTotal = Number(it.price) * it.quantity;
 
             return (
               <div
@@ -61,7 +67,9 @@ export default function CartPage() {
                 <div className="p-4 flex gap-4">
                   <img
                     src={it.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
-                    onError={(e) => (e.currentTarget.src = DEFAULT_PRODUCT_IMAGE)}
+                    onError={(e) =>
+                      (e.currentTarget.src = DEFAULT_PRODUCT_IMAGE)
+                    }
                     alt={it.name}
                     className="h-24 w-24 rounded-xl object-cover"
                   />
@@ -90,7 +98,6 @@ export default function CartPage() {
                     </div>
 
                     <div className="mt-4 flex items-center justify-between gap-4">
-                      {/* Quantity controls */}
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => decrement(it.id)}
@@ -113,12 +120,14 @@ export default function CartPage() {
                         </button>
                       </div>
 
-                      <div className="font-semibold">{formatEUR(lineTotal)}</div>
+                      <div className="font-semibold">
+                        {formatEUR(lineTotal)}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
 
@@ -162,5 +171,5 @@ export default function CartPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
