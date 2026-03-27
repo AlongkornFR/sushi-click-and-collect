@@ -5,19 +5,61 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/services/api";
 import { useCart } from "@/components/context/CartContext";
+import { FaClock, FaMapMarkerAlt } from "react-icons/fa";
 
 function formatEURFromCents(cents) {
-  const euros = (Number(cents) || 0) / 100;
-  return euros.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+  return ((Number(cents) || 0) / 100).toLocaleString("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  });
+}
+
+/* ── Spinner ── */
+function Spinner() {
+  return (
+    <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 px-6">
+      <div className="relative flex h-20 w-20 items-center justify-center">
+        {/* Outer spinning ring */}
+        <div className="absolute inset-0 rounded-full border-4 border-zinc-100" />
+        <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-zinc-900" />
+        {/* Inner pulse */}
+        <div className="h-8 w-8 animate-pulse rounded-full bg-zinc-100" />
+      </div>
+      <div className="text-center">
+        <p className="text-base font-semibold text-zinc-800">Confirmation en cours…</p>
+        <p className="mt-1 text-sm text-zinc-400">Ne fermez pas cette page</p>
+      </div>
+    </div>
+  );
+}
+
+/* ── Animated checkmark SVG ── */
+function CheckIcon() {
+  return (
+    <div className="check-circle flex h-24 w-24 items-center justify-center rounded-full bg-emerald-100">
+      <svg viewBox="0 0 52 52" className="h-12 w-12" fill="none">
+        <circle cx="26" cy="26" r="25" stroke="#10b981" strokeWidth="2" fill="none" />
+        <path
+          className="check-path"
+          d="M14 27 L22 35 L38 18"
+          stroke="#10b981"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </svg>
+    </div>
+  );
 }
 
 export default function SuccessPageClient() {
-  const sp = useSearchParams();
+  const sp      = useSearchParams();
   const orderId = sp.get("order_id");
   const { clear } = useCart();
 
-  const [order, setOrder] = useState(null);
-  const [error, setError] = useState("");
+  const [order, setOrder]   = useState(null);
+  const [error, setError]   = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,7 +68,7 @@ export default function SuccessPageClient() {
 
     if (!orderId) {
       setLoading(false);
-      setError("order_id manquant dans l’URL.");
+      setError("order_id manquant dans l'URL.");
       return;
     }
 
@@ -37,10 +79,8 @@ export default function SuccessPageClient() {
       try {
         const res = await api.get(`orders/${orderId}/`);
         if (cancelled) return;
-
         setOrder(res.data);
         setLoading(false);
-
         if (res.data.status !== "paid" && tries < 10) {
           tries += 1;
           setTimeout(fetchOrder, 1500);
@@ -53,38 +93,32 @@ export default function SuccessPageClient() {
     };
 
     fetchOrder();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [orderId]);
 
   useEffect(() => {
-    if (!order) return;
-    if (order.status !== "paid") return;
-
+    if (!order || order.status !== "paid") return;
     const key = `cart_cleared_for_order_${order.id}`;
     if (typeof window !== "undefined" && localStorage.getItem(key)) return;
-
     clear();
-
-    if (typeof window !== "undefined") {
-      localStorage.setItem(key, "1");
-    }
+    if (typeof window !== "undefined") localStorage.setItem(key, "1");
   }, [order, clear]);
 
-  if (loading) {
-    return <div className="max-w-3xl mx-auto px-6 py-20">Chargement...</div>;
-  }
+  /* ── Loading ── */
+  if (loading) return <Spinner />;
 
+  /* ── Error ── */
   if (error) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-20 text-center">
-        <h1 className="text-3xl font-bold">Oups</h1>
-        <p className="text-gray-600 mt-3">{error}</p>
+      <div className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-100">
+          <span className="text-3xl">✕</span>
+        </div>
+        <h1 className="mt-5 text-2xl font-bold text-zinc-900">Une erreur est survenue</h1>
+        <p className="mt-2 text-sm text-zinc-400">{error}</p>
         <Link
           href="/menu"
-          className="inline-block mt-8 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
+          className="mt-8 rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 active:scale-95"
         >
           Revenir au menu
         </Link>
@@ -94,82 +128,128 @@ export default function SuccessPageClient() {
 
   const paid = order?.status === "paid";
 
-  return (
-    <div className="max-w-3xl mx-auto px-6 py-20 text-center">
-      <h1 className="text-3xl font-bold">
-        {paid ? "Paiement confirmé ✅" : "Paiement refusé / non confirmé ❌"}
-      </h1>
-
-      <p className="text-gray-600 mt-3">
-        {paid
-          ? "Merci ! Votre commande est confirmée et va être préparée."
-          : "Votre paiement n’a pas été validé. Vous pouvez réessayer ou revenir au panier."}
-      </p>
-
-      <div className="mt-8 bg-white border rounded-2xl p-6 text-left">
-        <div className="flex justify-between text-sm text-gray-600">
-          <span>Commande</span>
-          <span>#{order.id}</span>
+  /* ── Not paid ── */
+  if (!paid) {
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-50">
+          <span className="text-4xl">✕</span>
         </div>
-
-        <div className="flex justify-between mt-2 text-sm text-gray-600">
-          <span>Statut</span>
-          <span className="font-semibold">{order.status}</span>
-        </div>
-
-        <div className="flex justify-between mt-2 text-sm text-gray-600">
-          <span>Total</span>
-          <span className="font-semibold">
-            {formatEURFromCents(order.total_cents)}
-          </span>
-        </div>
-
-        <div className="flex justify-between mt-2 text-sm text-gray-600">
-          <span>Retrait</span>
-          <span className="font-semibold">{order.pickup_time}</span>
-        </div>
-
-        <div className="mt-5 pt-5 border-t">
-          <div className="font-semibold mb-2">Détails</div>
-          <div className="space-y-2 text-sm">
-            {order.items?.map((it) => (
-              <div key={it.id} className="flex justify-between">
-                <span>
-                  {it.product_name} × {it.quantity}
-                </span>
-                <span>{formatEURFromCents(it.line_total_cents)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {!paid ? (
-        <div className="mt-10 flex gap-3 justify-center flex-wrap">
-          <button
-            onClick={() => {
-              if (order.payment_url) window.location.href = order.payment_url;
-            }}
-            className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
-          >
-            Réessayer le paiement
-          </button>
-
+        <h1 className="mt-5 text-2xl font-bold text-zinc-900">Paiement non confirmé</h1>
+        <p className="mt-2 max-w-sm text-sm text-zinc-400">
+          Votre paiement n'a pas été validé. Vous pouvez réessayer ou revenir au panier.
+        </p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          {order?.payment_url && (
+            <button
+              type="button"
+              onClick={() => { window.location.href = order.payment_url; }}
+              className="cursor-pointer rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 active:scale-95"
+            >
+              Réessayer le paiement
+            </button>
+          )}
           <Link
             href="/cart"
-            className="px-6 py-3 rounded-xl border hover:bg-gray-100 transition"
+            className="rounded-xl border border-zinc-200 px-6 py-3 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 active:scale-95"
           >
             Retour au panier
           </Link>
         </div>
-      ) : (
+      </div>
+    );
+  }
+
+  /* ── Success ── */
+  return (
+    <div className="mx-auto max-w-lg px-4 py-16 md:px-6">
+
+      {/* Checkmark + heading */}
+      <div className="flex flex-col items-center text-center">
+        <CheckIcon />
+        <div className="success-content mt-6">
+          <h1 className="text-2xl font-bold text-zinc-900">Commande confirmée !</h1>
+          <p className="mt-2 text-sm text-zinc-400">
+            Merci ! Votre commande est enregistrée et va être préparée.
+          </p>
+        </div>
+      </div>
+
+      {/* Order card */}
+      <div className="success-content mt-8 overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm">
+
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Commande</p>
+            <p className="text-lg font-bold text-zinc-900">#{order.id}</p>
+          </div>
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+            Payée
+          </span>
+        </div>
+
+        {/* Info row */}
+        <div className="grid grid-cols-2 divide-x divide-zinc-100 border-b border-zinc-100">
+          <div className="flex items-center gap-2.5 px-5 py-4">
+            <FaClock className="shrink-0 text-zinc-300" />
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Retrait</p>
+              <p className="text-sm font-semibold text-zinc-900">{order.pickup_time}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 px-5 py-4">
+            <FaMapMarkerAlt className="shrink-0 text-zinc-300" />
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Lieu</p>
+              <p className="text-sm font-semibold text-zinc-900">Su-Rice · Cannes</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Items */}
+        {order.items?.length > 0 && (
+          <div className="px-5 py-4">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
+              Détail
+            </p>
+            <ul className="space-y-2">
+              {order.items.map(it => (
+                <li key={it.id} className="flex items-center justify-between text-sm">
+                  <span className="text-zinc-700">
+                    <span className="font-semibold text-zinc-900">{it.quantity}×</span>{" "}
+                    {it.product_name}
+                  </span>
+                  <span className="font-semibold text-zinc-700">
+                    {formatEURFromCents(it.line_total_cents)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Total */}
+        <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-4">
+          <span className="text-sm font-medium text-zinc-500">Total payé</span>
+          <span className="text-lg font-bold text-zinc-900">
+            {formatEURFromCents(order.total_cents)}
+          </span>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="success-content mt-6 text-center">
         <Link
           href="/menu"
-          className="inline-block mt-10 bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition"
+          className="inline-block rounded-xl bg-zinc-900 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-700 active:scale-95"
         >
           Revenir au menu
         </Link>
-      )}
+        <p className="mt-4 text-xs text-zinc-400">
+          Un récapitulatif vous a été envoyé par email.
+        </p>
+      </div>
     </div>
   );
 }
