@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useCart } from "@/components/context/CartContext";
 import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
-import { FaXmark, FaShoppingBag } from "react-icons/fa6";
-import { FaShieldAlt, FaMapMarkerAlt, FaMinus, FaPlus } from "react-icons/fa";
+import { FaXmark } from "react-icons/fa6";
+import { FaShieldAlt, FaMapMarkerAlt, FaMinus, FaPlus, FaShoppingBag } from "react-icons/fa";
 
 function formatEUR(value) {
   return (Number(value) || 0).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
