@@ -25,13 +25,6 @@ export default function Navbar() {
   const { count }         = useCart();
   const pathname          = usePathname();
   const [open, setOpen]   = useState(false);
-  const [isStaff, setIsStaff] = useState(false);
-
-  /* all hooks must come before any conditional return */
-  useEffect(() => {
-    setIsStaff(!!localStorage.getItem("staff_token"));
-  }, [pathname]); // re-check on route change (login/logout)
-
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -95,14 +88,6 @@ export default function Navbar() {
 
             {/* Right */}
             <div className="flex items-center gap-3">
-              {isStaff && (
-                <Link
-                  href="/staff/orders"
-                  className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
-                >
-                  Admin
-                </Link>
-              )}
               <Link
                 href="/cart"
                 className="relative flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-zinc-700 active:scale-95"
@@ -209,14 +194,6 @@ export default function Navbar() {
                 )}
               </Link>
 
-              {isStaff && (
-                <Link
-                  href="/staff/orders"
-                  className="flex items-center rounded-xl px-4 py-3 text-base font-medium text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-700"
-                >
-                  Espace Admin
-                </Link>
-              )}
             </nav>
 
             <div className="space-y-3 border-t border-zinc-100 px-5 py-5">
