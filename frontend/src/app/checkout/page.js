@@ -5,12 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/context/CartContext";
 import { api } from "@/services/api";
+import { formatEUR } from "@/utils/formatting";
+import FormField from "@/components/common/FormField";
+import ProductImage from "@/components/common/ProductImage";
 import { FaShieldAlt, FaClock } from "react-icons/fa";
-import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
-
-function formatEUR(value) {
-  return (Number(value) || 0).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
-}
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
@@ -40,18 +38,6 @@ const inputCls = (hasError) =>
   `w-full rounded-xl border bg-zinc-50 px-4 py-3 text-sm outline-none transition focus:bg-white ${
     hasError ? "border-red-300 focus:border-red-400" : "border-zinc-200 focus:border-zinc-400"
   }`;
-
-function Field({ label, error, children }) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
-        {label}
-      </label>
-      {children}
-      {error && <p className="mt-1.5 text-xs text-red-500">{error}</p>}
-    </div>
-  );
-}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -143,7 +129,7 @@ export default function CheckoutPage() {
             )}
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Field label="Nom & prénom" error={touched.full_name ? validation.full_name : ""}>
+              <FormField label="Nom & prénom" error={touched.full_name ? validation.full_name : ""}>
                 <input
                   value={form.full_name}
                   onChange={e => setField("full_name", e.target.value)}
@@ -151,9 +137,9 @@ export default function CheckoutPage() {
                   placeholder="Ex : Marie Dupont"
                   className={inputCls(touched.full_name && validation.full_name)}
                 />
-              </Field>
+              </FormField>
 
-              <Field label="Téléphone" error={touched.phone ? validation.phone : ""}>
+              <FormField label="Téléphone" error={touched.phone ? validation.phone : ""}>
                 <input
                   value={form.phone}
                   onChange={e => setField("phone", e.target.value)}
@@ -161,10 +147,10 @@ export default function CheckoutPage() {
                   placeholder="06 12 34 56 78"
                   className={inputCls(touched.phone && validation.phone)}
                 />
-              </Field>
+              </FormField>
 
               <div className="md:col-span-2">
-                <Field label="Email" error={touched.email ? validation.email : ""}>
+                <FormField label="Email" error={touched.email ? validation.email : ""}>
                   <input
                     value={form.email}
                     onChange={e => setField("email", e.target.value)}
@@ -172,7 +158,7 @@ export default function CheckoutPage() {
                     placeholder="vous@email.com"
                     className={inputCls(touched.email && validation.email)}
                   />
-                </Field>
+                </FormField>
               </div>
             </div>
           </div>
@@ -261,9 +247,8 @@ export default function CheckoutPage() {
               <div className="space-y-3">
                 {items.map(it => (
                   <div key={it.id} className="flex items-center gap-3">
-                    <img
-                      src={it.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
-                      onError={e => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE; }}
+                    <ProductImage
+                      src={it.image_main}
                       alt={it.name}
                       className="h-10 w-10 shrink-0 rounded-lg object-cover"
                     />

@@ -2,13 +2,10 @@
 
 import Link from "next/link";
 import { useCart } from "@/components/context/CartContext";
-import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
+import { formatEUR } from "@/utils/formatting";
+import ProductImage from "@/components/common/ProductImage";
 import { FaXmark } from "react-icons/fa6";
 import { FaShieldAlt, FaMapMarkerAlt, FaMinus, FaPlus, FaShoppingBag } from "react-icons/fa";
-
-function formatEUR(value) {
-  return (Number(value) || 0).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
-}
 
 export default function CartPage() {
   const { items, subtotal, increment, decrement, removeItem, clear } = useCart();
@@ -64,9 +61,8 @@ export default function CartPage() {
               <div key={it.id} className="flex gap-4 rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
 
                 {/* Image */}
-                <img
-                  src={it.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
-                  onError={e => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE; }}
+                <ProductImage
+                  src={it.image_main}
                   alt={it.name}
                   className="h-20 w-20 shrink-0 rounded-xl object-cover"
                 />
