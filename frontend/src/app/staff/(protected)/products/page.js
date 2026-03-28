@@ -71,7 +71,10 @@ function Field({ label, children }) {
   );
 }
 
-function ImageUploader({ value, onChange, authFetch, API }) {
+const CLOUDINARY_CLOUD_NAME    = "dqeereccn";
+const CLOUDINARY_UPLOAD_PRESET = "d8d8dd8c88f2ca526220fb7d701ca3";
+
+function ImageUploader({ value, onChange }) {
   const inputRef            = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -86,20 +89,19 @@ function ImageUploader({ value, onChange, authFetch, API }) {
     setUploading(true);
     setUploadError("");
     try {
-      // 1. Obtenir l'URL d'upload directe depuis le backend
-      const res = await authFetch(`${API}/staff/cloudflare-upload-url/`, { method: "POST" });
-      if (!res.ok) throw new Error("Impossible d'obtenir l'URL d'upload.");
-      const { upload_url } = await res.json();
-
-      // 2. Upload direct vers Cloudflare (pas d'auth nécessaire)
       const fd = new FormData();
       fd.append("file", file);
-      const cfRes = await fetch(upload_url, { method: "POST", body: fd });
-      if (!cfRes.ok) throw new Error("Erreur lors de l'envoi vers Cloudflare.");
-      const cfData = await cfRes.json();
+      fd.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
 
-      const imageUrl = cfData.result?.variants?.[0];
-      if (!imageUrl) throw new Error("URL image non reçue de Cloudflare.");
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        { method: "POST", body: fd }
+      );
+      if (!res.ok) throw new Error("Erreur lors de l'envoi vers Cloudinary.");
+      const data = await res.json();
+
+      const imageUrl = data.secure_url;
+      if (!imageUrl) throw new Error("URL image non reçue de Cloudinary.");
 
       onChange(imageUrl);
     } catch (e) {
@@ -622,8 +624,6 @@ export default function StaffProductsPage() {
                   <ImageUploader
                     value={form.image_main}
                     onChange={url => setForm(prev => ({ ...prev, image_main: url }))}
-                    authFetch={authFetch}
-                    API={API}
                   />
                 </Field>
 
