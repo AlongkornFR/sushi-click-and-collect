@@ -164,3 +164,8 @@ PAYPLUG_API_VERSION = os.environ.get("PAYPLUG_API_VERSION", "2019-08-06")
 # Cloudflare Images — direct upload
 CLOUDFLARE_ACCOUNT_ID    = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
 CLOUDFLARE_IMAGES_TOKEN  = os.environ.get("CLOUDFLARE_IMAGES_TOKEN", "")
+
+# Email — Resend
+RESEND_API_KEY         = os.environ.get("RESEND_API_KEY", "")
+RESEND_FROM_EMAIL      = os.environ.get("RESEND_FROM_EMAIL", "onboarding@resend.dev")
+CONTACT_RECEIVER_EMAIL = os.environ.get("CONTACT_RECEIVER_EMAIL", "")
