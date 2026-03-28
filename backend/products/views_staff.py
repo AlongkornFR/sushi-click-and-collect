@@ -1,3 +1,8 @@
+import json as _json
+import urllib.error
+import urllib.request
+
+from django.conf import settings
 from django.db.models import Q
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
@@ -117,3 +122,51 @@ def staff_product_update(request, product_id: int):
         product = serializer.save()
         return Response(StaffProductSerializer(product).data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def cloudflare_upload_url(request):
+    """
+    Génère une URL d'upload directe Cloudflare Images (one-time).
+    Le frontend upload ensuite l'image directement à cette URL (sans passer par le backend).
+    """
+    account_id = getattr(settings, "CLOUDFLARE_ACCOUNT_ID", "")
+    token      = getattr(settings, "CLOUDFLARE_IMAGES_TOKEN", "")
+
+    if not account_id or not token:
+        return Response(
+            {"detail": "Cloudflare Images non configuré. Ajoutez CLOUDFLARE_ACCOUNT_ID et CLOUDFLARE_IMAGES_TOKEN."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    cf_url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/images/v2/direct_upload"
+    req = urllib.request.Request(
+        cf_url,
+        method="POST",
+        headers={"Authorization": f"Bearer {token}"},
+        data=b"",          # body vide obligatoire pour urllib POST
+    )
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            data = _json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="replace")
+        return Response(
+            {"detail": f"Cloudflare HTTP {e.code}", "body": body},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+    except Exception as e:
+        return Response({"detail": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+
+    if not data.get("success"):
+        return Response(
+            {"detail": "Cloudflare API error", "errors": data.get("errors")},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    return Response({
+        "upload_url": data["result"]["uploadURL"],
+        "id":         data["result"]["id"],
+    })

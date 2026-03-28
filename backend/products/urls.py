@@ -9,6 +9,7 @@ from .views_staff import (
     staff_category_create,
     staff_subcategories_list,
     staff_subcategory_create,
+    cloudflare_upload_url,
 )
 
 urlpatterns = [
@@ -29,4 +30,7 @@ urlpatterns = [
     # STAFF SUBCATEGORIES
     path("staff/subcategories/", staff_subcategories_list),
     path("staff/subcategories/create/", staff_subcategory_create),
+
+    # CLOUDFLARE IMAGES
+    path("staff/cloudflare-upload-url/", cloudflare_upload_url),
 ]

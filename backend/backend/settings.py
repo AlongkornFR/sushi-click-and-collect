@@ -158,5 +158,9 @@ if _extra:
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://[\w-]+\.vercel\.app$",
 ]
-PAYPLUG_SECRET_KEY = os.environ.get("PAYPLUG_SECRET_KEY", "")
+PAYPLUG_SECRET_KEY  = os.environ.get("PAYPLUG_SECRET_KEY", "")
 PAYPLUG_API_VERSION = os.environ.get("PAYPLUG_API_VERSION", "2019-08-06")
+
+# Cloudflare Images — direct upload
+CLOUDFLARE_ACCOUNT_ID    = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
+CLOUDFLARE_IMAGES_TOKEN  = os.environ.get("CLOUDFLARE_IMAGES_TOKEN", "")
