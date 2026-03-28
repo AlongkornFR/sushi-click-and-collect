@@ -72,7 +72,7 @@ function Field({ label, children }) {
 }
 
 const CLOUDINARY_CLOUD_NAME    = "dqeereccn";
-const CLOUDINARY_UPLOAD_PRESET = "d8d8dd8c88f2ca526220fb7d701ca3";
+const CLOUDINARY_UPLOAD_PRESET = "sushi-upload";
 
 function ImageUploader({ value, onChange }) {
   const inputRef            = useRef(null);
