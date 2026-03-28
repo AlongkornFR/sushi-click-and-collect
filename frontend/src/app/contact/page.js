@@ -1,194 +1,242 @@
 "use client";
 
 import { useState } from "react";
-import { FaArrowRight } from "react-icons/fa6";
+import Link from "next/link";
 import { api } from "@/services/api";
-import Image from "next/image";
+import FormField from "@/components/common/FormField";
+import { FaMapMarkerAlt, FaPhone, FaClock, FaEnvelope } from "react-icons/fa";
+import { FaArrowRight, FaCircleCheck } from "react-icons/fa6";
 
-const emptyForm = {
-  firstName: "",
-  lastName: "",
-  email: "",
-  phone: "",
-  message: "",
-};
+const MAPS_URL =
+  "https://www.google.com/maps/place/Su-Rice/@43.5585923,7.0140804,17z/data=!3m1!4b1!4m6!3m5!1s0x12ce816d613a0a6d:0xccffb8a670629cf8!8m2!3d43.5585884!4d7.0166553!16s%2Fg%2F11krh5b4jt?entry=ttu";
+
+const INFO = [
+  {
+    icon: FaMapMarkerAlt,
+    label: "Adresse",
+    value: "Cannes, Alpes-Maritimes",
+    sub: "Cuisine japonaise & thaïlandaise",
+  },
+  {
+    icon: FaPhone,
+    label: "Téléphone",
+    value: "+33 4 93 XX XX XX",
+    href: "tel:+3349XXXXXXX",
+  },
+  {
+    icon: FaClock,
+    label: "Horaires",
+    value: "11h30 – 14h00 · 18h00 – 22h00",
+    sub: "Fermé le lundi",
+  },
+  {
+    icon: FaEnvelope,
+    label: "Email",
+    value: "contact@su-rice.fr",
+    href: "mailto:contact@su-rice.fr",
+  },
+];
+
+const emptyForm = { lastName: "", firstName: "", email: "", phone: "", message: "" };
+
+const inputCls =
+  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white";
 
 export default function ContactPage() {
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm]       = useState(emptyForm);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
+  const [sent, setSent]       = useState(false);
+  const [error, setError]     = useState("");
 
   function onChange(e) {
     const { name, value } = e.target;
-
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm(prev => ({ ...prev, [name]: value }));
   }
 
   async function onSubmit(e) {
     e.preventDefault();
     setLoading(true);
-    setSuccess("");
     setError("");
-
     try {
       await api.post("contact/", {
         first_name: form.firstName,
-        last_name: form.lastName,
-        email: form.email,
-        phone: form.phone,
-        message: form.message,
+        last_name:  form.lastName,
+        email:      form.email,
+        phone:      form.phone,
+        message:    form.message,
       });
-
-      setSuccess("Votre message a bien été envoyé.");
+      setSent(true);
       setForm(emptyForm);
-    } catch (err) {
-      console.error(err);
-      setError("Une erreur est survenue lors de l'envoi du message.");
+    } catch {
+      setError("Une erreur est survenue. Réessayez ou contactez-nous par téléphone.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
-      <section className="rounded-[28px] bg-white p-5 shadow-sm md:p-8 lg:p-10">
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-14">
+    <div className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-16">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+
+        {/* ── Left panel — info ── */}
+        <div className="flex flex-col justify-between gap-8 rounded-3xl bg-zinc-900 p-8 text-white lg:col-span-2 lg:p-10">
+
           <div>
-            <div className="max-w-xl">
-              <p className="mb-3 text-sm uppercase tracking-[0.2em] text-zinc-500">
-                Contact
-              </p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+              Su-Rice · Cannes
+            </p>
+            <h1 className="mt-3 text-3xl font-bold leading-tight lg:text-4xl">
+              Une question ?<br />On est là.
+            </h1>
+            <p className="mt-4 text-sm leading-relaxed text-zinc-400">
+              Commandes, allergies, horaires… répondez-nous via le formulaire
+              ou contactez-nous directement.
+            </p>
+          </div>
 
-              <h1 className="text-4xl font-semibold leading-tight text-zinc-900 md:text-5xl">
-                Une question sur nos plats ou votre commande ?
-              </h1>
-
-              <p className="mt-5 text-base leading-7 text-zinc-600 md:text-lg">
-                Contactez notre équipe pour toute demande concernant la
-                boutique, les plats japonais et thaïlandais, les commandes à
-                emporter ou les informations pratiques.
-              </p>
-            </div>
-
-            <form onSubmit={onSubmit} className="mt-10 space-y-5">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <input
-                  type="text"
-                  name="lastName"
-                  value={form.lastName}
-                  onChange={onChange}
-                  placeholder="Nom"
-                  required
-                  className="h-14 rounded-2xl border border-zinc-200 bg-zinc-100 px-5 text-zinc-900 outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-200"
-                />
-
-                <input
-                  type="text"
-                  name="firstName"
-                  value={form.firstName}
-                  onChange={onChange}
-                  placeholder="Prénom"
-                  required
-                  className="h-14 rounded-2xl border border-zinc-200 bg-zinc-100 px-5 text-zinc-900 outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-200"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={onChange}
-                  placeholder="Email"
-                  required
-                  className="h-14 rounded-2xl border border-zinc-200 bg-zinc-100 px-5 text-zinc-900 outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-200"
-                />
-
-                <input
-                  type="tel"
-                  name="phone"
-                  value={form.phone}
-                  onChange={onChange}
-                  placeholder="Téléphone"
-                  className="h-14 rounded-2xl border border-zinc-200 bg-zinc-100 px-5 text-zinc-900 outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-200"
-                />
-              </div>
-
-              <textarea
-                name="message"
-                value={form.message}
-                onChange={onChange}
-                placeholder="Message"
-                rows={7}
-                required
-                className="w-full rounded-2xl border border-zinc-200 bg-zinc-100 px-5 py-4 text-zinc-900 outline-none transition focus:border-zinc-400 focus:bg-white focus:ring-2 focus:ring-zinc-200"
-              />
-
-              {success ? (
-                <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                  {success}
+          {/* Info items */}
+          <ul className="space-y-5">
+            {INFO.map(({ icon: Icon, label, value, sub, href }) => (
+              <li key={label} className="flex items-start gap-4">
+                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10">
+                  <Icon className="text-sm text-zinc-300" />
                 </div>
-              ) : null}
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
+                    {label}
+                  </p>
+                  {href ? (
+                    <a href={href} className="mt-0.5 text-sm font-medium text-white transition hover:text-zinc-300">
+                      {value}
+                    </a>
+                  ) : (
+                    <p className="mt-0.5 text-sm font-medium text-white">{value}</p>
+                  )}
+                  {sub && <p className="text-xs text-zinc-500">{sub}</p>}
+                </div>
+              </li>
+            ))}
+          </ul>
 
-              {error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {/* Maps link */}
+          <Link
+            href={MAPS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-zinc-300 transition hover:bg-white/10 hover:text-white"
+          >
+            <FaMapMarkerAlt className="text-xs" />
+            Voir sur Google Maps
+            <FaArrowRight className="ml-auto text-xs text-zinc-500" />
+          </Link>
+        </div>
+
+        {/* ── Right panel — form ── */}
+        <div className="rounded-3xl border border-zinc-100 bg-white p-8 shadow-sm lg:col-span-3 lg:p-10">
+
+          {sent ? (
+            /* ── Success state ── */
+            <div className="flex h-full flex-col items-center justify-center gap-4 py-10 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+                <FaCircleCheck className="text-3xl text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-xl font-bold text-zinc-900">Message envoyé !</p>
+                <p className="mt-1.5 text-sm text-zinc-400">
+                  Nous vous répondrons dans les plus brefs délais.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSent(false)}
+                className="mt-4 rounded-xl border border-zinc-200 px-5 py-2.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50"
+              >
+                Envoyer un autre message
+              </button>
+            </div>
+          ) : (
+            /* ── Form ── */
+            <>
+              <div className="mb-7">
+                <h2 className="text-2xl font-bold text-zinc-900">Envoyer un message</h2>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Nous répondons généralement sous 24h.
+                </p>
+              </div>
+
+              {error && (
+                <div className="mb-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
                   {error}
                 </div>
-              ) : null}
+              )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex items-center gap-3 rounded-full bg-zinc-900 px-6 py-4 text-sm font-medium text-white transition hover:bg-zinc-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <FaArrowRight className="text-sm" />
-                {loading ? "Envoi..." : "Envoyer le message"}
-              </button>
-            </form>
-          </div>
+              <form onSubmit={onSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField label="Nom">
+                    <input
+                      type="text" name="lastName" value={form.lastName}
+                      onChange={onChange} placeholder="Dupont"
+                      required className={inputCls}
+                    />
+                  </FormField>
+                  <FormField label="Prénom">
+                    <input
+                      type="text" name="firstName" value={form.firstName}
+                      onChange={onChange} placeholder="Marie"
+                      required className={inputCls}
+                    />
+                  </FormField>
+                </div>
 
-          <div className="flex flex-col gap-5">
-            <div className="overflow-hidden rounded-3xl bg-zinc-100">
-              <img
-                src="https://lh3.googleusercontent.com/p/AF1QipNnfxorl-c8P8g83SbzeD1kxqt95m8yYms2kPOk=s680-w680-h510-rw"
-                alt="Su-Rice"
-                className="min-h-80 maw-h-50 w-full object-cover md:min-h-105"
-              />
-            </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField label="Email">
+                    <input
+                      type="email" name="email" value={form.email}
+                      onChange={onChange} placeholder="vous@email.com"
+                      required className={inputCls}
+                    />
+                  </FormField>
+                  <FormField label="Téléphone (optionnel)">
+                    <input
+                      type="tel" name="phone" value={form.phone}
+                      onChange={onChange} placeholder="06 12 34 56 78"
+                      className={inputCls}
+                    />
+                  </FormField>
+                </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
-                <p className="text-sm uppercase tracking-[0.18em] text-zinc-500">
-                  Adresse
-                </p>
-                <p className="mt-3 text-base font-medium text-zinc-900">
-                  Su-Rice
-                </p>
-                <p className="mt-1 text-sm leading-6 text-zinc-600">
-                  Cannes
-                  <br />
-                  Cuisine japonaise et thaïlandaise
-                </p>
-              </div>
+                <FormField label="Message">
+                  <textarea
+                    name="message" value={form.message}
+                    onChange={onChange} rows={5}
+                    placeholder="Votre question, demande spéciale, remarque…"
+                    required className={inputCls + " resize-none"}
+                  />
+                </FormField>
 
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
-                <p className="text-sm uppercase tracking-[0.18em] text-zinc-500">
-                  Contact direct
-                </p>
-                <p className="mt-3 text-sm leading-6 text-zinc-600">
-                  Téléphone
-                  <br />
-                  Email
-                </p>
-              </div>
-            </div>
-          </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-700 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loading ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      Envoi en cours…
+                    </>
+                  ) : (
+                    <>
+                      Envoyer le message
+                      <FaArrowRight className="text-xs" />
+                    </>
+                  )}
+                </button>
+              </form>
+            </>
+          )}
         </div>
-      </section>
-    </main>
+
+      </div>
+    </div>
   );
 }
