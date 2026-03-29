@@ -1,6 +1,4 @@
-import json
-import urllib.request
-import urllib.error
+import requests as http_requests
 
 from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
@@ -20,9 +18,9 @@ def contact_send(request):
 
     data = serializer.validated_data
 
-    api_key  = getattr(settings, "RESEND_API_KEY", "")
+    api_key    = getattr(settings, "RESEND_API_KEY", "")
     from_email = getattr(settings, "RESEND_FROM_EMAIL", "onboarding@resend.dev")
-    to_email = getattr(settings, "CONTACT_RECEIVER_EMAIL", "")
+    to_email   = getattr(settings, "CONTACT_RECEIVER_EMAIL", "")
 
     if not api_key or not to_email:
         return Response(
@@ -57,32 +55,24 @@ def contact_send(request):
     </div>
     """
 
-    payload = json.dumps({
-        "from":    from_email,
-        "to":      [to_email],
-        "reply_to": data["email"],
-        "subject": subject,
-        "text":    text_body,
-        "html":    html_body,
-    }).encode()
-
-    req = urllib.request.Request(
-        "https://api.resend.com/emails",
-        data=payload,
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type":  "application/json",
-        },
-    )
-
     try:
-        with urllib.request.urlopen(req) as resp:
-            resp.read()
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
+        resp = http_requests.post(
+            "https://api.resend.com/emails",
+            json={
+                "from":     from_email,
+                "to":       [to_email],
+                "reply_to": data["email"],
+                "subject":  subject,
+                "text":     text_body,
+                "html":     html_body,
+            },
+            headers={"Authorization": f"Bearer {api_key}"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+    except http_requests.HTTPError as e:
         return Response(
-            {"detail": f"Erreur Resend {e.code}", "body": body},
+            {"detail": f"Erreur Resend {e.response.status_code}", "body": e.response.text},
             status=status.HTTP_502_BAD_GATEWAY,
         )
     except Exception as e:
