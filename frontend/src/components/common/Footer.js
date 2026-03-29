@@ -91,7 +91,7 @@ const Footer = () => {
                 <strong>Du lundi au vendredi :</strong>
               </p>
 
-              <p>12h - 14h30 et 19h - 21h45</p>
+              <p>12h - 14h30 et 19h - 21h30</p>
 
               <p className="mt-2">
                 <strong>Fermé samedi et dimanche</strong>

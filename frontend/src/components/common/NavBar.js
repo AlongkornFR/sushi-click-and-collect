@@ -12,8 +12,8 @@ import Logo from "../../../public/Surice_logo.webp";
 const MAPS_URL =
   "https://www.google.com/maps/place/Su-Rice/@43.5585923,7.0140804,17z/data=!3m1!4b1!4m6!3m5!1s0x12ce816d613a0a6d:0xccffb8a670629cf8!8m2!3d43.5585884!4d7.0166553!16s%2Fg%2F11krh5b4jt?entry=ttu&g_ep=EgoyMDI2MDMwNC4xIKXMDSoASAFQAw%3D%3D";
 
-const PHONE = "+33 4 93 XX XX XX"; // 👈 remplace par le vrai numéro
-const PHONE_HREF = "tel:+3349XXXXXXX";
+const PHONE = "+33 4 93 68 08 12"; // 👈 remplace par le vrai numéro
+const PHONE_HREF = "tel:+33493680812";
 
 const NAV_LINKS = [
   { href: "/",        label: "Accueil" },

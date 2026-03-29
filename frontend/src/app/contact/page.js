@@ -20,13 +20,13 @@ const INFO = [
   {
     icon: FaPhone,
     label: "Téléphone",
-    value: "+33 4 93 XX XX XX",
-    href: "tel:+3349XXXXXXX",
+    value: "+33 4 93 68 08 12",
+    href: "tel:+33493680812",
   },
   {
     icon: FaClock,
     label: "Horaires",
-    value: "11h30 – 14h00 · 18h00 – 22h00",
+    value: "12h00 – 14h30 · 19h00 – 21h30",
     sub: "Fermé le lundi",
   },
   {
