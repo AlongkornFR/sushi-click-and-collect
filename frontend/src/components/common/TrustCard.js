@@ -5,8 +5,8 @@ const TrustCard = ({ icon, title, desc }) => {
         {icon}
       </div>
       <div>
-        <h3 className="text-xs font-semibold leading-tight text-zinc-800 md:text-sm">{title}</h3>
-        <p className="mt-1 hidden text-xs leading-relaxed text-zinc-400 md:block">{desc}</p>
+        <h3 className="text-[10px] font-semibold leading-tight text-zinc-800 md:text-sm">{title}</h3>
+        <p className="mt-1 text-[9px] leading-relaxed text-zinc-400 md:text-xs">{desc}</p>
       </div>
     </div>
   );

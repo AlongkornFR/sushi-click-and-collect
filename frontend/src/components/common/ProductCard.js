@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { api } from "@/services/api";
 import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
 import { useCart } from "@/components/context/CartContext";
-import { FaXmark, FaChevronDown, FaChevronUp, FaPlus } from "react-icons/fa6";
+import { FaXmark, FaChevronDown, FaChevronUp, FaCartShopping } from "react-icons/fa6";
 
 export default function ProductCard({ product }) {
   const { addItem } = useCart();
@@ -100,12 +100,10 @@ export default function ProductCard({ product }) {
             alt={product.name}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-          {/* Hover overlay */}
-          <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-black shadow-lg">
-              <FaPlus className="text-sm" />
-            </span>
-          </div>
+          {/* Cart button */}
+          <span className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-white text-black shadow-md opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            <FaCartShopping className="text-sm" />
+          </span>
         </div>
 
         <div className="pt-3">

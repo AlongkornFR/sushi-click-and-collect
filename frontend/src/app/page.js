@@ -63,12 +63,6 @@ export default function HomePage() {
               >
                 Commander maintenant
               </Link>
-              <Link
-                href="/menu"
-                className="px-7 py-3.5 rounded-xl border border-white/40 text-white hover:bg-white/10 transition-all duration-200 active:scale-95"
-              >
-                Voir le menu →
-              </Link>
             </div>
           </div>
         </div>
@@ -81,7 +75,7 @@ export default function HomePage() {
 
       {/* ── TRUST CARDS ── */}
       <section ref={trustRef} className="border-y border-zinc-100 bg-zinc-50/60">
-        <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6">
+        <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-3 gap-2 md:gap-6">
           {[
             { icon: <FaShieldAlt />, title: "Paiement sécurisé",  desc: "Transactions protégées via Payplug." },
             { icon: <FaClock />,     title: "Click & Collect",     desc: "Choisissez votre heure de retrait." },
