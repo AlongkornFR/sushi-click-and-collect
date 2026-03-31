@@ -136,7 +136,7 @@ export default function ProductCard({ product }) {
                 h-[92dvh] sm:h-[88dvh] md:h-[82dvh] md:max-h-[820px]
               "
             >
-              <div className="grid h-full grid-cols-1 lg:grid-cols-[0.95fr_1.05fr]">
+              <div className="grid h-full grid-cols-1 grid-rows-[220px_1fr] sm:grid-rows-[260px_1fr] lg:grid-cols-[0.95fr_1.05fr] lg:grid-rows-none">
 
                 {/* ── Image ── */}
                 <div className="relative h-[220px] bg-zinc-900 sm:h-[260px] lg:h-full">

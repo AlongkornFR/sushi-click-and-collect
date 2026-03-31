@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python manage.py check)"
+      "Bash(python manage.py check)",
+      "Bash(find c:UsersOrdinateurDesktopSu-rice -name ProductCard* -type f)",
+      "Bash(python -c \":*)"
     ]
   }
 }
