@@ -14,8 +14,8 @@ const INFO = [
   {
     icon: FaMapMarkerAlt,
     label: "Adresse",
-    value: "Cannes, Alpes-Maritimes",
-    sub: "Cuisine japonaise & thaïlandaise",
+    value: "53 Boulevard Carnot, 06400 Cannes, Alpes-Maritimes",
+    sub: "Cuisine thaïlandaise et japonaise",
   },
   {
     icon: FaPhone,
@@ -32,8 +32,8 @@ const INFO = [
   {
     icon: FaEnvelope,
     label: "Email",
-    value: "contact@su-rice.fr",
-    href: "mailto:contact@su-rice.fr",
+    value: "contact@su-rice.com",
+    href: "mailto:contact@su-rice.com",
   },
 ];
 
