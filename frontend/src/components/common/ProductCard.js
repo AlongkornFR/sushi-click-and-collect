@@ -20,6 +20,8 @@ export default function ProductCard({ product }) {
   const [isAdding, setIsAdding] = useState(false);
   const [added, setAdded]       = useState(false);
 
+  const [quickAdded, setQuickAdded] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e) => { if (e.key === "Escape") closeOverlay(); };
@@ -88,11 +90,8 @@ export default function ProductCard({ product }) {
   return (
     <>
       {/* ── Card thumbnail ── */}
-      <button
-        type="button"
-        onClick={openOverlay}
-        className="group block w-full cursor-pointer text-left"
-      >
+      <div className="group block w-full text-left">
+        {/* Image */}
         <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-100">
           <img
             src={product.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
@@ -100,21 +99,42 @@ export default function ProductCard({ product }) {
             alt={product.name}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
-          {/* Cart button */}
-          <span className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-white text-black shadow-md opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-            <FaCartShopping className="text-sm" />
-          </span>
+          {/* Overlay cliquable — ouvre le modal */}
+          <button
+            type="button"
+            onClick={openOverlay}
+            className="absolute inset-0 z-1 cursor-pointer"
+            aria-label={`Voir ${product.name}`}
+          />
+          {/* Bouton chariot — ajout rapide */}
+          <button
+            type="button"
+            onClick={() => {
+              addItem(product, 1);
+              setQuickAdded(true);
+              setTimeout(() => setQuickAdded(false), 1200);
+            }}
+            className={`absolute bottom-2 right-2 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full shadow-md transition-all duration-300 group-hover:opacity-100 ${
+              quickAdded
+                ? "bg-emerald-500 text-white opacity-100"
+                : "bg-white text-black opacity-0"
+            }`}
+            aria-label={`Ajouter ${product.name} au panier`}
+          >
+            {quickAdded ? <span className="text-xs">✔</span> : <FaCartShopping className="text-sm" />}
+          </button>
         </div>
 
-        <div className="pt-3">
-          <p className="line-clamp-2 text-sm leading-snug text-zinc-900">
-            {product.name}
-          </p>
-          <p className="mt-1 text-sm font-semibold text-zinc-700">
-            {product.price} €
-          </p>
-        </div>
-      </button>
+        {/* Texte — ouvre le modal */}
+        <button
+          type="button"
+          onClick={openOverlay}
+          className="w-full cursor-pointer pt-3 text-left"
+        >
+          <p className="line-clamp-2 text-sm leading-snug text-zinc-900">{product.name}</p>
+          <p className="mt-1 text-sm font-semibold text-zinc-700">{product.price} €</p>
+        </button>
+      </div>
 
       {/* ── Modal (portal → hors de tout parent overflow/stacking) ── */}
       {open && createPortal(
@@ -136,10 +156,10 @@ export default function ProductCard({ product }) {
                 h-[92dvh] sm:h-[88dvh] md:h-[82dvh] md:max-h-[820px]
               "
             >
-              <div className="grid h-full grid-cols-1 grid-rows-[220px_1fr] sm:grid-rows-[260px_1fr] lg:grid-cols-[0.95fr_1.05fr] lg:grid-rows-none">
+              <div className="flex h-full flex-col lg:flex-row">
 
                 {/* ── Image ── */}
-                <div className="relative h-[220px] bg-zinc-900 sm:h-[260px] lg:h-full">
+                <div className="relative h-[220px] shrink-0 bg-zinc-900 sm:h-65 lg:h-full lg:w-[46%]">
                   <img
                     src={displayedProduct.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
                     onError={(e) => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE; }}
@@ -151,7 +171,7 @@ export default function ProductCard({ product }) {
                 </div>
 
                 {/* ── Right column ── */}
-                <div className="relative flex h-full min-h-0 flex-col">
+                <div className="relative flex min-h-0 flex-1 flex-col">
 
                   {/* Close button */}
                   <button
