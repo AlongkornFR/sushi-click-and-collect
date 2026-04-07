@@ -12,7 +12,7 @@ class OrderItemMiniSerializer(serializers.ModelSerializer):
         return obj.line_total_cents()
 
 class OrderStaffSerializer(serializers.ModelSerializer):
-    items = OrderItemMiniSerializer(many=True, read_only=True)
+    items     = OrderItemMiniSerializer(many=True, read_only=True)
     total_eur = serializers.SerializerMethodField()
 
     class Meta:
@@ -23,9 +23,9 @@ class OrderStaffSerializer(serializers.ModelSerializer):
             "pickup_time", "notes",
             "status", "total_cents", "total_eur",
             "payment_id",
+            "printed", "printed_at",
             "items",
         )
 
     def get_total_eur(self, obj):
         return round(obj.total_cents / 100, 2)
-

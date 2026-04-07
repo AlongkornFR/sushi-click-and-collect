@@ -29,6 +29,9 @@ class Order(models.Model):
     payment_id = models.CharField(max_length=80, blank=True, default="")
     payment_url = models.URLField(blank=True, default="")
 
+    printed    = models.BooleanField(default=False)
+    printed_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

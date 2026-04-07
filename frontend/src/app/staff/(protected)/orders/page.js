@@ -1,78 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useStaffAuth } from "../../_components/useStaffAuth";
+import { printOrder as qzPrint } from "@/lib/printer";
+import PrinterStatus from "@/components/staff/PrinterStatus";
 import { FaPrint } from "react-icons/fa";
-
-function printOrder(o) {
-  const status = STATUS_CONFIG[o.status]?.label ?? o.status;
-  const items  = (o.items || []);
-  const total  = (o.total_cents / 100).toFixed(2);
-
-  const rows = items.map(it => `
-    <tr>
-      <td style="padding:6px 0;border-bottom:1px solid #f0f0f0">${it.quantity}× ${it.product_name}</td>
-      <td style="padding:6px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600">
-        ${(it.line_total_cents / 100).toFixed(2)} €
-      </td>
-    </tr>`).join("");
-
-  const html = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8"/>
-  <title>Commande #${o.id}</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size:13px; color:#111; padding:24px; max-width:320px; }
-    .logo { font-size:20px; font-weight:800; letter-spacing:-0.5px; margin-bottom:4px; }
-    .sub  { font-size:11px; color:#888; margin-bottom:20px; }
-    .divider { border:none; border-top:1px dashed #ddd; margin:14px 0; }
-    .row { display:flex; justify-content:space-between; margin-bottom:5px; }
-    .label { color:#666; font-size:11px; }
-    .value { font-weight:600; font-size:12px; }
-    table { width:100%; border-collapse:collapse; margin-top:8px; }
-    td { font-size:12px; color:#333; vertical-align:top; }
-    .total-row td { padding-top:10px; font-size:14px; font-weight:800; color:#000; border-top:2px solid #111; }
-    .notes { background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:8px 10px; font-size:11px; color:#92400e; margin-top:12px; }
-    .footer { margin-top:20px; text-align:center; font-size:10px; color:#bbb; }
-    @media print { body { padding:0; } }
-  </style>
-</head>
-<body>
-  <div class="logo">SU-RICE</div>
-  <div class="sub">53 Bd Carnot, 06400 Cannes · su-rice.com</div>
-
-  <hr class="divider"/>
-
-  <div class="row"><span class="label">Commande</span>   <span class="value">#${o.id}</span></div>
-  <div class="row"><span class="label">Statut</span>     <span class="value">${status}</span></div>
-  <div class="row"><span class="label">Client</span>     <span class="value">${o.full_name}</span></div>
-  ${o.phone       ? `<div class="row"><span class="label">Téléphone</span> <span class="value">${o.phone}</span></div>` : ""}
-  ${o.pickup_time ? `<div class="row"><span class="label">Retrait</span>   <span class="value">${o.pickup_time}</span></div>` : ""}
-
-  <hr class="divider"/>
-
-  <table>
-    ${rows}
-    <tr class="total-row">
-      <td>Total</td>
-      <td style="text-align:right">${total} €</td>
-    </tr>
-  </table>
-
-  ${o.notes ? `<div class="notes">📝 ${o.notes}</div>` : ""}
-
-  <div class="footer">Merci pour votre commande !</div>
-
-  <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }<\/script>
-</body>
-</html>`;
-
-  const win = window.open("", "_blank", "width=400,height=600");
-  win.document.write(html);
-  win.document.close();
-}
 
 /* ── Status config ── */
 const STATUS_CONFIG = {
@@ -157,14 +89,22 @@ function OrderCardSkeleton() {
   );
 }
 
+/* ── Page principale ── */
 export default function StaffOrdersPage() {
   const { API, token, authFetch } = useStaffAuth();
 
-  const [orders, setOrders]           = useState([]);
+  const [orders, setOrders]             = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
-  const [error, setError]             = useState("");
-  const [fetching, setFetching]       = useState(true);
-  const [updating, setUpdating]       = useState(null); // orderId being updated
+  const [error, setError]               = useState("");
+  const [fetching, setFetching]         = useState(true);
+  const [updating, setUpdating]         = useState(null);
+  const [printingId, setPrintingId]     = useState(null);
+  const [printError, setPrintError]     = useState("");
+
+  // IDs déjà auto-imprimés dans cette session (évite les doublons)
+  const autoPrintedRef = useRef(new Set());
+
+  // ── Fetch commandes ────────────────────────────────────────────────────────
 
   async function fetchOrders(silent = false) {
     if (!token) return;
@@ -180,6 +120,37 @@ export default function StaffOrdersPage() {
       if (!silent) setError(String(e.message || e));
     }
   }
+
+  // ── Impression manuelle ────────────────────────────────────────────────────
+
+  async function handlePrint(order) {
+    setPrintingId(order.id);
+    setPrintError("");
+    try {
+      await qzPrint(order);
+      await markPrinted(order.id);
+    } catch (e) {
+      setPrintError(`Impression #${order.id} : ${e.message}`);
+    } finally {
+      setPrintingId(null);
+    }
+  }
+
+  // ── Marquer comme imprimé ─────────────────────────────────────────────────
+
+  async function markPrinted(orderId) {
+    try {
+      await authFetch(`${API}/staff/orders/${orderId}/printed/`, { method: "PATCH" });
+      // Mise à jour locale immédiate
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, printed: true } : o))
+      );
+    } catch {
+      // Non bloquant
+    }
+  }
+
+  // ── Changement de statut ──────────────────────────────────────────────────
 
   async function setStatus(orderId, status) {
     setUpdating(orderId);
@@ -199,6 +170,8 @@ export default function StaffOrdersPage() {
     }
   }
 
+  // ── Polling commandes (affichage) — toutes les 3s ─────────────────────────
+
   useEffect(() => {
     if (!token) return;
     setFetching(true);
@@ -207,6 +180,39 @@ export default function StaffOrdersPage() {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, statusFilter]);
+
+  // ── Auto-impression — toutes les 5s ──────────────────────────────────────
+
+  useEffect(() => {
+    if (!token) return;
+
+    async function checkAndAutoPrint() {
+      try {
+        const res = await authFetch(`${API}/staff/orders/pending-print/`, { cache: "no-store" });
+        if (!res.ok) return;
+        const newOrders = await res.json();
+
+        for (const order of newOrders) {
+          if (autoPrintedRef.current.has(order.id)) continue;
+          autoPrintedRef.current.add(order.id);
+          try {
+            await qzPrint(order);
+            await markPrinted(order.id);
+          } catch {
+            // Si QZ Tray n'est pas disponible, on ne bloque pas
+            // La commande reste printed=false pour une impression manuelle
+            autoPrintedRef.current.delete(order.id);
+          }
+        }
+      } catch {
+        // Silencieux — ne pas perturber l'interface
+      }
+    }
+
+    const id = setInterval(checkAndAutoPrint, 5000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   /* ── Stats ── */
   const pendingCount   = orders.filter(o => o.status === "pending" || o.status === "paid").length;
@@ -236,22 +242,24 @@ export default function StaffOrdersPage() {
 
         {/* Header */}
         <div className="border-b border-zinc-100 px-5 py-4">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <h1 className="text-base font-bold text-zinc-900">Commandes</h1>
-              {/* Live dot */}
               <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
                 Live
               </span>
             </div>
-            <button
-              type="button"
-              onClick={() => fetchOrders()}
-              className="cursor-pointer rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-500 transition hover:bg-zinc-50 active:scale-95"
-            >
-              Rafraîchir
-            </button>
+            <div className="flex items-center gap-3">
+              <PrinterStatus />
+              <button
+                type="button"
+                onClick={() => fetchOrders()}
+                className="cursor-pointer rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-500 transition hover:bg-zinc-50 active:scale-95"
+              >
+                Rafraîchir
+              </button>
+            </div>
           </div>
 
           {/* Status filter pills */}
@@ -280,10 +288,15 @@ export default function StaffOrdersPage() {
           </div>
         </div>
 
-        {/* Error */}
+        {/* Erreurs */}
         {error && (
           <div className="mx-5 mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
             {error}
+          </div>
+        )}
+        {printError && (
+          <div className="mx-5 mt-4 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-orange-700">
+            🖨️ {printError}
           </div>
         )}
 
@@ -299,8 +312,9 @@ export default function StaffOrdersPage() {
               Aucune commande{statusFilter ? ` avec le statut « ${STATUS_CONFIG[statusFilter]?.label ?? statusFilter} »` : ""}.
             </div>
           ) : orders.map(o => {
-            const actions = STATUS_ACTIONS[o.status] ?? [];
+            const actions    = STATUS_ACTIONS[o.status] ?? [];
             const isUpdating = updating === o.id;
+            const isPrinting = printingId === o.id;
 
             return (
               <div key={o.id} className="py-4">
@@ -315,6 +329,11 @@ export default function StaffOrdersPage() {
                           ⏱ {o.pickup_time}
                         </span>
                       )}
+                      {o.printed && (
+                        <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[11px] font-semibold text-zinc-400">
+                          🖨️ Imprimé
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm font-semibold text-zinc-800">{o.full_name}</p>
                     {o.phone && <p className="text-xs text-zinc-400">{o.phone}</p>}
@@ -324,13 +343,23 @@ export default function StaffOrdersPage() {
                     <p className="text-base font-bold text-zinc-900">
                       {(o.total_cents / 100).toFixed(2)} €
                     </p>
+                    {/* Bouton impression thermique */}
                     <button
                       type="button"
-                      onClick={() => printOrder(o)}
-                      className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 text-zinc-400 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-700 active:scale-95"
-                      aria-label="Imprimer la commande"
+                      onClick={() => handlePrint(o)}
+                      disabled={isPrinting}
+                      title={o.printed ? "Réimprimer" : "Imprimer"}
+                      className={`flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border transition active:scale-95 disabled:cursor-wait disabled:opacity-50 ${
+                        o.printed
+                          ? "border-zinc-200 bg-zinc-50 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                      }`}
+                      aria-label="Imprimer le ticket"
                     >
-                      <FaPrint className="text-sm" />
+                      {isPrinting
+                        ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
+                        : <FaPrint className="text-sm" />
+                      }
                     </button>
                   </div>
                 </div>
@@ -361,7 +390,7 @@ export default function StaffOrdersPage() {
                   </p>
                 )}
 
-                {/* Actions */}
+                {/* Actions statut */}
                 {actions.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-3">
                     {actions.map(action => (
