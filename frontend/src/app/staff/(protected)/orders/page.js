@@ -2,6 +2,77 @@
 
 import { useEffect, useState } from "react";
 import { useStaffAuth } from "../../_components/useStaffAuth";
+import { FaPrint } from "react-icons/fa";
+
+function printOrder(o) {
+  const status = STATUS_CONFIG[o.status]?.label ?? o.status;
+  const items  = (o.items || []);
+  const total  = (o.total_cents / 100).toFixed(2);
+
+  const rows = items.map(it => `
+    <tr>
+      <td style="padding:6px 0;border-bottom:1px solid #f0f0f0">${it.quantity}× ${it.product_name}</td>
+      <td style="padding:6px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600">
+        ${(it.line_total_cents / 100).toFixed(2)} €
+      </td>
+    </tr>`).join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Commande #${o.id}</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size:13px; color:#111; padding:24px; max-width:320px; }
+    .logo { font-size:20px; font-weight:800; letter-spacing:-0.5px; margin-bottom:4px; }
+    .sub  { font-size:11px; color:#888; margin-bottom:20px; }
+    .divider { border:none; border-top:1px dashed #ddd; margin:14px 0; }
+    .row { display:flex; justify-content:space-between; margin-bottom:5px; }
+    .label { color:#666; font-size:11px; }
+    .value { font-weight:600; font-size:12px; }
+    table { width:100%; border-collapse:collapse; margin-top:8px; }
+    td { font-size:12px; color:#333; vertical-align:top; }
+    .total-row td { padding-top:10px; font-size:14px; font-weight:800; color:#000; border-top:2px solid #111; }
+    .notes { background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:8px 10px; font-size:11px; color:#92400e; margin-top:12px; }
+    .footer { margin-top:20px; text-align:center; font-size:10px; color:#bbb; }
+    @media print { body { padding:0; } }
+  </style>
+</head>
+<body>
+  <div class="logo">SU-RICE</div>
+  <div class="sub">53 Bd Carnot, 06400 Cannes · su-rice.com</div>
+
+  <hr class="divider"/>
+
+  <div class="row"><span class="label">Commande</span>   <span class="value">#${o.id}</span></div>
+  <div class="row"><span class="label">Statut</span>     <span class="value">${status}</span></div>
+  <div class="row"><span class="label">Client</span>     <span class="value">${o.full_name}</span></div>
+  ${o.phone       ? `<div class="row"><span class="label">Téléphone</span> <span class="value">${o.phone}</span></div>` : ""}
+  ${o.pickup_time ? `<div class="row"><span class="label">Retrait</span>   <span class="value">${o.pickup_time}</span></div>` : ""}
+
+  <hr class="divider"/>
+
+  <table>
+    ${rows}
+    <tr class="total-row">
+      <td>Total</td>
+      <td style="text-align:right">${total} €</td>
+    </tr>
+  </table>
+
+  ${o.notes ? `<div class="notes">📝 ${o.notes}</div>` : ""}
+
+  <div class="footer">Merci pour votre commande !</div>
+
+  <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }<\/script>
+</body>
+</html>`;
+
+  const win = window.open("", "_blank", "width=400,height=600");
+  win.document.write(html);
+  win.document.close();
+}
 
 /* ── Status config ── */
 const STATUS_CONFIG = {
@@ -177,7 +248,7 @@ export default function StaffOrdersPage() {
             <button
               type="button"
               onClick={() => fetchOrders()}
-              className="cursor-pointer rounded-xl border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-500 transition hover:bg-zinc-50 active:scale-95"
+              className="cursor-pointer rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-500 transition hover:bg-zinc-50 active:scale-95"
             >
               Rafraîchir
             </button>
@@ -188,7 +259,7 @@ export default function StaffOrdersPage() {
             <button
               type="button"
               onClick={() => setStatusFilter("")}
-              className={`shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              className={`shrink-0 cursor-pointer rounded-full px-4 py-2.5 text-sm font-semibold transition ${
                 !statusFilter ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
               }`}
             >
@@ -199,7 +270,7 @@ export default function StaffOrdersPage() {
                 key={s}
                 type="button"
                 onClick={() => setStatusFilter(s)}
-                className={`shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                className={`shrink-0 cursor-pointer rounded-full px-4 py-2.5 text-sm font-semibold transition ${
                   statusFilter === s ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
                 }`}
               >
@@ -249,9 +320,19 @@ export default function StaffOrdersPage() {
                     {o.phone && <p className="text-xs text-zinc-400">{o.phone}</p>}
                   </div>
 
-                  <p className="text-base font-bold text-zinc-900">
-                    {(o.total_cents / 100).toFixed(2)} €
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <p className="text-base font-bold text-zinc-900">
+                      {(o.total_cents / 100).toFixed(2)} €
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => printOrder(o)}
+                      className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 text-zinc-400 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-700 active:scale-95"
+                      aria-label="Imprimer la commande"
+                    >
+                      <FaPrint className="text-sm" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Items */}
@@ -282,14 +363,14 @@ export default function StaffOrdersPage() {
 
                 {/* Actions */}
                 {actions.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-3">
                     {actions.map(action => (
                       <button
                         key={action.status}
                         type="button"
                         onClick={() => setStatus(o.id, action.status)}
                         disabled={isUpdating}
-                        className={`cursor-pointer rounded-xl px-4 py-2 text-xs font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+                        className={`cursor-pointer rounded-xl px-6 py-3.5 text-sm font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
                           action.style === "primary" ? "bg-zinc-900 text-white hover:bg-zinc-700"
                           : action.style === "success" ? "bg-emerald-600 text-white hover:bg-emerald-500"
                           : action.style === "danger"  ? "border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"

@@ -1,4 +1,4 @@
 export default function StaffLayout({ children }) {
   // Cancel the root layout's pt-20 (public navbar spacing)
-  return <div className="-mt-20">{children}</div>;
+  return <div className="-mt-10">{children}</div>;
 }

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/services/api";
 import ProductCard from "@/components/common/ProductCard";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
-import { FaBars, FaXmark } from "react-icons/fa6";
 
 function slugify(value) {
   return String(value || "")
@@ -16,7 +15,8 @@ function slugify(value) {
 }
 
 const MOBILE_GLOBAL_HEADER_OFFSET = 80;
-const MOBILE_MENU_BAR_HEIGHT = 30;
+// Hauteur totale de la barre fixe mobile (titre + pills)
+const MOBILE_FILTER_BAR_HEIGHT = 52;
 
 function ProductCardSkeleton() {
   return (
@@ -49,7 +49,8 @@ export default function MenuPage() {
   const [products, setProducts]             = useState([]);
   const [loading, setLoading]               = useState(true);
   const [openCategories, setOpenCategories] = useState({});
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [activeSubId, setActiveSubId]       = useState(null);
+  const pillsRef = useRef(null);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -81,17 +82,26 @@ export default function MenuPage() {
 
   const categoryNames = useMemo(() => Object.keys(groupedData), [groupedData]);
 
+  // Liste plate de toutes les sous-catégories pour les pills mobile
+  const allSubcategories = useMemo(() => {
+    const result = [];
+    categoryNames.forEach((cat) => {
+      Object.keys(groupedData[cat] || {}).forEach((sub) => {
+        result.push({
+          label: sub,
+          id: `subcategory-${slugify(cat)}-${slugify(sub)}`,
+        });
+      });
+    });
+    return result;
+  }, [groupedData, categoryNames]);
+
   useEffect(() => {
     if (categoryNames.length === 0) return;
     const initialState = {};
     categoryNames.forEach((cat) => { initialState[cat] = true; });
     setOpenCategories(initialState);
   }, [categoryNames]);
-
-  useEffect(() => {
-    document.body.style.overflow = mobileFiltersOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [mobileFiltersOpen]);
 
   function toggleCategory(categoryName) {
     setOpenCategories((prev) => ({ ...prev, [categoryName]: !prev[categoryName] }));
@@ -102,25 +112,18 @@ export default function MenuPage() {
     if (!element) return;
     const isMobile = window.innerWidth < 1024;
     const extraOffset = isMobile
-      ? MOBILE_GLOBAL_HEADER_OFFSET + MOBILE_MENU_BAR_HEIGHT + 12
+      ? MOBILE_GLOBAL_HEADER_OFFSET + MOBILE_FILTER_BAR_HEIGHT + 12
       : 120;
     const y = element.getBoundingClientRect().top + window.pageYOffset - extraOffset;
     window.scrollTo({ top: y, behavior: "smooth" });
   }
 
-  function handleGoToAll() {
-    setMobileFiltersOpen(false);
-    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 120);
-  }
-
-  function handleGoToCategory(id) {
-    setMobileFiltersOpen(false);
-    setTimeout(() => scrollToSection(id), 150);
-  }
-
-  function handleGoToSubcategory(id) {
-    setMobileFiltersOpen(false);
-    setTimeout(() => scrollToSection(id), 150);
+  function handlePillClick(id) {
+    setActiveSubId(id);
+    scrollToSection(id);
+    // Ramène la pill cliquée au centre de la barre
+    const pill = pillsRef.current?.querySelector(`[data-pill-id="${id}"]`);
+    pill?.scrollIntoView({ inline: "center", behavior: "smooth", block: "nearest" });
   }
 
   return (
@@ -128,75 +131,56 @@ export default function MenuPage() {
 
       {/* ── Barre flottante mobile ── */}
       <div
-        className="fixed inset-x-0 z-30 border-b border-zinc-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 lg:hidden"
+        className="fixed inset-x-0 z-30 border-b mt-[-1em] border-zinc-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 lg:hidden"
         style={{ top: `${MOBILE_GLOBAL_HEADER_OFFSET}px` }}
       >
-        <div className="mx-auto max-w-7xl px-4 py-3">
-          <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm">
-            <div className="min-w-0 pr-4">
-              <h1 className="text-xl font-bold text-zinc-900">Notre Menu</h1>
-              <p className="text-xs text-zinc-400">Commandez en ligne · Click & Collect</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setMobileFiltersOpen(true)}
-              className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-700 transition hover:bg-zinc-100 active:scale-95"
-              aria-label="Ouvrir les filtres"
-            >
-              <FaBars className="text-base" />
-            </button>
-          </div>
+        {/* Pills défilantes */}
+        <div
+          ref={pillsRef}
+          className="flex gap-2 overflow-x-auto px-4 py-3 [&::-webkit-scrollbar]:hidden"
+          style={{ scrollbarWidth: "none" }}
+        >
+          {loading
+            ? Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="skeleton h-8 shrink-0 rounded-full"
+                  style={{ width: `${60 + i * 15}px` }}
+                />
+              ))
+            : allSubcategories.map(({ label, id }) => (
+                <button
+                  key={id}
+                  data-pill-id={id}
+                  type="button"
+                  onClick={() => handlePillClick(id)}
+                  className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition active:scale-95 ${
+                    activeSubId === id
+                      ? "bg-zinc-900 text-white"
+                      : "border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-100"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
         </div>
       </div>
 
       {/* Espace réservé mobile */}
       <div
         className="lg:hidden"
-        style={{ height: `${MOBILE_GLOBAL_HEADER_OFFSET + MOBILE_MENU_BAR_HEIGHT + 20}px` }}
+        style={{ height: `${MOBILE_FILTER_BAR_HEIGHT + 20}px` }}
       />
 
       <div className="grid grid-cols-1 gap-8 py-6 md:py-10 lg:grid-cols-12">
 
-        {/* ── Overlay mobile ── */}
-        {mobileFiltersOpen && (
-          <button
-            type="button"
-            onClick={() => setMobileFiltersOpen(false)}
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
-            aria-label="Fermer les filtres"
-          />
-        )}
-
-        {/* ── Sidebar ── */}
-        <aside
-          className={`
-            fixed inset-y-0 left-0 z-50 w-[82%] max-w-[300px] overflow-y-auto bg-white p-6 shadow-2xl transition-transform duration-300 ease-in-out
-            lg:sticky lg:top-24 lg:z-auto lg:block lg:h-fit lg:w-auto lg:max-w-none lg:translate-x-0 lg:self-start lg:overflow-visible lg:rounded-2xl lg:border lg:border-zinc-100 lg:bg-zinc-50 lg:p-6 lg:shadow-sm lg:col-span-3
-            ${mobileFiltersOpen ? "translate-x-0" : "-translate-x-full"}
-          `}
-          style={{
-            top:    mobileFiltersOpen ? `${MOBILE_GLOBAL_HEADER_OFFSET}px` : undefined,
-            height: mobileFiltersOpen ? `calc(100dvh - ${MOBILE_GLOBAL_HEADER_OFFSET}px)` : undefined,
-          }}
-        >
-          {/* Mobile header */}
-          <div className="mb-6 flex items-center justify-between lg:hidden">
-            <h2 className="text-lg font-bold text-zinc-900">Filtres</h2>
-            <button
-              type="button"
-              onClick={() => setMobileFiltersOpen(false)}
-              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-zinc-200 text-zinc-700 transition hover:bg-zinc-100 active:scale-95"
-              aria-label="Fermer les filtres"
-            >
-              <FaXmark className="text-base" />
-            </button>
-          </div>
-
+        {/* ── Sidebar desktop ── */}
+        <aside className="hidden lg:sticky lg:top-24 lg:col-span-3 lg:block lg:h-fit lg:self-start lg:rounded-2xl lg:border lg:border-zinc-100 lg:bg-zinc-50 lg:p-6 lg:shadow-sm">
           <nav className="space-y-1">
             {/* Tous les produits */}
             <button
               type="button"
-              onClick={handleGoToAll}
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               className="flex w-full cursor-pointer items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-zinc-800 transition hover:bg-zinc-200 active:scale-[.98]"
             >
               Tous les produits
@@ -208,12 +192,12 @@ export default function MenuPage() {
             {loading && (
               <div className="space-y-3 pt-1">
                 {[80, 60, 70, 55].map((w, i) => (
-                  <div key={i} className={`skeleton h-4 rounded-full`} style={{ width: `${w}%` }} />
+                  <div key={i} className="skeleton h-4 rounded-full" style={{ width: `${w}%` }} />
                 ))}
               </div>
             )}
 
-            {/* Categories */}
+            {/* Catégories */}
             {categoryNames.map((categoryName) => {
               const subcategories = Object.keys(groupedData[categoryName] || {});
               const categoryId = `category-${slugify(categoryName)}`;
@@ -223,7 +207,7 @@ export default function MenuPage() {
                   <div className="flex items-center justify-between gap-1 rounded-xl px-3 py-2 transition hover:bg-zinc-200">
                     <button
                       type="button"
-                      onClick={() => handleGoToCategory(categoryId)}
+                      onClick={() => scrollToSection(categoryId)}
                       className="flex-1 cursor-pointer text-left text-sm font-semibold text-zinc-800 transition hover:text-black"
                     >
                       {categoryName}
@@ -249,7 +233,7 @@ export default function MenuPage() {
                           <button
                             key={subcategoryName}
                             type="button"
-                            onClick={() => handleGoToSubcategory(subcategoryId)}
+                            onClick={() => scrollToSection(subcategoryId)}
                             className="block w-full cursor-pointer rounded-lg px-2 py-1.5 text-left text-sm text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-900"
                           >
                             {subcategoryName}
@@ -285,7 +269,7 @@ export default function MenuPage() {
                 const categoryId = `category-${slugify(categoryName)}`;
 
                 return (
-                  <section key={categoryName} id={categoryId} className="scroll-mt-36">
+                  <section key={categoryName} id={categoryId} className="scroll-mt-52 lg:scroll-mt-36">
                     {/* Category header */}
                     <div className="mb-8 flex items-center gap-4">
                       <h2 className="text-2xl font-bold text-zinc-900 md:text-3xl">
@@ -300,7 +284,7 @@ export default function MenuPage() {
                         const subcategoryProducts = groupedData[categoryName][subcategoryName] || [];
 
                         return (
-                          <section key={subcategoryName} id={subcategoryId} className="scroll-mt-36">
+                          <section key={subcategoryName} id={subcategoryId} className="scroll-mt-52 lg:scroll-mt-36">
                             {/* Subcategory header */}
                             <div className="mb-6 flex items-center gap-3">
                               <h3 className="text-base font-semibold uppercase tracking-widest text-zinc-400">

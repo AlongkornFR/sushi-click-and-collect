@@ -1,11 +1,75 @@
 "use client";
 
 import Link from "next/link";
+import { useRef, useState } from "react";
 import { useCart } from "@/components/context/CartContext";
 import { formatEUR } from "@/utils/formatting";
 import ProductImage from "@/components/common/ProductImage";
 import { FaXmark } from "react-icons/fa6";
-import { FaShieldAlt, FaMapMarkerAlt, FaMinus, FaPlus, FaShoppingBag } from "react-icons/fa";
+import { FaShieldAlt, FaMapMarkerAlt, FaMinus, FaPlus, FaShoppingBag, FaTrash } from "react-icons/fa";
+
+const SWIPE_THRESHOLD = 72;
+
+function SwipeToDelete({ onDelete, children }) {
+  const [offsetX, setOffsetX]   = useState(0);
+  const [animating, setAnimating] = useState(false);
+  const startXRef = useRef(null);
+
+  function handleTouchStart(e) {
+    startXRef.current = e.touches[0].clientX;
+    setAnimating(false);
+  }
+
+  function handleTouchMove(e) {
+    if (startXRef.current === null) return;
+    setOffsetX(e.touches[0].clientX - startXRef.current);
+  }
+
+  function handleTouchEnd() {
+    startXRef.current = null;
+    setAnimating(true);
+    if (Math.abs(offsetX) > SWIPE_THRESHOLD) {
+      setOffsetX(offsetX > 0 ? 600 : -600);
+      setTimeout(onDelete, 280);
+    } else {
+      setOffsetX(0);
+    }
+  }
+
+  const swiping  = Math.abs(offsetX) > 8;
+  const toRight  = offsetX > 0;
+  const progress = Math.min(Math.abs(offsetX) / SWIPE_THRESHOLD, 1);
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl">
+      {/* Fond rouge avec icône poubelle */}
+      <div
+        className={`absolute inset-0 flex items-center rounded-2xl bg-red-500 transition-opacity duration-100 ${
+          toRight ? "justify-start pl-5" : "justify-end pr-5"
+        }`}
+        style={{ opacity: swiping ? progress : 0 }}
+      >
+        <FaTrash className="text-lg text-white" />
+      </div>
+
+      {/* Carte glissable */}
+      <div
+        style={{
+          transform: `translateX(${offsetX}px)`,
+          transition: animating
+            ? "transform 0.28s cubic-bezier(.25,.46,.45,.94)"
+            : "none",
+          willChange: "transform",
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function CartPage() {
   const { items, subtotal, increment, decrement, removeItem, clear } = useCart();
@@ -58,60 +122,62 @@ export default function CartPage() {
           {items.map((it) => {
             const lineTotal = Number(it.price) * it.quantity;
             return (
-              <div key={it.id} className="flex gap-4 rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
+              <SwipeToDelete key={it.id} onDelete={() => removeItem(it.id)}>
+                <div className="flex gap-4 rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
 
-                {/* Image */}
-                <ProductImage
-                  src={it.image_main}
-                  alt={it.name}
-                  className="h-20 w-20 shrink-0 rounded-xl object-cover"
-                />
+                  {/* Image */}
+                  <ProductImage
+                    src={it.image_main}
+                    alt={it.name}
+                    className="h-20 w-20 shrink-0 rounded-xl object-cover"
+                  />
 
-                {/* Content */}
-                <div className="flex min-w-0 flex-1 flex-col justify-between">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-zinc-900">{it.name}</p>
-                      <p className="mt-0.5 text-xs text-zinc-400">{formatEUR(it.price)} / unité</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeItem(it.id)}
-                      className="shrink-0 cursor-pointer rounded-lg p-1.5 text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-600"
-                      aria-label={`Supprimer ${it.name}`}
-                    >
-                      <FaXmark className="text-xs" />
-                    </button>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between">
-                    {/* Qty controls */}
-                    <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-1 py-1">
+                  {/* Content */}
+                  <div className="flex min-w-0 flex-1 flex-col justify-between">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-zinc-900">{it.name}</p>
+                        <p className="mt-0.5 text-xs text-zinc-400">{formatEUR(it.price)} / unité</p>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => decrement(it.id)}
-                        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition hover:bg-white hover:text-zinc-900 active:scale-95"
-                        aria-label="Diminuer"
+                        onClick={() => removeItem(it.id)}
+                        className="shrink-0 cursor-pointer rounded-lg p-1.5 text-zinc-300 transition hover:bg-zinc-100 hover:text-zinc-600"
+                        aria-label={`Supprimer ${it.name}`}
                       >
-                        <FaMinus className="text-[10px]" />
-                      </button>
-                      <span className="min-w-6 text-center text-sm font-semibold text-zinc-900">
-                        {it.quantity}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => increment(it.id)}
-                        className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition hover:bg-white hover:text-zinc-900 active:scale-95"
-                        aria-label="Augmenter"
-                      >
-                        <FaPlus className="text-[10px]" />
+                        <FaXmark className="text-xs" />
                       </button>
                     </div>
 
-                    <p className="text-sm font-bold text-zinc-900">{formatEUR(lineTotal)}</p>
+                    <div className="mt-3 flex items-center justify-between">
+                      {/* Qty controls */}
+                      <div className="flex items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-1 py-1">
+                        <button
+                          type="button"
+                          onClick={() => decrement(it.id)}
+                          className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition hover:bg-white hover:text-zinc-900 active:scale-95"
+                          aria-label="Diminuer"
+                        >
+                          <FaMinus className="text-[10px]" />
+                        </button>
+                        <span className="min-w-6 text-center text-sm font-semibold text-zinc-900">
+                          {it.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => increment(it.id)}
+                          className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition hover:bg-white hover:text-zinc-900 active:scale-95"
+                          aria-label="Augmenter"
+                        >
+                          <FaPlus className="text-[10px]" />
+                        </button>
+                      </div>
+
+                      <p className="text-sm font-bold text-zinc-900">{formatEUR(lineTotal)}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </SwipeToDelete>
             );
           })}
         </div>
@@ -128,7 +194,7 @@ export default function CartPage() {
               </div>
               <div className="flex justify-between text-zinc-500">
                 <span>Frais de service</span>
-                <span className="text-emerald-600 font-medium">Gratuit</span>
+                <span className="font-medium text-emerald-600">Gratuit</span>
               </div>
             </div>
 

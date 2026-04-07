@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/services/api";
 import ProductCard from "@/components/common/ProductCard";
 import { FaShieldAlt, FaClock, FaLeaf } from "react-icons/fa";
@@ -13,10 +13,44 @@ import { useInView } from "@/hooks/useInView";
 export default function HomePage() {
   const [products, setProducts] = useState([]);
 
-  const [trustRef, trustVisible]     = useInView();
-  const [aboutRef, aboutVisible]     = useInView();
-  const [sellersRef, sellersVisible] = useInView();
+  const [trustRef, trustVisible]       = useInView();
+  const [aboutRef, aboutVisible]       = useInView();
+  const [sellersRef, sellersVisible]   = useInView();
   const [featuresRef, featuresVisible] = useInView();
+  const carouselRef   = useRef(null);
+  const intervalRef   = useRef(null);
+  const [activeCard, setActiveCard] = useState(0);
+  const CARD_COUNT = 3;
+
+  function scrollToCard(index) {
+    const el = carouselRef.current;
+    if (!el) return;
+    const cardWidth = el.scrollWidth / CARD_COUNT;
+    el.scrollTo({ left: cardWidth * index, behavior: "smooth" });
+  }
+
+  function handleCarouselScroll() {
+    const el = carouselRef.current;
+    if (!el) return;
+    const ratio = el.scrollLeft / (el.scrollWidth - el.clientWidth);
+    setActiveCard(Math.round(ratio * 2));
+  }
+
+  function resetInterval() {
+    clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      setActiveCard((prev) => {
+        const next = (prev + 1) % CARD_COUNT;
+        scrollToCard(next);
+        return next;
+      });
+    }, 10000);
+  }
+
+  useEffect(() => {
+    resetInterval();
+    return () => clearInterval(intervalRef.current);
+  }, []);
 
   useEffect(() => {
     api
@@ -40,7 +74,7 @@ export default function HomePage() {
 
             {/* Badge */}
             <div className="hero-badge inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/25 rounded-full px-4 py-1.5 text-sm font-medium mb-6 w-fit">
-              🍣 Click &amp; Collect · Cannes
+              🍣 Su-Rice · Cannes
             </div>
 
             {/* Title */}
@@ -148,8 +182,8 @@ export default function HomePage() {
 
       {/* ── FEATURE CARDS ── */}
       <section ref={featuresRef} className="bg-white py-16">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
+        {(() => {
+          const cards = [
             {
               image: "https://www.su-rice.com/media/images/upload/plataux%2063p-3p%20sashimi%20saumon,3p%20sashimi%20thon,3p%20nikiri%20saumon,3p%20nikiri%20thon,3p%20nikiri%20crevette,8p%20maki%20saumon,8p%20eggg%20maki%20saumon,8p%20maki%20avocat,8p%20cali%20roll%20saumon%20avocat,8p%20spring%20roll%20saumon%20avocat,8p%20cripy.png",
               title: "Cuisine thaïlandaise et japonaise à emporter à Cannes",
@@ -197,17 +231,60 @@ export default function HomePage() {
                 </>
               ),
             },
-          ].map((item, i) => (
-            <div
-              key={item.title}
-              className={`reveal reveal-delay-${i + 1} ${featuresVisible ? "visible" : ""}`}
-            >
-              <FeatureCard image={item.image} title={item.title}>
-                {item.body}
-              </FeatureCard>
-            </div>
-          ))}
-        </div>
+          ];
+          return (
+            <>
+              {/* ── Mobile : carousel ── */}
+              <div className="md:hidden">
+                <div
+                  ref={carouselRef}
+                  onScroll={() => { handleCarouselScroll(); resetInterval(); }}
+                  className="flex overflow-x-auto snap-x snap-mandatory gap-4 px-6 pb-2 [&::-webkit-scrollbar]:hidden"
+                  style={{ scrollbarWidth: "none" }}
+                >
+                  {cards.map((item) => (
+                    <div key={item.title} className="snap-start shrink-0 w-[82vw]">
+                      <FeatureCard image={item.image} title={item.title}>
+                        {item.body}
+                      </FeatureCard>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Dots */}
+                <div className="mt-5 flex justify-center gap-2">
+                  {cards.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      aria-label={`Carte ${i + 1}`}
+                      onClick={() => { scrollToCard(i); resetInterval(); }}
+                      className={`rounded-full transition-all duration-300 ${
+                        activeCard === i
+                          ? "w-5 h-1.5 bg-zinc-900"
+                          : "w-1.5 h-1.5 bg-zinc-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Desktop : grille ── */}
+              <div className="hidden md:grid md:grid-cols-3 gap-8 max-w-7xl mx-auto px-6">
+                {cards.map((item, i) => (
+                  <div
+                    key={item.title}
+                    className={`reveal reveal-delay-${i + 1} ${featuresVisible ? "visible" : ""}`}
+                  >
+                    <FeatureCard image={item.image} title={item.title}>
+                      {item.body}
+                    </FeatureCard>
+                  </div>
+                ))}
+              </div>
+            </>
+          );
+        })()}
       </section>
     </main>
   );
