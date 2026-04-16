@@ -20,6 +20,7 @@ export default function ProductList({
   onPageChange,
   onOpenCreate,
   onOpenEdit,
+  onReorder,
 }) {
   const availableCount   = products.filter(p => p.is_available).length;
   const unavailableCount = products.filter(p => !p.is_available).length;
@@ -129,6 +130,25 @@ export default function ProductList({
               }`}>
                 {p.is_available ? "Dispo" : "Off"}
               </span>
+
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => onReorder(p.id, "up")}
+                  className="cursor-pointer rounded-lg border border-zinc-200 px-2 py-1.5 text-xs text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-700 active:scale-95"
+                  aria-label="Monter"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onReorder(p.id, "down")}
+                  className="cursor-pointer rounded-lg border border-zinc-200 px-2 py-1.5 text-xs text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-700 active:scale-95"
+                  aria-label="Descendre"
+                >
+                  ↓
+                </button>
+              </div>
 
               <button
                 type="button"

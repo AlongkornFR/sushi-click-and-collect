@@ -5,7 +5,7 @@ from .models import Product, Category, SubCategory
 class StaffCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ("id", "name", "slug")
+        fields = ("id", "name", "slug", "position")
 
 
 class StaffSubCategorySerializer(serializers.ModelSerializer):
@@ -18,7 +18,7 @@ class StaffSubCategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SubCategory
-        fields = ("id", "name", "slug", "category", "category_id")
+        fields = ("id", "name", "slug", "category", "category_id", "position")
 
 
 class StaffProductSerializer(serializers.ModelSerializer):
@@ -56,6 +56,7 @@ class StaffProductSerializer(serializers.ModelSerializer):
             "category_id",
             "subcategory",
             "subcategory_id",
+            "position",
         )
 
     def get_price_cents(self, obj):

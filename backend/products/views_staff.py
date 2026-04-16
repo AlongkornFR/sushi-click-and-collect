@@ -17,10 +17,32 @@ from .serializers_staff import (
 )
 
 
+def _swap_positions(Model, obj_id, direction):
+    try:
+        obj = Model.objects.get(id=obj_id)
+    except Model.DoesNotExist:
+        return False, "Not found"
+    ids = list(Model.objects.order_by("position", "name").values_list("id", flat=True))
+    idx = ids.index(obj.id)
+    if direction == "up" and idx == 0:
+        return False, None
+    if direction == "down" and idx == len(ids) - 1:
+        return False, None
+    n_idx = idx - 1 if direction == "up" else idx + 1
+    neighbor = Model.objects.get(id=ids[n_idx])
+    if obj.position == neighbor.position:
+        obj.position, neighbor.position = idx, n_idx
+    else:
+        obj.position, neighbor.position = neighbor.position, obj.position
+    obj.save(update_fields=["position"])
+    neighbor.save(update_fields=["position"])
+    return True, None
+
+
 @api_view(["GET"])
 @permission_classes([IsAdminUser])
 def staff_categories_list(request):
-    qs = Category.objects.all().order_by("name")
+    qs = Category.objects.all().order_by("position", "name")
     return Response(StaffCategorySerializer(qs, many=True).data)
 
 
@@ -39,7 +61,7 @@ def staff_category_create(request):
 def staff_subcategories_list(request):
     category_id = request.query_params.get("category_id")
 
-    qs = SubCategory.objects.select_related("category").all().order_by("name")
+    qs = SubCategory.objects.select_related("category").all().order_by("position", "name")
 
     if category_id:
         qs = qs.filter(category_id=category_id)
@@ -64,7 +86,7 @@ def staff_products_list(request):
     category_id = request.query_params.get("category_id")
     subcategory_id = request.query_params.get("subcategory_id")
 
-    qs = Product.objects.select_related("category", "subcategory").all().order_by("name")
+    qs = Product.objects.select_related("category", "subcategory").all().order_by("position", "name")
 
     if category_id:
         qs = qs.filter(category_id=category_id)
@@ -122,6 +144,39 @@ def staff_product_update(request, product_id: int):
         product = serializer.save()
         return Response(StaffProductSerializer(product).data)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def staff_product_reorder(request, product_id: int):
+    direction = request.data.get("direction")
+    if direction not in ("up", "down"):
+        return Response({"detail": "direction must be 'up' or 'down'"}, status=400)
+    _swap_positions(Product, product_id, direction)
+    qs = Product.objects.select_related("category", "subcategory").all().order_by("position", "name")
+    return Response(StaffProductSerializer(qs, many=True).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def staff_category_reorder(request, category_id: int):
+    direction = request.data.get("direction")
+    if direction not in ("up", "down"):
+        return Response({"detail": "direction must be 'up' or 'down'"}, status=400)
+    _swap_positions(Category, category_id, direction)
+    qs = Category.objects.all().order_by("position", "name")
+    return Response(StaffCategorySerializer(qs, many=True).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def staff_subcategory_reorder(request, subcategory_id: int):
+    direction = request.data.get("direction")
+    if direction not in ("up", "down"):
+        return Response({"detail": "direction must be 'up' or 'down'"}, status=400)
+    _swap_positions(SubCategory, subcategory_id, direction)
+    qs = SubCategory.objects.select_related("category").all().order_by("position", "name")
+    return Response(StaffSubCategorySerializer(qs, many=True).data)
 
 
 @api_view(["POST"])

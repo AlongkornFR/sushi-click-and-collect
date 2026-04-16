@@ -83,15 +83,24 @@ export default function MenuPage() {
   const categoryNames = useMemo(() => Object.keys(groupedData), [groupedData]);
 
   // Liste plate de toutes les sous-catégories pour les pills mobile
+  // Si une catégorie n'a qu'1 sous-catégorie, on affiche la catégorie directement
   const allSubcategories = useMemo(() => {
     const result = [];
     categoryNames.forEach((cat) => {
-      Object.keys(groupedData[cat] || {}).forEach((sub) => {
+      const subs = Object.keys(groupedData[cat] || {});
+      if (subs.length === 1) {
         result.push({
-          label: sub,
-          id: `subcategory-${slugify(cat)}-${slugify(sub)}`,
+          label: cat,
+          id: `category-${slugify(cat)}`,
         });
-      });
+      } else {
+        subs.forEach((sub) => {
+          result.push({
+            label: sub,
+            id: `subcategory-${slugify(cat)}-${slugify(sub)}`,
+          });
+        });
+      }
     });
     return result;
   }, [groupedData, categoryNames]);
@@ -175,7 +184,7 @@ export default function MenuPage() {
       <div className="grid grid-cols-1 gap-8 py-6 md:py-10 lg:grid-cols-12">
 
         {/* ── Sidebar desktop ── */}
-        <aside className="hidden lg:sticky lg:top-24 lg:col-span-3 lg:block lg:h-fit lg:self-start lg:rounded-2xl lg:border lg:border-zinc-100 lg:bg-zinc-50 lg:p-6 lg:shadow-sm">
+        <aside className="hidden lg:sticky lg:top-24 lg:col-span-3 lg:block lg:self-start lg:rounded-2xl lg:border lg:border-zinc-100 lg:bg-zinc-50 lg:p-6 lg:shadow-sm lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
           <nav className="space-y-1">
             {/* Tous les produits */}
             <button
@@ -201,6 +210,7 @@ export default function MenuPage() {
             {categoryNames.map((categoryName) => {
               const subcategories = Object.keys(groupedData[categoryName] || {});
               const categoryId = `category-${slugify(categoryName)}`;
+              const singleSub = subcategories.length === 1;
 
               return (
                 <div key={categoryName}>
@@ -212,20 +222,22 @@ export default function MenuPage() {
                     >
                       {categoryName}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => toggleCategory(categoryName)}
-                      className="cursor-pointer p-1 text-zinc-400 transition hover:text-zinc-700"
-                      aria-label={`Ouvrir ou fermer ${categoryName}`}
-                    >
-                      {openCategories[categoryName]
-                        ? <FaChevronUp className="text-xs" />
-                        : <FaChevronDown className="text-xs" />
-                      }
-                    </button>
+                    {!singleSub && (
+                      <button
+                        type="button"
+                        onClick={() => toggleCategory(categoryName)}
+                        className="cursor-pointer p-1 text-zinc-400 transition hover:text-zinc-700"
+                        aria-label={`Ouvrir ou fermer ${categoryName}`}
+                      >
+                        {openCategories[categoryName]
+                          ? <FaChevronUp className="text-xs" />
+                          : <FaChevronDown className="text-xs" />
+                        }
+                      </button>
+                    )}
                   </div>
 
-                  {openCategories[categoryName] && (
+                  {!singleSub && openCategories[categoryName] && (
                     <div className="mb-1 ml-3 mt-0.5 space-y-0.5 border-l-2 border-zinc-200 pl-3">
                       {subcategories.map((subcategoryName) => {
                         const subcategoryId = `subcategory-${slugify(categoryName)}-${slugify(subcategoryName)}`;
