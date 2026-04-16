@@ -6,12 +6,15 @@ from .views_staff import (
     staff_product_create,
     staff_product_update,
     staff_product_reorder,
+    staff_product_reorder_bulk,
     staff_categories_list,
     staff_category_create,
     staff_category_reorder,
+    staff_category_reorder_bulk,
     staff_subcategories_list,
     staff_subcategory_create,
     staff_subcategory_reorder,
+    staff_subcategory_reorder_bulk,
     cloudflare_upload_url,
 )
 
@@ -30,12 +33,17 @@ urlpatterns = [
     # STAFF CATEGORIES
     path("staff/categories/", staff_categories_list),
     path("staff/categories/create/", staff_category_create),
+    path("staff/categories/reorder-bulk/", staff_category_reorder_bulk),
     path("staff/categories/<int:category_id>/reorder/", staff_category_reorder),
 
     # STAFF SUBCATEGORIES
     path("staff/subcategories/", staff_subcategories_list),
     path("staff/subcategories/create/", staff_subcategory_create),
+    path("staff/subcategories/reorder-bulk/", staff_subcategory_reorder_bulk),
     path("staff/subcategories/<int:subcategory_id>/reorder/", staff_subcategory_reorder),
+
+    # STAFF PRODUCTS BULK
+    path("staff/products/reorder-bulk/", staff_product_reorder_bulk),
 
     # CLOUDFLARE IMAGES
     path("staff/cloudflare-upload-url/", cloudflare_upload_url),

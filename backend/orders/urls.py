@@ -8,6 +8,7 @@ from .views_staff import (
     staff_orders_pending_print,
     staff_order_set_status,
     staff_order_mark_printed,
+    staff_order_delete,
 )
 
 urlpatterns = [
@@ -25,4 +26,5 @@ urlpatterns = [
     path("staff/orders/pending-print/",                staff_orders_pending_print),
     path("staff/orders/<int:order_id>/status/",        staff_order_set_status),
     path("staff/orders/<int:order_id>/printed/",       staff_order_mark_printed),
+    path("staff/orders/<int:order_id>/delete/",        staff_order_delete),
 ]

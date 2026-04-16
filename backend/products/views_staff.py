@@ -148,6 +148,36 @@ def staff_product_update(request, product_id: int):
 
 @api_view(["POST"])
 @permission_classes([IsAdminUser])
+def staff_category_reorder_bulk(request):
+    ids = request.data.get("ids", [])
+    for position, obj_id in enumerate(ids):
+        Category.objects.filter(id=obj_id).update(position=position)
+    qs = Category.objects.all().order_by("position", "name")
+    return Response(StaffCategorySerializer(qs, many=True).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def staff_subcategory_reorder_bulk(request):
+    ids = request.data.get("ids", [])
+    for position, obj_id in enumerate(ids):
+        SubCategory.objects.filter(id=obj_id).update(position=position)
+    qs = SubCategory.objects.select_related("category").all().order_by("position", "name")
+    return Response(StaffSubCategorySerializer(qs, many=True).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def staff_product_reorder_bulk(request):
+    ids = request.data.get("ids", [])
+    for position, obj_id in enumerate(ids):
+        Product.objects.filter(id=obj_id).update(position=position)
+    qs = Product.objects.select_related("category", "subcategory").all().order_by("position", "name")
+    return Response(StaffProductSerializer(qs, many=True).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
 def staff_product_reorder(request, product_id: int):
     direction = request.data.get("direction")
     if direction not in ("up", "down"):

@@ -8,6 +8,7 @@ import { useStaffAuth } from "./useStaffAuth";
 const NAV = [
   { href: "/staff/orders",   label: "Commandes" },
   { href: "/staff/products", label: "Produits"  },
+  { href: "/staff/ordering", label: "Ordre"     },
 ];
 
 export default function StaffShell({ children, requireAuth = true }) {

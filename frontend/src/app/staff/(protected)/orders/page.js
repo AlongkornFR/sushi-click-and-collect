@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useStaffAuth } from "../../_components/useStaffAuth";
 import { printOrder as qzPrint } from "@/lib/printer";
 import PrinterStatus from "@/components/staff/PrinterStatus";
-import { FaPrint } from "react-icons/fa";
+import { FaPrint, FaTrash } from "react-icons/fa";
 
 /* ── Status config ── */
 const STATUS_CONFIG = {
@@ -100,6 +100,7 @@ export default function StaffOrdersPage() {
   const [updating, setUpdating]         = useState(null);
   const [printingId, setPrintingId]     = useState(null);
   const [printError, setPrintError]     = useState("");
+  const [deletingId, setDeletingId]     = useState(null);
 
   // IDs déjà auto-imprimés dans cette session (évite les doublons)
   const autoPrintedRef = useRef(new Set());
@@ -167,6 +168,23 @@ export default function StaffOrdersPage() {
       setError(String(e.message || e));
     } finally {
       setUpdating(null);
+    }
+  }
+
+  // ── Supprimer une commande ────────────────────────────────────────────────
+
+  async function deleteOrder(orderId) {
+    if (!confirm(`Supprimer définitivement la commande #${orderId} ?`)) return;
+    setDeletingId(orderId);
+    setError("");
+    try {
+      const res = await authFetch(`${API}/staff/orders/${orderId}/delete/`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`HTTP ${res.status} – ${await res.text()}`);
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -315,6 +333,7 @@ export default function StaffOrdersPage() {
             const actions    = STATUS_ACTIONS[o.status] ?? [];
             const isUpdating = updating === o.id;
             const isPrinting = printingId === o.id;
+            const isDeleting = deletingId === o.id;
 
             return (
               <div key={o.id} className="py-4">
@@ -359,6 +378,20 @@ export default function StaffOrdersPage() {
                       {isPrinting
                         ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
                         : <FaPrint className="text-sm" />
+                      }
+                    </button>
+                    {/* Bouton suppression */}
+                    <button
+                      type="button"
+                      onClick={() => deleteOrder(o.id)}
+                      disabled={isDeleting}
+                      title="Supprimer la commande"
+                      className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-400 transition hover:bg-red-100 hover:text-red-600 active:scale-95 disabled:cursor-wait disabled:opacity-50"
+                      aria-label="Supprimer la commande"
+                    >
+                      {isDeleting
+                        ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-200 border-t-red-500" />
+                        : <FaTrash className="text-sm" />
                       }
                     </button>
                   </div>

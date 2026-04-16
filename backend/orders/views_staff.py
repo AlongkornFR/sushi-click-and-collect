@@ -85,6 +85,19 @@ def staff_order_set_status(request, order_id: int):
     return Response({"ok": True, "id": order.id, "status": order.status})
 
 
+# ── Supprimer une commande ────────────────────────────────────────────────────
+
+@api_view(["DELETE"])
+@permission_classes([IsAdminUser])
+def staff_order_delete(request, order_id: int):
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response({"detail": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+    order.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 # ── Authentification staff ────────────────────────────────────────────────────
 
 @api_view(["POST"])
