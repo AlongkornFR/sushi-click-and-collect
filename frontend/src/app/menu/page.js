@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
+import useSWR from "swr";
 import { api } from "@/services/api";
 import ProductCard from "@/components/common/ProductCard";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
@@ -45,26 +46,15 @@ function MenuSkeleton() {
 }
 
 export default function MenuPage() {
-  const [products, setProducts]             = useState([]);
-  const [loading, setLoading]               = useState(true);
   const [openCategories, setOpenCategories] = useState({});
   const [activeSubId, setActiveSubId]       = useState(null);
   const pillsRef = useRef(null);
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const res = await api.get("products/");
-        setProducts(Array.isArray(res.data) ? res.data : []);
-      } catch (error) {
-        console.error("Erreur lors du chargement des produits :", error);
-        setProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProducts();
-  }, []);
+  const fetcher = (url) => api.get(url).then(r => Array.isArray(r.data) ? r.data : []);
+  const { data: products = [], isLoading: loading } = useSWR("products/", fetcher, {
+    dedupingInterval: 5 * 60 * 1000,
+    revalidateOnFocus: false,
+  });
 
   const groupedData = useMemo(() => {
     const groups = {};
