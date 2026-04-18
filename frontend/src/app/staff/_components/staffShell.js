@@ -25,8 +25,8 @@ export default function StaffShell({ children, requireAuth = true }) {
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
-        <p className="text-sm text-zinc-400">Chargement…</p>
+      <div className="flex min-h-screen items-center justify-center bg-black">
+        <p className="text-sm text-white/40">Chargement…</p>
       </div>
     );
   }
@@ -36,17 +36,17 @@ export default function StaffShell({ children, requireAuth = true }) {
   const isSuperuser = me?.is_superuser;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-black">
 
       {/* ── Staff top bar ── */}
-      <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/90 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#111]/95 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 md:px-6">
 
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-zinc-900">Su-Rice</span>
-            <span className="h-4 w-px bg-zinc-200" />
-            <span className="text-xs font-medium text-zinc-400">
+            <span className="text-sm font-bold text-white">Su-Rice</span>
+            <span className="h-4 w-px bg-white/10" />
+            <span className="text-xs font-medium text-[#FFC366]">
               {isSuperuser ? "Super Admin" : "Staff"}
             </span>
           </div>
@@ -59,8 +59,8 @@ export default function StaffShell({ children, requireAuth = true }) {
                 href={href}
                 className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   pathname === href
-                    ? "bg-zinc-900 text-white"
-                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"
+                    ? "bg-[#FFC366] text-black"
+                    : "text-white/50 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 {label}
@@ -72,12 +72,12 @@ export default function StaffShell({ children, requireAuth = true }) {
           <div className="flex items-center gap-3">
             {me && (
               <div className="hidden items-center gap-2 sm:flex">
-                <span className="text-sm text-zinc-500">{me.username}</span>
+                <span className="text-sm text-white/50">{me.username}</span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
                     isSuperuser
-                      ? "bg-zinc-900 text-white"
-                      : "bg-zinc-100 text-zinc-600"
+                      ? "bg-[#FFC366] text-black"
+                      : "bg-white/10 text-white/60"
                   }`}
                 >
                   {isSuperuser ? "Admin" : "Staff"}
@@ -87,7 +87,7 @@ export default function StaffShell({ children, requireAuth = true }) {
             <button
               type="button"
               onClick={() => { logout(); router.replace("/staff/login"); }}
-              className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-500 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
+              className="cursor-pointer rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-white/50 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
             >
               Déconnexion
             </button>

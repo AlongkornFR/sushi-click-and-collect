@@ -36,7 +36,7 @@ function DraggableList({ items, onReorder, selectedId, onSelect, emptyText }) {
 
   if (items.length === 0) {
     return (
-      <div className="flex h-28 items-center justify-center text-sm text-zinc-300">
+      <div className="flex h-28 items-center justify-center text-sm text-white/30">
         {emptyText}
       </div>
     );
@@ -60,24 +60,24 @@ function DraggableList({ items, onReorder, selectedId, onSelect, emptyText }) {
             onClick={() => onSelect?.(item.id)}
             className={`group flex cursor-grab items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm transition select-none active:cursor-grabbing ${
               isSelected
-                ? "border-zinc-900 bg-zinc-900 text-white shadow-sm"
+                ? "border-[#FFC366]/40 bg-[#FFC366]/10 text-white shadow-sm"
                 : isOver
-                ? "border-zinc-400 bg-zinc-100 shadow-sm"
+                ? "border-white/30 bg-white/10 shadow-sm"
                 : isDragging
-                ? "border-zinc-200 bg-zinc-50 opacity-40"
-                : "border-zinc-100 bg-white hover:border-zinc-200 hover:bg-zinc-50"
+                ? "border-white/10 bg-white/5 opacity-40"
+                : "border-white/10 bg-white/5 text-white/70 hover:border-white/20 hover:bg-white/10 hover:text-white"
             }`}
           >
             {/* Position badge */}
             <span className={`shrink-0 w-5 text-center text-[11px] font-bold tabular-nums ${
-              isSelected ? "text-zinc-400" : "text-zinc-300"
+              isSelected ? "text-[#FFC366]" : "text-white/30"
             }`}>
               {idx + 1}
             </span>
 
             {/* Drag handle */}
             <span className={`shrink-0 text-base leading-none ${
-              isSelected ? "text-zinc-500" : "text-zinc-200 group-hover:text-zinc-400"
+              isSelected ? "text-white/50" : "text-white/20 group-hover:text-white/40"
             }`}>
               ⠿
             </span>
@@ -87,7 +87,7 @@ function DraggableList({ items, onReorder, selectedId, onSelect, emptyText }) {
               <ProductImage
                 src={item.image_main}
                 alt={item.name}
-                className="h-8 w-8 shrink-0 rounded-lg border border-zinc-100 object-cover"
+                className="h-8 w-8 shrink-0 rounded-lg border border-white/10 object-cover"
               />
             )}
 
@@ -96,7 +96,7 @@ function DraggableList({ items, onReorder, selectedId, onSelect, emptyText }) {
 
             {/* Flèche si sélectionnable */}
             {onSelect && isSelected && (
-              <span className="shrink-0 text-zinc-400">→</span>
+              <span className="shrink-0 text-[#FFC366]">→</span>
             )}
           </li>
         );
@@ -111,13 +111,13 @@ function Column({ title, subtitle, loading, children }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-bold text-zinc-900">{title}</h2>
+        <h2 className="text-sm font-bold text-white">{title}</h2>
         {loading
-          ? <span className="text-[11px] text-zinc-400">Chargement…</span>
-          : subtitle && <span className="text-[11px] text-zinc-400">{subtitle}</span>
+          ? <span className="text-[11px] text-white/40">Chargement…</span>
+          : subtitle && <span className="text-[11px] text-white/40">{subtitle}</span>
         }
       </div>
-      <div className="min-h-[300px] max-h-[calc(100vh-14rem)] overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm">
+      <div className="min-h-[300px] max-h-[calc(100vh-14rem)] overflow-y-auto rounded-2xl border border-white/10 bg-[#1D1D1D] p-3">
         {children}
       </div>
     </div>
@@ -227,35 +227,35 @@ export default function OrderingPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-zinc-900">Ordre d'affichage</h1>
-          <p className="mt-0.5 text-sm text-zinc-400">
+          <h1 className="text-xl font-bold text-white">Ordre d'affichage</h1>
+          <p className="mt-0.5 text-sm text-white/40">
             Glissez-déposez pour réorganiser. Cliquez sur un élément pour voir ses sous-éléments.
           </p>
         </div>
         {saving && (
-          <span className="flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-500">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" />
+          <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-medium text-white/50">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FFC366]" />
             Sauvegarde…
           </span>
         )}
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error}
         </div>
       )}
 
       {/* Breadcrumb de sélection */}
       {(selectedCatId || selectedSubId) && (
-        <div className="flex items-center gap-2 text-sm text-zinc-500">
-          <span className="font-medium text-zinc-900">
+        <div className="flex items-center gap-2 text-sm text-white/50">
+          <span className="font-medium text-white">
             {categories.find(c => c.id === selectedCatId)?.name ?? "…"}
           </span>
           {selectedSubId && (
             <>
-              <span className="text-zinc-300">→</span>
-              <span className="font-medium text-zinc-900">
+              <span className="text-white/30">→</span>
+              <span className="font-medium text-white">
                 {subcategories.find(s => s.id === selectedSubId)?.name ?? "…"}
               </span>
             </>
@@ -291,7 +291,7 @@ export default function OrderingPage() {
           loading={loadingSubs}
         >
           {!selectedCatId ? (
-            <div className="flex h-28 items-center justify-center text-sm text-zinc-300">
+            <div className="flex h-28 items-center justify-center text-sm text-white/30">
               ← Sélectionner une catégorie
             </div>
           ) : (
@@ -315,7 +315,7 @@ export default function OrderingPage() {
           loading={loadingProds}
         >
           {!selectedSubId ? (
-            <div className="flex h-28 items-center justify-center text-sm text-zinc-300">
+            <div className="flex h-28 items-center justify-center text-sm text-white/30">
               ← Sélectionner une sous-catégorie
             </div>
           ) : (

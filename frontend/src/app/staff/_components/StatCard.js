@@ -1,16 +1,16 @@
 export function StatCard({ label, value, sub }) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-widest text-zinc-400">{label}</p>
-      <p className="mt-1 text-3xl font-bold text-zinc-900">{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-zinc-400">{sub}</p>}
+    <div className="rounded-2xl border border-white/10 bg-[#1D1D1D] p-5">
+      <p className="text-xs font-medium uppercase tracking-widest text-white/40">{label}</p>
+      <p className="mt-1 text-3xl font-bold text-white">{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-white/40">{sub}</p>}
     </div>
   );
 }
 
 export function StatCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-white/10 bg-[#1D1D1D] p-5">
       <div className="skeleton h-3 w-20 rounded-full" />
       <div className="skeleton mt-3 h-8 w-12 rounded-xl" />
       <div className="skeleton mt-2 h-2.5 w-16 rounded-full" />

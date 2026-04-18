@@ -62,7 +62,7 @@ export default function HomePage() {
   const bestSellers = useMemo(() => products.slice(0, 8), [products]);
 
   return (
-    <main className="bg-white overflow-x-hidden">
+    <main className="bg-zinc-50 dark:bg-black overflow-x-hidden">
 
       {/* ── HERO ── */}
       <section className="relative h-[88vh] min-h-[580px] bg-cover bg-center bg-[url('https://img-3.journaldesfemmes.fr/KXlxZdShrVsMutkNGfPPKxGiJqg=/1500x/smart/b6bbd8cda8f945949fb78307a9f067f5/ccmcms-jdf/35195140.jpg')] flex items-end md:items-center">
@@ -93,7 +93,7 @@ export default function HomePage() {
             <div className="hero-cta flex gap-3 flex-wrap">
               <Link
                 href="/menu"
-                className="bg-white text-black px-7 py-3.5 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-200 hover:shadow-xl active:scale-95"
+                className="bg-[#FFC366] text-black px-7 py-3.5 rounded-xl font-semibold hover:bg-[#ffb347] transition-all duration-200 hover:shadow-xl active:scale-95"
               >
                 Commander maintenant
               </Link>
@@ -108,7 +108,7 @@ export default function HomePage() {
       </section>
 
       {/* ── TRUST CARDS ── */}
-      <section ref={trustRef} className="border-y border-zinc-100 bg-zinc-50/60">
+      <section ref={trustRef} className="border-y border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-[#1D1D1D]">
         <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-3 gap-2 md:gap-6">
           {[
             { icon: <FaShieldAlt />, title: "Paiement sécurisé",  desc: "Transactions protégées via Payplug." },
@@ -129,10 +129,10 @@ export default function HomePage() {
       <section ref={aboutRef} className="max-w-7xl mx-auto px-6 py-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div className={`reveal ${aboutVisible ? "visible" : ""}`}>
-            <h2 className="text-4xl md:text-5xl font-bold leading-tight">
+            <h2 className="text-4xl md:text-5xl font-bold leading-tight text-zinc-900 dark:text-white">
               Votre restaurant de cuisine thaïlandaise et japonaise à Cannes
             </h2>
-            <p className="text-gray-600 mt-5 leading-relaxed">
+            <p className="text-zinc-500 dark:text-white/50 mt-5 leading-relaxed">
               Vous appréciez les saveurs asiatiques ? Poussez les portes de notre
               restaurant de cuisine thaïlandaise à Cannes. Nos chefs vous concoctent des plats
               thaï et japonais, qui régaleront vos papilles. Chez{" "}
@@ -156,10 +156,10 @@ export default function HomePage() {
       <section ref={sellersRef} className="max-w-7xl mx-auto px-6 pb-24">
         <div className={`flex items-end justify-between gap-6 flex-wrap mb-10 reveal ${sellersVisible ? "visible" : ""}`}>
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold">Les incontournables</h2>
-            <p className="text-gray-500 mt-2">Une sélection de produits appréciés pour commencer.</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-white">Les incontournables</h2>
+            <p className="text-zinc-400 dark:text-white/40 mt-2">Une sélection de produits appréciés pour commencer.</p>
           </div>
-          <Link href="/menu" className="text-sm font-medium hover:underline">
+          <Link href="/menu" className="text-sm font-medium text-zinc-400 dark:text-white/50 hover:text-zinc-900 dark:hover:text-white transition">
             Voir tout le menu →
           </Link>
         </div>
@@ -181,7 +181,7 @@ export default function HomePage() {
       </section>
 
       {/* ── FEATURE CARDS ── */}
-      <section ref={featuresRef} className="bg-white py-16">
+      <section ref={featuresRef} className="bg-zinc-100 dark:bg-black py-16">
         {(() => {
           const cards = [
             {
@@ -261,8 +261,8 @@ export default function HomePage() {
                       onClick={() => { scrollToCard(i); resetInterval(); }}
                       className={`rounded-full transition-all duration-300 ${
                         activeCard === i
-                          ? "w-5 h-1.5 bg-zinc-900"
-                          : "w-1.5 h-1.5 bg-zinc-300"
+                          ? "w-5 h-1.5 bg-[#FFC366]"
+                          : "w-1.5 h-1.5 bg-zinc-300 dark:bg-white/20"
                       }`}
                     />
                   ))}

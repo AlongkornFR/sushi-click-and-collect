@@ -35,8 +35,10 @@ function buildPickupSlots() {
 }
 
 const inputCls = (hasError) =>
-  `w-full rounded-xl border bg-zinc-50 px-4 py-3 text-sm outline-none transition focus:bg-white ${
-    hasError ? "border-red-300 focus:border-red-400" : "border-zinc-200 focus:border-zinc-400"
+  `w-full rounded-xl border bg-zinc-50 dark:bg-white/5 px-4 py-3 text-sm text-zinc-900 dark:text-white outline-none transition placeholder:text-zinc-400 dark:placeholder:text-white/30 focus:bg-white dark:focus:bg-white/10 ${
+    hasError
+      ? "border-red-300 dark:border-red-500/50 focus:border-red-400"
+      : "border-zinc-200 dark:border-white/10 focus:border-zinc-400 dark:focus:border-white/30"
   }`;
 
 export default function CheckoutPage() {
@@ -103,10 +105,10 @@ export default function CheckoutPage() {
       {/* Header */}
       <div className="mb-8 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Finaliser</h1>
-          <p className="mt-1 text-sm text-zinc-400">Paiement sécurisé · Click & Collect</p>
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Finaliser</h1>
+          <p className="mt-1 text-sm text-zinc-400 dark:text-white/40">Paiement sécurisé · Click &amp; Collect</p>
         </div>
-        <Link href="/cart" className="text-sm text-zinc-400 transition hover:text-zinc-700">
+        <Link href="/cart" className="text-sm text-zinc-400 dark:text-white/40 transition hover:text-zinc-700 dark:hover:text-white">
           ← Panier
         </Link>
       </div>
@@ -117,13 +119,13 @@ export default function CheckoutPage() {
         <div className="space-y-6 lg:col-span-2">
 
           {/* Customer info card */}
-          <div className="rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm">
-            <h2 className="mb-5 text-sm font-bold uppercase tracking-widest text-zinc-400">
+          <div className="rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6">
+            <h2 className="mb-5 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
               Vos informations
             </h2>
 
             {error && (
-              <div className="mb-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+              <div className="mb-5 rounded-xl border border-red-100 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
                 {error}
               </div>
             )}
@@ -164,20 +166,20 @@ export default function CheckoutPage() {
           </div>
 
           {/* Pickup time card */}
-          <div className="rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm">
-            <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-zinc-400">
+          <div className="rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6">
+            <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
               Heure de retrait
             </h2>
-            <p className="mb-5 text-xs text-zinc-400">
-              Choisissez un créneau · préparation à l'heure indiquée
+            <p className="mb-5 text-xs text-zinc-400 dark:text-white/30">
+              Choisissez un créneau · préparation à l&apos;heure indiquée
             </p>
 
             {touched.pickup_time && validation.pickup_time && (
-              <p className="mb-3 text-xs text-red-500">{validation.pickup_time}</p>
+              <p className="mb-3 text-xs text-red-500 dark:text-red-400">{validation.pickup_time}</p>
             )}
 
             {/* Lunch slots */}
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-300">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-300 dark:text-white/20">
               Déjeuner — 11h30 à 14h00
             </p>
             <div className="flex flex-wrap gap-2">
@@ -188,8 +190,8 @@ export default function CheckoutPage() {
                   onClick={() => { setField("pickup_time", slot); markTouched("pickup_time"); }}
                   className={`cursor-pointer rounded-xl px-3.5 py-2 text-sm font-medium transition active:scale-95 ${
                     form.pickup_time === slot
-                      ? "bg-zinc-900 text-white"
-                      : "border border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-100"
+                      ? "bg-[#FFC366] text-black"
+                      : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20 hover:bg-zinc-100 dark:hover:bg-white/10"
                   }`}
                 >
                   {slot}
@@ -198,7 +200,7 @@ export default function CheckoutPage() {
             </div>
 
             {/* Dinner slots */}
-            <p className="mb-2 mt-5 text-[11px] font-semibold uppercase tracking-widest text-zinc-300">
+            <p className="mb-2 mt-5 text-[11px] font-semibold uppercase tracking-widest text-zinc-300 dark:text-white/20">
               Soir — 18h00 à 22h00
             </p>
             <div className="flex flex-wrap gap-2">
@@ -209,8 +211,8 @@ export default function CheckoutPage() {
                   onClick={() => { setField("pickup_time", slot); markTouched("pickup_time"); }}
                   className={`cursor-pointer rounded-xl px-3.5 py-2 text-sm font-medium transition active:scale-95 ${
                     form.pickup_time === slot
-                      ? "bg-zinc-900 text-white"
-                      : "border border-zinc-200 bg-zinc-50 text-zinc-600 hover:border-zinc-300 hover:bg-zinc-100"
+                      ? "bg-[#FFC366] text-black"
+                      : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20 hover:bg-zinc-100 dark:hover:bg-white/10"
                   }`}
                 >
                   {slot}
@@ -220,17 +222,17 @@ export default function CheckoutPage() {
           </div>
 
           {/* Notes card */}
-          <div className="rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm">
-            <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-zinc-400">
+          <div className="rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6">
+            <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
               Note (optionnel)
             </h2>
-            <p className="mb-4 text-xs text-zinc-400">Allergie, demande spéciale…</p>
+            <p className="mb-4 text-xs text-zinc-400 dark:text-white/30">Allergie, demande spéciale…</p>
             <textarea
               value={form.notes}
               onChange={e => setField("notes", e.target.value)}
               placeholder="Ex : sans wasabi, baguettes x2…"
               rows={3}
-              className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm outline-none transition focus:border-zinc-400 focus:bg-white"
+              className="w-full resize-none rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 px-4 py-3 text-sm text-zinc-900 dark:text-white outline-none transition placeholder:text-zinc-400 dark:placeholder:text-white/30 focus:border-zinc-400 dark:focus:border-white/30 focus:bg-white dark:focus:bg-white/10"
             />
           </div>
         </div>
@@ -239,8 +241,8 @@ export default function CheckoutPage() {
         <div className="lg:col-span-1">
           <div className="sticky top-24 space-y-4">
 
-            <div className="rounded-2xl border border-zinc-100 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-zinc-400">
+            <div className="rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6">
+              <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
                 Votre commande
               </h2>
 
@@ -253,41 +255,41 @@ export default function CheckoutPage() {
                       className="h-10 w-10 shrink-0 rounded-lg object-cover"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold text-zinc-800">{it.name}</p>
-                      <p className="text-xs text-zinc-400">{it.quantity} × {formatEUR(it.price)}</p>
+                      <p className="truncate text-xs font-semibold text-zinc-800 dark:text-white">{it.name}</p>
+                      <p className="text-xs text-zinc-400 dark:text-white/40">{it.quantity} × {formatEUR(it.price)}</p>
                     </div>
-                    <p className="shrink-0 text-sm font-semibold text-zinc-900">
+                    <p className="shrink-0 text-sm font-semibold text-[#FFC366]">
                       {formatEUR(Number(it.price) * it.quantity)}
                     </p>
                   </div>
                 ))}
               </div>
 
-              <div className="my-4 h-px bg-zinc-100" />
+              <div className="my-4 h-px bg-zinc-100 dark:bg-white/10" />
 
               <div className="space-y-1.5 text-sm">
-                <div className="flex justify-between text-zinc-500">
+                <div className="flex justify-between text-zinc-500 dark:text-white/50">
                   <span>Sous-total</span>
                   <span>{formatEUR(subtotal)}</span>
                 </div>
-                <div className="flex justify-between text-zinc-500">
+                <div className="flex justify-between text-zinc-500 dark:text-white/50">
                   <span>Frais</span>
-                  <span className="font-medium text-emerald-600">Gratuit</span>
+                  <span className="font-medium text-emerald-500 dark:text-emerald-400">Gratuit</span>
                 </div>
               </div>
 
-              <div className="my-4 h-px bg-zinc-100" />
+              <div className="my-4 h-px bg-zinc-100 dark:bg-white/10" />
 
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-zinc-600">Total</span>
-                <span className="text-xl font-bold text-zinc-900">{formatEUR(subtotal)}</span>
+                <span className="text-sm font-medium text-zinc-600 dark:text-white/60">Total</span>
+                <span className="text-xl font-bold text-zinc-900 dark:text-white">{formatEUR(subtotal)}</span>
               </div>
 
               {form.pickup_time && (
-                <div className="mt-4 flex items-center gap-2 rounded-xl bg-zinc-50 px-3 py-2.5">
-                  <FaClock className="shrink-0 text-zinc-400 text-xs" />
-                  <p className="text-xs text-zinc-600">
-                    Retrait prévu à <span className="font-bold text-zinc-900">{form.pickup_time}</span>
+                <div className="mt-4 flex items-center gap-2 rounded-xl bg-zinc-50 dark:bg-white/5 px-3 py-2.5">
+                  <FaClock className="shrink-0 text-zinc-400 dark:text-white/30 text-xs" />
+                  <p className="text-xs text-zinc-600 dark:text-white/60">
+                    Retrait prévu à <span className="font-bold text-zinc-900 dark:text-white">{form.pickup_time}</span>
                   </p>
                 </div>
               )}
@@ -298,16 +300,16 @@ export default function CheckoutPage() {
                 disabled={!canSubmit}
                 className={`mt-5 w-full cursor-pointer rounded-xl py-3.5 text-sm font-semibold transition active:scale-[.98] ${
                   canSubmit
-                    ? "bg-zinc-900 text-white hover:bg-zinc-700"
-                    : "cursor-not-allowed bg-zinc-100 text-zinc-400"
+                    ? "bg-[#FFC366] text-black hover:bg-[#ffb347]"
+                    : "cursor-not-allowed bg-zinc-100 dark:bg-white/10 text-zinc-400 dark:text-white/30"
                 }`}
               >
                 {loading ? "Redirection…" : "Payer maintenant"}
               </button>
 
-              <div className="mt-4 space-y-1.5 border-t border-zinc-100 pt-4">
-                <div className="flex items-center gap-2 text-xs text-zinc-400">
-                  <FaShieldAlt className="shrink-0 text-zinc-300" />
+              <div className="mt-4 space-y-1.5 border-t border-zinc-100 dark:border-white/10 pt-4">
+                <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-white/30">
+                  <FaShieldAlt className="shrink-0 text-zinc-300 dark:text-white/20" />
                   Paiement sécurisé Payplug — vos données sont protégées
                 </div>
               </div>

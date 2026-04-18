@@ -46,13 +46,13 @@ export default function ProductList({
       </div>
 
       {/* List card */}
-      <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <div className="rounded-2xl border border-white/10 bg-[#1D1D1D]">
 
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-5 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
           <div>
-            <h1 className="text-base font-bold text-zinc-900">Catalogue produits</h1>
-            <p className="text-xs text-zinc-400">
+            <h1 className="text-base font-bold text-white">Catalogue produits</h1>
+            <p className="text-xs text-white/40">
               {filteredProducts.length} produit{filteredProducts.length > 1 ? "s" : ""}
               {(selectedCategory || selectedSubCategory) ? " filtrés" : " au total"}
             </p>
@@ -62,7 +62,7 @@ export default function ProductList({
             <select
               value={selectedCategory}
               onChange={e => { setSelectedCategory(e.target.value); setSelectedSubCategory(""); }}
-              className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none transition focus:border-zinc-400 focus:bg-white"
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30 focus:bg-white/10"
             >
               <option value="">Toutes catégories</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -71,7 +71,7 @@ export default function ProductList({
             <select
               value={selectedSubCategory}
               onChange={e => setSelectedSubCategory(e.target.value)}
-              className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none transition focus:border-zinc-400 focus:bg-white"
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none transition focus:border-white/30 focus:bg-white/10"
             >
               <option value="">Toutes sous-catégories</option>
               {visibleSubcategories.map(sc => <option key={sc.id} value={sc.id}>{sc.name}</option>)}
@@ -80,7 +80,7 @@ export default function ProductList({
             <button
               type="button"
               onClick={onOpenCreate}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700 active:scale-95"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-[#FFC366] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-95"
             >
               <FaPlus className="text-xs" />
               Nouveau
@@ -89,31 +89,31 @@ export default function ProductList({
         </div>
 
         {/* Rows */}
-        <div className="divide-y divide-zinc-100">
+        <div className="divide-y divide-white/5">
           {fetching ? (
             Array.from({ length: 6 }).map((_, i) => <ProductRowSkeleton key={i} />)
           ) : paginatedProducts.length === 0 ? (
-            <div className="px-5 py-16 text-center text-sm text-zinc-400">
+            <div className="px-5 py-16 text-center text-sm text-white/40">
               Aucun produit pour ce filtre.
             </div>
           ) : paginatedProducts.map(p => (
-            <div key={p.id} className="flex items-center gap-4 px-5 py-4 transition hover:bg-zinc-50">
+            <div key={p.id} className="flex items-center gap-4 px-5 py-4 transition hover:bg-white/5">
               <ProductImage
                 src={p.image_main}
                 alt={p.name}
-                className="h-14 w-14 shrink-0 rounded-xl border border-zinc-100 object-cover"
+                className="h-14 w-14 shrink-0 rounded-xl border border-white/10 object-cover"
               />
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-zinc-900">{p.name}</p>
+                <p className="truncate text-sm font-semibold text-white">{p.name}</p>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                   {p.category?.name && (
-                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/50">
                       {p.category.name}
                     </span>
                   )}
                   {p.subcategory?.name && (
-                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/50">
                       {p.subcategory.name}
                     </span>
                   )}
@@ -121,12 +121,12 @@ export default function ProductList({
               </div>
 
               <div className="hidden shrink-0 text-right sm:block">
-                <p className="text-sm font-semibold text-zinc-900">{p.price} €</p>
-                <p className="text-xs text-zinc-400">Stock : {p.stock}</p>
+                <p className="text-sm font-semibold text-white">{p.price} €</p>
+                <p className="text-xs text-white/40">Stock : {p.stock}</p>
               </div>
 
               <span className={`hidden shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider md:block ${
-                p.is_available ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"
+                p.is_available ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
               }`}>
                 {p.is_available ? "Dispo" : "Off"}
               </span>
@@ -135,7 +135,7 @@ export default function ProductList({
                 <button
                   type="button"
                   onClick={() => onReorder(p.id, "up")}
-                  className="cursor-pointer rounded-lg border border-zinc-200 px-2 py-1.5 text-xs text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-700 active:scale-95"
+                  className="cursor-pointer rounded-lg border border-white/10 px-2 py-1.5 text-xs text-white/40 transition hover:bg-white/10 hover:text-white active:scale-95"
                   aria-label="Monter"
                 >
                   ↑
@@ -143,7 +143,7 @@ export default function ProductList({
                 <button
                   type="button"
                   onClick={() => onReorder(p.id, "down")}
-                  className="cursor-pointer rounded-lg border border-zinc-200 px-2 py-1.5 text-xs text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-700 active:scale-95"
+                  className="cursor-pointer rounded-lg border border-white/10 px-2 py-1.5 text-xs text-white/40 transition hover:bg-white/10 hover:text-white active:scale-95"
                   aria-label="Descendre"
                 >
                   ↓
@@ -153,7 +153,7 @@ export default function ProductList({
               <button
                 type="button"
                 onClick={() => onOpenEdit(p)}
-                className="shrink-0 cursor-pointer rounded-xl border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 active:scale-95"
+                className="shrink-0 cursor-pointer rounded-xl border border-white/10 px-3 py-1.5 text-xs font-semibold text-white/60 transition hover:border-white/20 hover:bg-white/10 hover:text-white active:scale-95"
               >
                 Modifier
               </button>
@@ -163,12 +163,12 @@ export default function ProductList({
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-4">
+          <div className="flex items-center justify-between border-t border-white/10 px-5 py-4">
             <button
               type="button"
               onClick={() => onPageChange(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="cursor-pointer rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="cursor-pointer rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-white/60 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
             >
               ← Précédent
             </button>
@@ -181,8 +181,8 @@ export default function ProductList({
                   onClick={() => onPageChange(() => page)}
                   className={`h-8 w-8 cursor-pointer rounded-lg text-sm font-medium transition ${
                     page === currentPage
-                      ? "bg-zinc-900 text-white"
-                      : "text-zinc-500 hover:bg-zinc-100"
+                      ? "bg-[#FFC366] text-black"
+                      : "text-white/50 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   {page}
@@ -194,7 +194,7 @@ export default function ProductList({
               type="button"
               onClick={() => onPageChange(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="cursor-pointer rounded-xl border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="cursor-pointer rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-white/60 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Suivant →
             </button>

@@ -39,7 +39,7 @@ export default function FeaturedProductCard({ product }) {
 
         <Link
           href="/menu"
-          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-semibold text-black transition-all duration-200 hover:bg-zinc-100 active:scale-95"
+          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#FFC366] px-6 py-3 text-sm font-semibold text-black transition-all duration-200 hover:bg-[#ffb347] active:scale-95"
         >
           Commander
           <span className="text-xs">→</span>

@@ -49,10 +49,10 @@ function StatusBadge({ status }) {
   );
 }
 
-function StatCard({ label, value, color = "text-zinc-900" }) {
+function StatCard({ label, value, color = "text-white" }) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">{label}</p>
+    <div className="rounded-2xl border border-white/10 bg-[#1D1D1D] p-5">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{label}</p>
       <p className={`mt-1 text-3xl font-bold ${color}`}>{value}</p>
     </div>
   );
@@ -60,7 +60,7 @@ function StatCard({ label, value, color = "text-zinc-900" }) {
 
 function StatCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-white/10 bg-[#1D1D1D] p-5">
       <div className="skeleton h-3 w-20 rounded-full" />
       <div className="skeleton mt-3 h-8 w-10 rounded-xl" />
     </div>
@@ -69,7 +69,7 @@ function StatCardSkeleton() {
 
 function OrderCardSkeleton() {
   return (
-    <div className="rounded-2xl border border-zinc-100 bg-white p-5">
+    <div className="rounded-2xl border border-white/10 bg-[#1D1D1D] p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -81,7 +81,7 @@ function OrderCardSkeleton() {
         </div>
         <div className="skeleton h-8 w-20 rounded-xl" />
       </div>
-      <div className="mt-4 border-t border-zinc-100 pt-3 space-y-2">
+      <div className="mt-4 border-t border-white/10 pt-3 space-y-2">
         <div className="skeleton h-3 w-full rounded-full" />
         <div className="skeleton h-3 w-2/3 rounded-full" />
       </div>
@@ -248,23 +248,23 @@ export default function StaffOrdersPage() {
         ) : (
           <>
             <StatCard label="Total"          value={orders.length} />
-            <StatCard label="En attente"     value={pendingCount}   color="text-amber-600" />
-            <StatCard label="En préparation" value={preparingCount} color="text-orange-600" />
-            <StatCard label="Prêtes"         value={readyCount}     color="text-emerald-600" />
+            <StatCard label="En attente"     value={pendingCount}   color="text-amber-400" />
+            <StatCard label="En préparation" value={preparingCount} color="text-orange-400" />
+            <StatCard label="Prêtes"         value={readyCount}     color="text-emerald-400" />
           </>
         )}
       </div>
 
       {/* ── Main card ── */}
-      <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
+      <div className="rounded-2xl border border-white/10 bg-[#1D1D1D]">
 
         {/* Header */}
-        <div className="border-b border-zinc-100 px-5 py-4">
+        <div className="border-b border-white/10 px-5 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <h1 className="text-base font-bold text-zinc-900">Commandes</h1>
-              <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+              <h1 className="text-base font-bold text-white">Commandes</h1>
+              <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
                 Live
               </span>
             </div>
@@ -273,7 +273,7 @@ export default function StaffOrdersPage() {
               <button
                 type="button"
                 onClick={() => fetchOrders()}
-                className="cursor-pointer rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-500 transition hover:bg-zinc-50 active:scale-95"
+                className="cursor-pointer rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-white/50 transition hover:bg-white/10 hover:text-white active:scale-95"
               >
                 Rafraîchir
               </button>
@@ -286,7 +286,7 @@ export default function StaffOrdersPage() {
               type="button"
               onClick={() => setStatusFilter("")}
               className={`shrink-0 cursor-pointer rounded-full px-4 py-2.5 text-sm font-semibold transition ${
-                !statusFilter ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                !statusFilter ? "bg-[#FFC366] text-black" : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white"
               }`}
             >
               Toutes
@@ -297,7 +297,7 @@ export default function StaffOrdersPage() {
                 type="button"
                 onClick={() => setStatusFilter(s)}
                 className={`shrink-0 cursor-pointer rounded-full px-4 py-2.5 text-sm font-semibold transition ${
-                  statusFilter === s ? "bg-zinc-900 text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
+                  statusFilter === s ? "bg-[#FFC366] text-black" : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white"
                 }`}
               >
                 {STATUS_CONFIG[s]?.label ?? s}
@@ -308,25 +308,25 @@ export default function StaffOrdersPage() {
 
         {/* Erreurs */}
         {error && (
-          <div className="mx-5 mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div className="mx-5 mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {error}
           </div>
         )}
         {printError && (
-          <div className="mx-5 mt-4 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-orange-700">
+          <div className="mx-5 mt-4 rounded-xl border border-orange-500/20 bg-orange-500/10 px-4 py-3 text-sm text-orange-400">
             🖨️ {printError}
           </div>
         )}
 
         {/* Order list */}
-        <div className="divide-y divide-zinc-100 px-5 py-2">
+        <div className="divide-y divide-white/5 px-5 py-2">
 
           {fetching ? (
             <div className="space-y-3 py-3">
               {Array.from({ length: 4 }).map((_, i) => <OrderCardSkeleton key={i} />)}
             </div>
           ) : orders.length === 0 ? (
-            <div className="py-16 text-center text-sm text-zinc-400">
+            <div className="py-16 text-center text-sm text-white/40">
               Aucune commande{statusFilter ? ` avec le statut « ${STATUS_CONFIG[statusFilter]?.label ?? statusFilter} »` : ""}.
             </div>
           ) : orders.map(o => {
@@ -341,25 +341,25 @@ export default function StaffOrdersPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-bold text-zinc-900">#{o.id}</span>
+                      <span className="text-sm font-bold text-white">#{o.id}</span>
                       <StatusBadge status={o.status} />
                       {o.pickup_time && (
-                        <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[11px] font-semibold text-zinc-600">
+                        <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white/60">
                           ⏱ {o.pickup_time}
                         </span>
                       )}
                       {o.printed && (
-                        <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[11px] font-semibold text-zinc-400">
+                        <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white/40">
                           🖨️ Imprimé
                         </span>
                       )}
                     </div>
-                    <p className="text-sm font-semibold text-zinc-800">{o.full_name}</p>
-                    {o.phone && <p className="text-xs text-zinc-400">{o.phone}</p>}
+                    <p className="text-sm font-semibold text-white/80">{o.full_name}</p>
+                    {o.phone && <p className="text-xs text-white/40">{o.phone}</p>}
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <p className="text-base font-bold text-zinc-900">
+                    <p className="text-base font-bold text-[#FFC366]">
                       {(o.total_cents / 100).toFixed(2)} €
                     </p>
                     {/* Bouton impression thermique */}
@@ -370,13 +370,13 @@ export default function StaffOrdersPage() {
                       title={o.printed ? "Réimprimer" : "Imprimer"}
                       className={`flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border transition active:scale-95 disabled:cursor-wait disabled:opacity-50 ${
                         o.printed
-                          ? "border-zinc-200 bg-zinc-50 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
-                          : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                          ? "border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+                          : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
                       }`}
                       aria-label="Imprimer le ticket"
                     >
                       {isPrinting
-                        ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
+                        ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
                         : <FaPrint className="text-sm" />
                       }
                     </button>
@@ -386,11 +386,11 @@ export default function StaffOrdersPage() {
                       onClick={() => deleteOrder(o.id)}
                       disabled={isDeleting}
                       title="Supprimer la commande"
-                      className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border border-red-200 bg-red-50 text-red-400 transition hover:bg-red-100 hover:text-red-600 active:scale-95 disabled:cursor-wait disabled:opacity-50"
+                      className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 transition hover:bg-red-500/20 hover:text-red-300 active:scale-95 disabled:cursor-wait disabled:opacity-50"
                       aria-label="Supprimer la commande"
                     >
                       {isDeleting
-                        ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-200 border-t-red-500" />
+                        ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-500/30 border-t-red-400" />
                         : <FaTrash className="text-sm" />
                       }
                     </button>
@@ -399,15 +399,15 @@ export default function StaffOrdersPage() {
 
                 {/* Items */}
                 {(o.items || []).length > 0 && (
-                  <div className="mt-3 rounded-xl bg-zinc-50 px-4 py-3">
+                  <div className="mt-3 rounded-xl bg-white/5 px-4 py-3">
                     <ul className="space-y-1">
                       {o.items.map(it => (
                         <li key={it.id} className="flex items-center justify-between text-sm">
-                          <span className="text-zinc-700">
-                            <span className="font-semibold text-zinc-900">{it.quantity}×</span>{" "}
+                          <span className="text-white/60">
+                            <span className="font-semibold text-white">{it.quantity}×</span>{" "}
                             {it.product_name}
                           </span>
-                          <span className="font-semibold text-zinc-700">
+                          <span className="font-semibold text-white/70">
                             {(it.line_total_cents / 100).toFixed(2)} €
                           </span>
                         </li>
@@ -418,7 +418,7 @@ export default function StaffOrdersPage() {
 
                 {/* Notes */}
                 {o.notes && (
-                  <p className="mt-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  <p className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
                     📝 {o.notes}
                   </p>
                 )}
@@ -433,10 +433,10 @@ export default function StaffOrdersPage() {
                         onClick={() => setStatus(o.id, action.status)}
                         disabled={isUpdating}
                         className={`cursor-pointer rounded-xl px-6 py-3.5 text-sm font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
-                          action.style === "primary" ? "bg-zinc-900 text-white hover:bg-zinc-700"
-                          : action.style === "success" ? "bg-emerald-600 text-white hover:bg-emerald-500"
-                          : action.style === "danger"  ? "border border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
-                          : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+                          action.style === "primary" ? "bg-[#FFC366] text-black hover:bg-[#ffb347]"
+                          : action.style === "success" ? "bg-emerald-500 text-white hover:bg-emerald-400"
+                          : action.style === "danger"  ? "border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                          : "border border-white/10 text-white/60 hover:bg-white/10"
                         }`}
                       >
                         {isUpdating ? "…" : action.label}

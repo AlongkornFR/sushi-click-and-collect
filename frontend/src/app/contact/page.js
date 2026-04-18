@@ -40,7 +40,7 @@ const INFO = [
 const emptyForm = { lastName: "", firstName: "", email: "", phone: "", message: "" };
 
 const inputCls =
-  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-400 focus:bg-white";
+  "w-full rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 px-4 py-3 text-sm text-zinc-900 dark:text-white outline-none transition placeholder:text-zinc-400 dark:placeholder:text-white/30 focus:border-zinc-400 dark:focus:border-white/30 focus:bg-white dark:focus:bg-white/10";
 
 export default function ContactPage() {
   const [form, setForm]       = useState(emptyForm);
@@ -79,10 +79,10 @@ export default function ContactPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
 
         {/* ── Left panel — info ── */}
-        <div className="flex flex-col justify-between gap-8 rounded-3xl bg-zinc-900 p-8 text-white lg:col-span-2 lg:p-10">
+        <div className="flex flex-col justify-between gap-8 rounded-3xl bg-zinc-900 dark:bg-[#1D1D1D] border border-zinc-700 dark:border-white/10 p-8 text-white lg:col-span-2 lg:p-10">
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+            <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 dark:text-white/30">
               Su-Rice · Cannes
             </p>
             <h1 className="mt-3 text-3xl font-bold leading-tight lg:text-4xl">
@@ -99,7 +99,7 @@ export default function ContactPage() {
             {INFO.map(({ icon: Icon, label, value, sub, href }) => (
               <li key={label} className="flex items-start gap-4">
                 <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10">
-                  <Icon className="text-sm text-zinc-300" />
+                  <Icon className="text-sm text-[#FFC366]" />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
@@ -132,24 +132,24 @@ export default function ContactPage() {
         </div>
 
         {/* ── Right panel — form ── */}
-        <div className="rounded-3xl border border-zinc-100 bg-white p-8 shadow-sm lg:col-span-3 lg:p-10">
+        <div className="rounded-3xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-8 lg:col-span-3 lg:p-10">
 
           {sent ? (
             /* ── Success state ── */
             <div className="flex h-full flex-col items-center justify-center gap-4 py-10 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
-                <FaCircleCheck className="text-3xl text-emerald-500" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-500/10">
+                <FaCircleCheck className="text-3xl text-emerald-500 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-xl font-bold text-zinc-900">Message envoyé !</p>
-                <p className="mt-1.5 text-sm text-zinc-400">
+                <p className="text-xl font-bold text-zinc-900 dark:text-white">Message envoyé !</p>
+                <p className="mt-1.5 text-sm text-zinc-400 dark:text-white/40">
                   Nous vous répondrons dans les plus brefs délais.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSent(false)}
-                className="mt-4 rounded-xl border border-zinc-200 px-5 py-2.5 text-sm font-medium text-zinc-600 transition hover:bg-zinc-50"
+                className="mt-4 rounded-xl border border-zinc-200 dark:border-white/10 px-5 py-2.5 text-sm font-medium text-zinc-600 dark:text-white/60 transition hover:bg-zinc-50 dark:hover:bg-white/5"
               >
                 Envoyer un autre message
               </button>
@@ -158,14 +158,14 @@ export default function ContactPage() {
             /* ── Form ── */
             <>
               <div className="mb-7">
-                <h2 className="text-2xl font-bold text-zinc-900">Envoyer un message</h2>
-                <p className="mt-1 text-sm text-zinc-400">
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Envoyer un message</h2>
+                <p className="mt-1 text-sm text-zinc-400 dark:text-white/40">
                   Nous répondons généralement sous 24h.
                 </p>
               </div>
 
               {error && (
-                <div className="mb-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
+                <div className="mb-5 rounded-xl border border-red-100 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
                   {error}
                 </div>
               )}
@@ -217,11 +217,11 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-zinc-700 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#FFC366] px-6 py-3.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? (
                     <>
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-black" />
                       Envoi en cours…
                     </>
                   ) : (
