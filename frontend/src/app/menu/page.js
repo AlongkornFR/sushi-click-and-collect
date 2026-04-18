@@ -3,6 +3,8 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import useSWR from "swr";
 import { api } from "@/services/api";
+
+const fetcher = (url) => api.get(url).then(r => Array.isArray(r.data) ? r.data : []);
 import ProductCard from "@/components/common/ProductCard";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 
@@ -50,10 +52,10 @@ export default function MenuPage() {
   const [activeSubId, setActiveSubId]       = useState(null);
   const pillsRef = useRef(null);
 
-  const fetcher = (url) => api.get(url).then(r => Array.isArray(r.data) ? r.data : []);
   const { data: products = [], isLoading: loading } = useSWR("products/", fetcher, {
     dedupingInterval: 5 * 60 * 1000,
     revalidateOnFocus: false,
+    onError: (err) => console.error("Erreur lors du chargement des produits :", err),
   });
 
   const groupedData = useMemo(() => {
