@@ -34,7 +34,7 @@ def checkout(request):
     pickup_time = (data.get("pickup_time") or "").strip()
     notes = (data.get("notes") or "").strip()
 
-    if not full_name or not email or not phone or not pickup_time:
+    if not full_name or not email or not pickup_time:
         return Response({"detail": "Champs client invalides."}, status=400)
     if not isinstance(items, list) or len(items) == 0:
         return Response({"detail": "Panier vide."}, status=400)

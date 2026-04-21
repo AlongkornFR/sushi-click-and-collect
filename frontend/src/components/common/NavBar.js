@@ -4,10 +4,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/components/context/CartContext";
 import { useTheme } from "@/components/context/ThemeContext";
+import { useAuth } from "@/components/context/AuthContext";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FaBars, FaXmark } from "react-icons/fa6";
-import { FaShoppingBag, FaPhone, FaMapMarkerAlt, FaSun, FaMoon } from "react-icons/fa";
+import { FaShoppingBag, FaPhone, FaMapMarkerAlt, FaSun, FaMoon, FaUser } from "react-icons/fa";
 import Logo from "../../../public/Surice_logo.webp";
 
 const MAPS_URL =
@@ -25,6 +26,7 @@ const NAV_LINKS = [
 export default function Navbar() {
   const { count }         = useCart();
   const { dark, toggle }  = useTheme();
+  const { customer }      = useAuth();
   const pathname          = usePathname();
   const [open, setOpen]   = useState(false);
 
@@ -101,6 +103,18 @@ export default function Navbar() {
               >
                 {dark ? <FaMoon className="text-base" /> : <FaSun className="text-base" />}
               </button>
+
+              {/* Account */}
+              <Link
+                href="/account"
+                aria-label="Mon compte"
+                className="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-zinc-500 dark:text-white/50 transition hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white active:scale-95"
+              >
+                <FaUser className="text-base" />
+                {customer && (
+                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[#FFC366]" />
+                )}
+              </Link>
 
               <Link
                 href="/cart"
@@ -200,6 +214,20 @@ export default function Navbar() {
                   {label}
                 </Link>
               ))}
+
+              <Link
+                href="/account"
+                className={`flex items-center justify-between rounded-xl px-4 py-3 text-base font-medium transition ${
+                  isActive("/account")
+                    ? "bg-zinc-100 dark:bg-white/10 text-zinc-900 dark:text-white"
+                    : "text-zinc-500 dark:text-white/60 hover:bg-zinc-50 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white"
+                }`}
+              >
+                {customer ? `Mon compte` : "Connexion"}
+                {customer && (
+                  <span className="text-xs font-medium text-zinc-400 dark:text-white/30">{customer.first_name}</span>
+                )}
+              </Link>
 
               <Link
                 href="/cart"

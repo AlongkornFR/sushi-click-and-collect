@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/context/CartContext";
+import { useAuth } from "@/components/context/AuthContext";
 import { api } from "@/services/api";
 import { formatEUR } from "@/utils/formatting";
 import FormField from "@/components/common/FormField";
 import ProductImage from "@/components/common/ProductImage";
-import { FaShieldAlt, FaClock } from "react-icons/fa";
+import { FaShieldAlt, FaClock, FaUser } from "react-icons/fa";
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
@@ -44,11 +45,24 @@ const inputCls = (hasError) =>
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, clear } = useCart();
+  const { customer, token, authHeaders } = useAuth();
 
   const [form, setForm]       = useState({ full_name: "", email: "", phone: "", pickup_time: "", notes: "" });
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
+
+  // Pre-fill form from customer account when logged in
+  useEffect(() => {
+    if (customer) {
+      setForm(p => ({
+        ...p,
+        full_name: `${customer.first_name} ${customer.last_name}`.trim(),
+        email:     customer.email,
+        phone:     customer.phone || "",
+      }));
+    }
+  }, [customer]);
 
   const allSlots   = useMemo(() => buildPickupSlots(), []);
   const lunchSlots = useMemo(() => allSlots.filter(s => s < "15:00"), [allSlots]);
@@ -60,13 +74,13 @@ export default function CheckoutPage() {
 
   const validation = useMemo(() => {
     const e = {};
-    if (!form.full_name.trim())   e.full_name    = "Nom obligatoire";
-    if (!isValidEmail(form.email)) e.email       = "Email invalide";
-    if (!isValidPhone(form.phone)) e.phone       = "Téléphone invalide";
-    if (!form.pickup_time)         e.pickup_time = "Choisissez un créneau";
-    if (items.length === 0)        e.cart        = "Panier vide";
+    if (!form.full_name.trim())    e.full_name    = "Nom obligatoire";
+    if (!isValidEmail(form.email)) e.email        = "Email invalide";
+    if (!customer && !isValidPhone(form.phone)) e.phone = "Téléphone invalide";
+    if (!form.pickup_time)         e.pickup_time  = "Choisissez un créneau";
+    if (items.length === 0)        e.cart         = "Panier vide";
     return e;
-  }, [form, items.length]);
+  }, [form, items.length, customer]);
 
   const canSubmit = Object.keys(validation).length === 0 && !loading;
 
@@ -85,7 +99,7 @@ export default function CheckoutPage() {
         notes: form.notes?.trim() || "",
         items: items.map(x => ({ product_id: x.id, quantity: x.quantity })),
       };
-      const res = await api.post("checkout/", payload);
+      const res = await api.post("checkout/", payload, { headers: authHeaders() });
       const paymentUrl = res?.data?.payment_url;
       if (!paymentUrl) throw new Error("payment_url missing");
       window.location.href = paymentUrl;
@@ -120,9 +134,6 @@ export default function CheckoutPage() {
 
           {/* Customer info card */}
           <div className="rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6">
-            <h2 className="mb-5 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
-              Vos informations
-            </h2>
 
             {error && (
               <div className="mb-5 rounded-xl border border-red-100 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
@@ -130,39 +141,97 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField label="Nom & prénom" error={touched.full_name ? validation.full_name : ""}>
-                <input
-                  value={form.full_name}
-                  onChange={e => setField("full_name", e.target.value)}
-                  onBlur={() => markTouched("full_name")}
-                  placeholder="Ex : Marie Dupont"
-                  className={inputCls(touched.full_name && validation.full_name)}
-                />
-              </FormField>
+            {customer ? (
+              /* ── Logged in: show account summary ── */
+              <div>
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
+                    Vos informations
+                  </h2>
+                  <Link
+                    href="/account"
+                    className="flex items-center gap-1.5 text-xs text-zinc-400 dark:text-white/30 transition hover:text-zinc-700 dark:hover:text-white"
+                  >
+                    <FaUser className="h-2.5 w-2.5" />
+                    Modifier
+                  </Link>
+                </div>
 
-              <FormField label="Téléphone" error={touched.phone ? validation.phone : ""}>
-                <input
-                  value={form.phone}
-                  onChange={e => setField("phone", e.target.value)}
-                  onBlur={() => markTouched("phone")}
-                  placeholder="06 12 34 56 78"
-                  className={inputCls(touched.phone && validation.phone)}
-                />
-              </FormField>
-
-              <div className="md:col-span-2">
-                <FormField label="Email" error={touched.email ? validation.email : ""}>
-                  <input
-                    value={form.email}
-                    onChange={e => setField("email", e.target.value)}
-                    onBlur={() => markTouched("email")}
-                    placeholder="vous@email.com"
-                    className={inputCls(touched.email && validation.email)}
-                  />
-                </FormField>
+                <div className="flex items-start gap-4 rounded-xl bg-zinc-50 dark:bg-white/5 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FFC366] text-sm font-bold text-black">
+                    {customer.first_name?.[0]?.toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-white">
+                      {customer.first_name} {customer.last_name}
+                    </p>
+                    <p className="text-xs text-zinc-500 dark:text-white/50">{customer.email}</p>
+                    {customer.phone && (
+                      <p className="text-xs text-zinc-500 dark:text-white/50">{customer.phone}</p>
+                    )}
+                    {!customer.phone && (
+                      <Link href="/account" className="text-xs text-amber-500 hover:underline">
+                        Ajouter un numéro de téléphone →
+                      </Link>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              /* ── Not logged in: show form + login nudge ── */
+              <div>
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
+                  Vos informations
+                </h2>
+
+                {/* Login nudge */}
+                <div className="mb-5 flex items-center justify-between rounded-xl border border-zinc-100 dark:border-white/10 bg-zinc-50 dark:bg-white/5 px-4 py-3">
+                  <p className="text-xs text-zinc-500 dark:text-white/40">
+                    Vous avez un compte ? Gagnez du temps.
+                  </p>
+                  <Link
+                    href="/account/login"
+                    className="text-xs font-semibold text-[#FFC366] transition hover:text-[#ffb347]"
+                  >
+                    Se connecter →
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormField label="Nom & prénom" error={touched.full_name ? validation.full_name : ""}>
+                    <input
+                      value={form.full_name}
+                      onChange={e => setField("full_name", e.target.value)}
+                      onBlur={() => markTouched("full_name")}
+                      placeholder="Ex : Marie Dupont"
+                      className={inputCls(touched.full_name && validation.full_name)}
+                    />
+                  </FormField>
+
+                  <FormField label="Téléphone" error={touched.phone ? validation.phone : ""}>
+                    <input
+                      value={form.phone}
+                      onChange={e => setField("phone", e.target.value)}
+                      onBlur={() => markTouched("phone")}
+                      placeholder="06 12 34 56 78"
+                      className={inputCls(touched.phone && validation.phone)}
+                    />
+                  </FormField>
+
+                  <div className="md:col-span-2">
+                    <FormField label="Email" error={touched.email ? validation.email : ""}>
+                      <input
+                        value={form.email}
+                        onChange={e => setField("email", e.target.value)}
+                        onBlur={() => markTouched("email")}
+                        placeholder="vous@email.com"
+                        className={inputCls(touched.email && validation.email)}
+                      />
+                    </FormField>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Pickup time card */}
