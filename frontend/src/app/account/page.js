@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/context/AuthContext";
+import { useCart } from "@/components/context/CartContext";
 import { api } from "@/services/api";
 
 const TABS = [
@@ -23,6 +24,7 @@ const STATUS_LABELS = {
 export default function AccountPage() {
   const router = useRouter();
   const { token, customer, setCustomer, loading, logout, authHeaders, fetchMe } = useAuth();
+  const { saveAndClear } = useCart();
   const [tab, setTab] = useState("profile");
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function AccountPage() {
           </div>
         </div>
         <button
-          onClick={() => { logout(); router.replace("/"); }}
+          onClick={() => { saveAndClear(); logout(); router.replace("/"); }}
           className="cursor-pointer rounded-xl border border-zinc-200 dark:border-white/10 px-4 py-2 text-sm font-medium text-zinc-500 dark:text-white/50 transition hover:border-zinc-300 dark:hover:border-white/20 hover:text-zinc-800 dark:hover:text-white"
         >
           Déconnexion

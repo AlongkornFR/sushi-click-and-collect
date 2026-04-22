@@ -4,11 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/context/AuthContext";
+import { useCart } from "@/components/context/CartContext";
 import { api } from "@/services/api";
 
 export default function LoginPage() {
   const router = useRouter();
   const { saveToken } = useAuth();
+  const { restoreFromSave } = useCart();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,6 +22,7 @@ export default function LoginPage() {
     try {
       const res = await api.post("/auth/login/", form);
       saveToken(res.data.token);
+      restoreFromSave();
       router.replace("/account");
     } catch (err) {
       setError(err.response?.data?.detail || "Erreur de connexion.");

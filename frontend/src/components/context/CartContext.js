@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 const CartContext = createContext(null);
 
 const STORAGE_KEY = "su_rice_cart_v1";
+const SAVED_KEY   = "su_rice_cart_saved";
 
 function safeParse(json, fallback) {
   try {
@@ -88,6 +89,21 @@ export function CartProvider({ children }) {
 
   const clear = () => setItems([]);
 
+  const saveAndClear = () => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(SAVED_KEY, JSON.stringify(items));
+    setItems([]);
+  };
+
+  const restoreFromSave = () => {
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem(SAVED_KEY);
+    if (saved) {
+      setItems(safeParse(saved, []));
+      localStorage.removeItem(SAVED_KEY);
+    }
+  };
+
   const subtotal = useMemo(() => {
     return items.reduce((sum, x) => sum + Number(x.price) * x.quantity, 0);
   }, [items]);
@@ -104,6 +120,8 @@ export function CartProvider({ children }) {
     increment,
     decrement,
     clear,
+    saveAndClear,
+    restoreFromSave,
     subtotal,
     count,
   };
