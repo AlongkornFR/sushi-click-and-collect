@@ -6,9 +6,10 @@ import { useEffect } from "react";
 import { useStaffAuth } from "./useStaffAuth";
 
 const NAV = [
-  { href: "/staff/orders",   label: "Commandes" },
-  { href: "/staff/products", label: "Produits"  },
-  { href: "/staff/ordering", label: "Ordre"     },
+  { href: "/staff/orders",   label: "Commandes",          superOnly: false },
+  { href: "/staff/products", label: "Produits",            superOnly: false },
+  { href: "/staff/ordering", label: "Ordre",               superOnly: false },
+  { href: "/staff/users",    label: "Clients",             superOnly: true  },
 ];
 
 export default function StaffShell({ children, requireAuth = true }) {
@@ -53,7 +54,7 @@ export default function StaffShell({ children, requireAuth = true }) {
 
           {/* Nav links */}
           <nav className="flex items-center gap-1">
-            {NAV.map(({ href, label }) => (
+            {NAV.filter(({ superOnly }) => !superOnly || isSuperuser).map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
