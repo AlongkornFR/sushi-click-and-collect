@@ -152,7 +152,7 @@ export default function CheckoutPage() {
       window.location.href = paymentUrl;
     } catch (e) {
       console.error(e);
-      setError("Impossible de démarrer le paiement. Réessayez.");
+      setError(e.response?.data?.detail || "Impossible de démarrer le paiement. Réessayez.");
     } finally {
       setLoading(false);
     }
