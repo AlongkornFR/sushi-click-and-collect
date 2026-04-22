@@ -19,20 +19,62 @@ function isValidPhone(phone) {
   return String(phone || "").replace(/\s/g, "").length >= 9;
 }
 
-function buildPickupSlots() {
+const SHORT_DAYS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
+const SHORT_MONTHS = ["jan.", "fév.", "mar.", "avr.", "mai", "juin", "juil.", "aoû.", "sep.", "oct.", "nov.", "déc."];
+const PREP_MINUTES = 20;
+
+function getWorkingDays(count = 7) {
+  const days = [];
+  const d = new Date();
+  d.setSeconds(0, 0);
+  while (days.length < count) {
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) days.push(new Date(d));
+    d.setDate(d.getDate() + 1);
+  }
+  return days;
+}
+
+function buildSlotsForDay(date) {
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  const cutoff = new Date(now.getTime() + PREP_MINUTES * 60 * 1000);
   const slots = [];
-  const make = (h, m) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+
   const pushRange = (h1, m1, h2, m2) => {
     let h = h1, m = m1;
     while (h < h2 || (h === h2 && m <= m2)) {
-      slots.push(make(h, m));
+      const slotDate = new Date(date);
+      slotDate.setHours(h, m, 0, 0);
+      if (!isToday || slotDate > cutoff) {
+        slots.push({
+          value: `${date.toISOString().slice(0, 10)} ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
+          label: `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`,
+          hour: h,
+        });
+      }
       m += 15;
       if (m >= 60) { m = 0; h += 1; }
     }
   };
+
   pushRange(11, 30, 14, 0);
   pushRange(18, 0, 22, 0);
   return slots;
+}
+
+function formatDayLabel(date, index) {
+  if (index === 0) return "Aujourd'hui";
+  if (index === 1) return "Demain";
+  return `${SHORT_DAYS[date.getDay()]} ${date.getDate()} ${SHORT_MONTHS[date.getMonth()]}`;
+}
+
+function formatPickupDisplay(value) {
+  if (!value) return "";
+  const [datePart, timePart] = value.split(" ");
+  const d = new Date(datePart + "T00:00:00");
+  const dayStr = `${SHORT_DAYS[d.getDay()]} ${d.getDate()} ${SHORT_MONTHS[d.getMonth()]}`;
+  return `${dayStr} à ${timePart.replace(":", "h")}`;
 }
 
 const inputCls = (hasError) =>
@@ -64,9 +106,14 @@ export default function CheckoutPage() {
     }
   }, [customer]);
 
-  const allSlots   = useMemo(() => buildPickupSlots(), []);
-  const lunchSlots = useMemo(() => allSlots.filter(s => s < "15:00"), [allSlots]);
-  const dinnerSlots = useMemo(() => allSlots.filter(s => s >= "15:00"), [allSlots]);
+  const workingDays = useMemo(() => getWorkingDays(7), []);
+  const [selectedDayIdx, setSelectedDayIdx] = useState(() => {
+    const todaySlots = buildSlotsForDay(new Date());
+    return todaySlots.length > 0 ? 0 : 1;
+  });
+  const daySlots    = useMemo(() => buildSlotsForDay(workingDays[selectedDayIdx]), [workingDays, selectedDayIdx]);
+  const lunchSlots  = useMemo(() => daySlots.filter(s => s.hour < 15), [daySlots]);
+  const dinnerSlots = useMemo(() => daySlots.filter(s => s.hour >= 15), [daySlots]);
 
   useEffect(() => {
     if (items.length === 0) router.replace("/cart");
@@ -114,7 +161,7 @@ export default function CheckoutPage() {
   if (items.length === 0) return null;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-14">
+    <div className="mx-auto min-h-[100vh] max-w-6xl px-4 py-10 md:px-6 md:py-14">
 
       {/* Header */}
       <div className="mb-8 flex items-center justify-between gap-4">
@@ -239,55 +286,92 @@ export default function CheckoutPage() {
             <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
               Heure de retrait
             </h2>
-            <p className="mb-5 text-xs text-zinc-400 dark:text-white/30">
-              Choisissez un créneau · préparation à l&apos;heure indiquée
+            <p className="mb-4 text-xs text-zinc-400 dark:text-white/30">
+              Préparation ~ {PREP_MINUTES} min en fonction de l'heure ou vous commander la commande il y a peut être de l'attente
             </p>
+
+            {/* Day selector */}
+            <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {workingDays.map((day, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => { setSelectedDayIdx(i); setField("pickup_time", ""); }}
+                  className={`shrink-0 cursor-pointer rounded-xl px-3.5 py-2 text-center transition active:scale-95 ${
+                    selectedDayIdx === i
+                      ? "bg-[#FFC366] text-black"
+                      : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20"
+                  }`}
+                >
+                  <p className="text-xs font-semibold">{formatDayLabel(day, i)}</p>
+                  {i >= 2 && (
+                    <p className={`text-[10px] mt-0.5 ${selectedDayIdx === i ? "text-black/60" : "text-zinc-400 dark:text-white/30"}`}>
+                      {day.getDate()} {SHORT_MONTHS[day.getMonth()]}
+                    </p>
+                  )}
+                </button>
+              ))}
+            </div>
 
             {touched.pickup_time && validation.pickup_time && (
               <p className="mb-3 text-xs text-red-500 dark:text-red-400">{validation.pickup_time}</p>
             )}
 
-            {/* Lunch slots */}
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-300 dark:text-white/20">
-              Déjeuner — 11h30 à 14h00
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {lunchSlots.map(slot => (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() => { setField("pickup_time", slot); markTouched("pickup_time"); }}
-                  className={`cursor-pointer rounded-xl px-3.5 py-2 text-sm font-medium transition active:scale-95 ${
-                    form.pickup_time === slot
-                      ? "bg-[#FFC366] text-black"
-                      : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20 hover:bg-zinc-100 dark:hover:bg-white/10"
-                  }`}
-                >
-                  {slot}
-                </button>
-              ))}
-            </div>
+            {daySlots.length === 0 ? (
+              <p className="py-4 text-center text-sm text-zinc-400 dark:text-white/30">
+                Aucun créneau disponible pour ce jour.
+              </p>
+            ) : (
+              <>
+                {lunchSlots.length > 0 && (
+                  <>
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-300 dark:text-white/20">
+                      Déjeuner — 11h30 à 14h00
+                    </p>
+                    <div className="mb-5 flex flex-wrap gap-2">
+                      {lunchSlots.map(slot => (
+                        <button
+                          key={slot.value}
+                          type="button"
+                          onClick={() => { setField("pickup_time", slot.value); markTouched("pickup_time"); }}
+                          className={`cursor-pointer rounded-xl px-3.5 py-2 text-sm font-medium transition active:scale-95 ${
+                            form.pickup_time === slot.value
+                              ? "bg-[#FFC366] text-black"
+                              : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20 hover:bg-zinc-100 dark:hover:bg-white/10"
+                          }`}
+                        >
+                          {slot.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
 
-            {/* Dinner slots */}
-            <p className="mb-2 mt-5 text-[11px] font-semibold uppercase tracking-widest text-zinc-300 dark:text-white/20">
-              Soir — 18h00 à 22h00
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {dinnerSlots.map(slot => (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() => { setField("pickup_time", slot); markTouched("pickup_time"); }}
-                  className={`cursor-pointer rounded-xl px-3.5 py-2 text-sm font-medium transition active:scale-95 ${
-                    form.pickup_time === slot
-                      ? "bg-[#FFC366] text-black"
-                      : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20 hover:bg-zinc-100 dark:hover:bg-white/10"
-                  }`}
-                >
-                  {slot}
-                </button>
-              ))}
-            </div>
+                {dinnerSlots.length > 0 && (
+                  <>
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-300 dark:text-white/20">
+                      Soir — 18h00 à 22h00
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {dinnerSlots.map(slot => (
+                        <button
+                          key={slot.value}
+                          type="button"
+                          onClick={() => { setField("pickup_time", slot.value); markTouched("pickup_time"); }}
+                          className={`cursor-pointer rounded-xl px-3.5 py-2 text-sm font-medium transition active:scale-95 ${
+                            form.pickup_time === slot.value
+                              ? "bg-[#FFC366] text-black"
+                              : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20 hover:bg-zinc-100 dark:hover:bg-white/10"
+                          }`}
+                        >
+                          {slot.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
           </div>
 
           {/* Notes card */}
@@ -314,7 +398,7 @@ export default function CheckoutPage() {
               <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
                 Votre commande
               </h2>
-
+              <div className="my-4 h-px bg-zinc-100 dark:bg-white/10" />
               <div className="space-y-3">
                 {items.map(it => (
                   <div key={it.id} className="flex items-center gap-3">
@@ -334,18 +418,7 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
-              <div className="my-4 h-px bg-zinc-100 dark:bg-white/10" />
 
-              <div className="space-y-1.5 text-sm">
-                <div className="flex justify-between text-zinc-500 dark:text-white/50">
-                  <span>Sous-total</span>
-                  <span>{formatEUR(subtotal)}</span>
-                </div>
-                <div className="flex justify-between text-zinc-500 dark:text-white/50">
-                  <span>Frais</span>
-                  <span className="font-medium text-emerald-500 dark:text-emerald-400">Gratuit</span>
-                </div>
-              </div>
 
               <div className="my-4 h-px bg-zinc-100 dark:bg-white/10" />
 
@@ -358,7 +431,7 @@ export default function CheckoutPage() {
                 <div className="mt-4 flex items-center gap-2 rounded-xl bg-zinc-50 dark:bg-white/5 px-3 py-2.5">
                   <FaClock className="shrink-0 text-zinc-400 dark:text-white/30 text-xs" />
                   <p className="text-xs text-zinc-600 dark:text-white/60">
-                    Retrait prévu à <span className="font-bold text-zinc-900 dark:text-white">{form.pickup_time}</span>
+                    Retrait <span className="font-bold text-zinc-900 dark:text-white">{formatPickupDisplay(form.pickup_time)}</span>
                   </p>
                 </div>
               )}

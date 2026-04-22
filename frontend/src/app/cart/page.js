@@ -96,7 +96,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 md:px-6 md:py-14">
+    <div className="mx-auto min-h-[100vh] max-w-6xl px-4 py-10 md:px-6 md:py-14">
 
       {/* Header */}
       <div className="mb-8 flex items-end justify-between gap-4">
@@ -186,17 +186,6 @@ export default function CartPage() {
         <div className="lg:col-span-1">
           <div className="sticky top-24 rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6">
             <h2 className="text-base font-bold text-zinc-900 dark:text-white">Récapitulatif</h2>
-
-            <div className="mt-4 space-y-2 text-sm">
-              <div className="flex justify-between text-zinc-500 dark:text-white/50">
-                <span>Sous-total ({items.length} article{items.length > 1 ? "s" : ""})</span>
-                <span className="font-medium text-zinc-700 dark:text-white/70">{formatEUR(subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-zinc-500 dark:text-white/50">
-                <span>Frais de service</span>
-                <span className="font-medium text-emerald-500 dark:text-emerald-400">Gratuit</span>
-              </div>
-            </div>
 
             <div className="my-5 h-px bg-zinc-100 dark:bg-white/10" />
 

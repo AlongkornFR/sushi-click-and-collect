@@ -8,7 +8,6 @@ import { api } from "@/services/api";
 const TABS = [
   { id: "profile",   label: "Profil"    },
   { id: "orders",    label: "Commandes" },
-  { id: "security",  label: "Sécurité"  },
   { id: "extras",    label: "Plus"      },
 ];
 
@@ -32,23 +31,29 @@ export default function AccountPage() {
 
   if (loading || !customer) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <p className="text-sm text-zinc-400 dark:text-white/30">Chargement…</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 md:px-6">
+    <div className="min-h-screen flex flex-col">
+    <div className="mx-auto w-full max-w-3xl px-4 py-10 md:px-6 flex-1">
       {/* Header */}
-      <div className="mb-8 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
-            {customer.first_name} {customer.last_name}
-          </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-white/40">
-            Client #{customer.customer_id}
-          </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FFC366] text-xl font-bold text-black shadow-sm">
+            {customer.first_name?.[0]?.toUpperCase()}
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
+              {customer.first_name} {customer.last_name}
+            </h1>
+            <p className="mt-0.5 text-sm text-zinc-500 dark:text-white/40">
+              {customer.email}
+            </p>
+          </div>
         </div>
         <button
           onClick={() => { logout(); router.replace("/"); }}
@@ -76,17 +81,17 @@ export default function AccountPage() {
       </div>
 
       {/* Tab content */}
-      {tab === "profile"  && <ProfileTab customer={customer} token={token} setCustomer={setCustomer} authHeaders={authHeaders} />}
+      {tab === "profile"  && <ProfileTab customer={customer} token={token} setCustomer={setCustomer} authHeaders={authHeaders} logout={logout} router={router} fetchMe={fetchMe} />}
       {tab === "orders"   && <OrdersTab token={token} authHeaders={authHeaders} />}
-      {tab === "security" && <SecurityTab token={token} logout={logout} router={router} authHeaders={authHeaders} fetchMe={fetchMe} />}
       {tab === "extras"   && <ExtrasTab />}
+    </div>
     </div>
   );
 }
 
 /* ─── Profile Tab ─────────────────────────────────────────────── */
 
-function ProfileTab({ customer, token, setCustomer, authHeaders }) {
+function ProfileTab({ customer, token, setCustomer, authHeaders, logout, router, fetchMe }) {
   const [form, setForm] = useState({
     first_name: customer.first_name,
     last_name:  customer.last_name,
@@ -95,6 +100,67 @@ function ProfileTab({ customer, token, setCustomer, authHeaders }) {
   const [saving, setSaving]   = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError]     = useState("");
+
+  const [pwForm, setPwForm]         = useState({ current_password: "", new_password: "", confirm: "" });
+  const [emailForm, setEmailForm]   = useState({ email: "", password: "" });
+  const [deletePassword, setDeletePassword] = useState("");
+  const [pwError,    setPwError]    = useState("");
+  const [pwSuccess,  setPwSuccess]  = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [emailOk,    setEmailOk]    = useState("");
+  const [delError,   setDelError]   = useState("");
+  const [secLoading, setSecLoading] = useState({});
+
+  function setSecLoad(k, v) { setSecLoading((p) => ({ ...p, [k]: v })); }
+
+  async function handlePw(e) {
+    e.preventDefault();
+    setPwError(""); setPwSuccess("");
+    if (pwForm.new_password !== pwForm.confirm) { setPwError("Les mots de passe ne correspondent pas."); return; }
+    setSecLoad("pw", true);
+    try {
+      const res = await api.post("/auth/change-password/", { current_password: pwForm.current_password, new_password: pwForm.new_password }, { headers: authHeaders() });
+      localStorage.setItem("customer_token", res.data.token);
+      setPwSuccess("Mot de passe mis à jour.");
+      setPwForm({ current_password: "", new_password: "", confirm: "" });
+    } catch (err) {
+      setPwError(err.response?.data?.detail || "Erreur.");
+    } finally {
+      setSecLoad("pw", false);
+    }
+  }
+
+  async function handleEmail(e) {
+    e.preventDefault();
+    setEmailError(""); setEmailOk("");
+    setSecLoad("email", true);
+    try {
+      await api.post("/auth/change-email/", emailForm, { headers: authHeaders() });
+      await fetchMe(localStorage.getItem("customer_token"));
+      setEmailOk("Email mis à jour.");
+      setEmailForm({ email: "", password: "" });
+    } catch (err) {
+      setEmailError(err.response?.data?.detail || "Erreur.");
+    } finally {
+      setSecLoad("email", false);
+    }
+  }
+
+  async function handleDelete(e) {
+    e.preventDefault();
+    setDelError("");
+    if (!window.confirm("Supprimer définitivement votre compte ?")) return;
+    setSecLoad("del", true);
+    try {
+      await api.delete("/auth/delete/", { data: { password: deletePassword }, headers: authHeaders() });
+      logout();
+      router.replace("/");
+    } catch (err) {
+      setDelError(err.response?.data?.detail || "Erreur.");
+    } finally {
+      setSecLoad("del", false);
+    }
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -116,50 +182,107 @@ function ProfileTab({ customer, token, setCustomer, authHeaders }) {
     "w-full rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-white/30 outline-none focus:border-[#FFC366] focus:ring-2 focus:ring-[#FFC366]/20";
 
   return (
-    <div className="space-y-6">
-      {/* Info card */}
-      <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 p-5">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FFC366] text-sm font-bold text-black">
-            {customer.first_name?.[0]?.toUpperCase()}
+    <div className="space-y-4">
+      {/* Bento grid */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Email card — large */}
+        <div className="col-span-2 rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 p-5 flex items-center gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-100 dark:bg-white/10 text-xl">
+            ✉️
           </div>
-          <div>
-            <p className="text-sm font-semibold text-zinc-900 dark:text-white">{customer.email}</p>
-            <p className="text-xs text-zinc-400 dark:text-white/30">
-              Membre depuis {new Date(customer.date_joined).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
-            </p>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-zinc-400 dark:text-white/30 uppercase tracking-wider mb-0.5">Adresse e-mail</p>
+            <p className="text-sm font-semibold text-zinc-900 dark:text-white truncate">{customer.email}</p>
           </div>
         </div>
-        <div className="rounded-lg bg-zinc-50 dark:bg-white/5 px-4 py-2 text-xs text-zinc-500 dark:text-white/40">
-          ID client : <span className="font-mono font-semibold text-zinc-700 dark:text-white/70">#{customer.customer_id}</span>
+
+        {/* Membre depuis */}
+        <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 p-5">
+          <p className="text-xs font-medium text-zinc-400 dark:text-white/30 uppercase tracking-wider mb-1">Membre depuis</p>
+          <p className="text-sm font-semibold text-zinc-900 dark:text-white capitalize">
+            {new Date(customer.date_joined).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
+          </p>
+        </div>
+
+        {/* Téléphone */}
+        <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 p-5">
+          <p className="text-xs font-medium text-zinc-400 dark:text-white/30 uppercase tracking-wider mb-1">Téléphone</p>
+          <p className="text-sm font-semibold text-zinc-900 dark:text-white">
+            {customer.phone || <span className="text-zinc-400 dark:text-white/30 font-normal">Non renseigné</span>}
+          </p>
         </div>
       </div>
 
-      {/* Edit form */}
-      <form onSubmit={handleSave} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-white/70">Prénom</label>
-            <input type="text" required value={form.first_name} onChange={(e) => setForm((p) => ({ ...p, first_name: e.target.value }))} className={inputClass} />
+      {/* Edit form card */}
+      <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 p-5">
+        <p className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">Modifier le profil</p>
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-white/40 uppercase tracking-wider">Prénom</label>
+              <input type="text" required value={form.first_name} onChange={(e) => setForm((p) => ({ ...p, first_name: e.target.value }))} className={inputClass} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-white/40 uppercase tracking-wider">Nom</label>
+              <input type="text" required value={form.last_name} onChange={(e) => setForm((p) => ({ ...p, last_name: e.target.value }))} className={inputClass} />
+            </div>
           </div>
+
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-white/70">Nom</label>
-            <input type="text" required value={form.last_name} onChange={(e) => setForm((p) => ({ ...p, last_name: e.target.value }))} className={inputClass} />
+            <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-white/40 uppercase tracking-wider">Téléphone</label>
+            <input type="tel" value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} className={inputClass} placeholder="+33 6 00 00 00 00" />
           </div>
-        </div>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-white/70">Téléphone</label>
-          <input type="tel" value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} className={inputClass} placeholder="+33 6 00 00 00 00" />
-        </div>
+          {error   && <p className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2.5 text-sm text-red-600 dark:text-red-400">{error}</p>}
+          {success && <p className="rounded-lg bg-green-50 dark:bg-green-900/20 px-4 py-2.5 text-sm text-green-600 dark:text-green-400">Profil mis à jour.</p>}
 
-        {error   && <p className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2.5 text-sm text-red-600 dark:text-red-400">{error}</p>}
-        {success && <p className="rounded-lg bg-green-50 dark:bg-green-900/20 px-4 py-2.5 text-sm text-green-600 dark:text-green-400">Profil mis à jour.</p>}
+          <button type="submit" disabled={saving} className="rounded-xl bg-[#FFC366] px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-95 disabled:opacity-50">
+            {saving ? "Sauvegarde…" : "Sauvegarder"}
+          </button>
+        </form>
+      </div>
 
-        <button type="submit" disabled={saving} className="rounded-xl bg-[#FFC366] px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-95 disabled:opacity-50">
-          {saving ? "Sauvegarde…" : "Sauvegarder"}
-        </button>
-      </form>
+      {/* Change password */}
+      <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 p-5">
+        <p className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">Changer le mot de passe</p>
+        <form onSubmit={handlePw} className="space-y-3">
+          <input type="password" required placeholder="Mot de passe actuel" value={pwForm.current_password} onChange={(e) => setPwForm((p) => ({ ...p, current_password: e.target.value }))} className={inputClass} />
+          <input type="password" required placeholder="Nouveau mot de passe (min. 8 car.)" value={pwForm.new_password} onChange={(e) => setPwForm((p) => ({ ...p, new_password: e.target.value }))} className={inputClass} />
+          <input type="password" required placeholder="Confirmer le nouveau mot de passe" value={pwForm.confirm} onChange={(e) => setPwForm((p) => ({ ...p, confirm: e.target.value }))} className={inputClass} />
+          {pwError   && <p className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2.5 text-sm text-red-600 dark:text-red-400">{pwError}</p>}
+          {pwSuccess && <p className="rounded-lg bg-green-50 dark:bg-green-900/20 px-4 py-2.5 text-sm text-green-600 dark:text-green-400">{pwSuccess}</p>}
+          <button type="submit" disabled={secLoading.pw} className="rounded-xl bg-[#FFC366] px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-95 disabled:opacity-50">
+            {secLoading.pw ? "Mise à jour…" : "Mettre à jour"}
+          </button>
+        </form>
+      </div>
+
+      {/* Change email */}
+      <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 p-5">
+        <p className="mb-4 text-sm font-semibold text-zinc-900 dark:text-white">Changer l&apos;adresse e-mail</p>
+        <form onSubmit={handleEmail} className="space-y-3">
+          <input type="email" required placeholder="Nouvelle adresse e-mail" value={emailForm.email} onChange={(e) => setEmailForm((p) => ({ ...p, email: e.target.value }))} className={inputClass} />
+          <input type="password" required placeholder="Confirmer avec votre mot de passe" value={emailForm.password} onChange={(e) => setEmailForm((p) => ({ ...p, password: e.target.value }))} className={inputClass} />
+          {emailError && <p className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2.5 text-sm text-red-600 dark:text-red-400">{emailError}</p>}
+          {emailOk    && <p className="rounded-lg bg-green-50 dark:bg-green-900/20 px-4 py-2.5 text-sm text-green-600 dark:text-green-400">{emailOk}</p>}
+          <button type="submit" disabled={secLoading.email} className="rounded-xl bg-[#FFC366] px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-95 disabled:opacity-50">
+            {secLoading.email ? "Mise à jour…" : "Mettre à jour"}
+          </button>
+        </form>
+      </div>
+
+      {/* Delete account */}
+      <div className="rounded-2xl border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-900/10 p-5">
+        <p className="mb-1 text-sm font-semibold text-red-600 dark:text-red-400">Zone dangereuse</p>
+        <p className="mb-4 text-xs text-zinc-500 dark:text-white/40">La suppression est irréversible.</p>
+        <form onSubmit={handleDelete} className="space-y-3">
+          <input type="password" required placeholder="Confirmez avec votre mot de passe" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className={inputClass} />
+          {delError && <p className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2.5 text-sm text-red-600 dark:text-red-400">{delError}</p>}
+          <button type="submit" disabled={secLoading.del} className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-5 py-2.5 text-sm font-semibold text-red-600 dark:text-red-400 transition hover:bg-red-100 dark:hover:bg-red-900/40 active:scale-95 disabled:opacity-50">
+            {secLoading.del ? "Suppression…" : "Supprimer mon compte"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
