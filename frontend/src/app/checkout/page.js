@@ -142,7 +142,7 @@ export default function CheckoutPage() {
     try {
       const payload = {
         customer: { full_name: form.full_name.trim(), email: form.email.trim(), phone: form.phone.trim() },
-        pickup_time: form.pickup_time,
+        pickup_time: form.pickup_time.slice(-5),
         notes: form.notes?.trim() || "",
         items: items.map(x => ({ product_id: x.id, quantity: x.quantity })),
       };
