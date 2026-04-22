@@ -61,7 +61,7 @@ export default function RegisterPage() {
     "w-full rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-white/30 outline-none focus:border-[#FFC366] focus:ring-2 focus:ring-[#FFC366]/20";
 
   return (
-    <div className="flex min-h-[80vh] items-center justify-center px-4 py-12">
+    <div className="flex min-h-[100vh] items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <h1 className="mb-1 text-2xl font-bold text-zinc-900 dark:text-white">Créer un compte</h1>
         <p className="mb-8 text-sm text-zinc-500 dark:text-white/50">

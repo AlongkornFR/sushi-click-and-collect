@@ -29,7 +29,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-[80vh] items-center justify-center px-4">
+    <div className="flex min-h-[100vh] items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <h1 className="mb-1 text-2xl font-bold text-zinc-900 dark:text-white">Connexion</h1>
         <p className="mb-8 text-sm text-zinc-500 dark:text-white/50">
