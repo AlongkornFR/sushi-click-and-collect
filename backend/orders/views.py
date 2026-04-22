@@ -131,7 +131,6 @@ def checkout(request):
             "postcode": "06400",
             "city": "Cannes",
             "country": "FR",
-            "delivery_type": "STORE_PICKUP",
         },
         "hosted_payment": {"return_url": return_url, "cancel_url": cancel_url},
         "notification_url": notification_url,
