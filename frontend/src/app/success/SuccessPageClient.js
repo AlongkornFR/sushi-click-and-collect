@@ -61,23 +61,49 @@ export default function SuccessPageClient() {
   useEffect(() => {
     setError("");
     setOrder(null);
+    setLoading(true);
     if (!orderId) { setLoading(false); setError("order_id manquant dans l'URL."); return; }
+
     let cancelled = false;
+    const MAX_TRIES = 12;
     let tries = 0;
-    const fetchOrder = async () => {
+
+    const finalize = (data) => {
+      if (cancelled) return;
+      setOrder(data);
+      setLoading(false);
+    };
+
+    const pollStatus = async () => {
       try {
         const res = await api.get(`orders/${orderId}/`);
         if (cancelled) return;
-        setOrder(res.data);
-        setLoading(false);
-        if (res.data.status !== "paid" && tries < 10) { tries += 1; setTimeout(fetchOrder, 1500); }
+        if (res.data.status === "paid") { finalize(res.data); return; }
+        tries += 1;
+        if (tries >= MAX_TRIES) { finalize(res.data); return; }
+        setTimeout(pollStatus, 1500);
       } catch {
         if (cancelled) return;
-        setLoading(false);
         setError("Impossible de récupérer la commande.");
+        setLoading(false);
       }
     };
-    fetchOrder();
+
+    (async () => {
+      try {
+        // Étape 1: force verify côté backend (pull Payplug — shortcut IPN)
+        const res = await api.post(`orders/${orderId}/verify-payment/`);
+        if (cancelled) return;
+        if (res.data.status === "paid") { finalize(res.data); return; }
+        // Étape 2: si pas encore paid, on poll GET classique (IPN peut arriver après)
+        setOrder(res.data);
+        pollStatus();
+      } catch {
+        // verify échoue → fallback direct sur poll GET
+        pollStatus();
+      }
+    })();
+
     return () => { cancelled = true; };
   }, [orderId]);
 

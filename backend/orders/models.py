@@ -32,6 +32,8 @@ class Order(models.Model):
     printed    = models.BooleanField(default=False)
     printed_at = models.DateTimeField(null=True, blank=True)
 
+    ready_at   = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -12,6 +14,13 @@ from .models import Order
 from .serializers_staff import OrderStaffSerializer
 
 ALLOWED_STATUSES = {"pending", "paid", "preparing", "ready", "collected", "cancelled"}
+AUTO_COLLECT_AFTER = timedelta(hours=2)
+
+
+def _auto_collect_ready_orders():
+    """Sweep: toute commande ready depuis >= 2h → collected."""
+    threshold = timezone.now() - AUTO_COLLECT_AFTER
+    Order.objects.filter(status="ready", ready_at__lte=threshold).update(status="collected")
 
 
 # ── Liste des commandes ────────────────────────────────────────────────────────
@@ -19,6 +28,8 @@ ALLOWED_STATUSES = {"pending", "paid", "preparing", "ready", "collected", "cance
 @api_view(["GET"])
 @permission_classes([IsAdminUser])
 def staff_orders_list(request):
+    _auto_collect_ready_orders()
+
     qs = Order.objects.prefetch_related("items").order_by("-created_at")
 
     status_q = request.query_params.get("status")
@@ -81,8 +92,19 @@ def staff_order_set_status(request, order_id: int):
         return Response({"detail": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
     order.status = new_status
-    order.save(update_fields=["status"])
-    return Response({"ok": True, "id": order.id, "status": order.status})
+    update_fields = ["status"]
+
+    if new_status == "ready":
+        order.ready_at = timezone.now()
+        update_fields.append("ready_at")
+    elif new_status in {"collected", "cancelled"}:
+        # reset pour éviter sweep sur un collected déjà en base
+        if order.ready_at is not None:
+            order.ready_at = None
+            update_fields.append("ready_at")
+
+    order.save(update_fields=update_fields)
+    return Response({"ok": True, "id": order.id, "status": order.status, "ready_at": order.ready_at})
 
 
 # ── Supprimer une commande ────────────────────────────────────────────────────

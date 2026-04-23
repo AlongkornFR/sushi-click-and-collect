@@ -10,6 +10,7 @@ urlpatterns = [
     path("auth/change-email/", views.change_email),
     path("auth/delete/", views.delete_account),
     path("auth/orders/", views.order_history),
+    path("auth/orders/<int:pk>/receipt/", views.order_receipt),
 
     # Staff user management
     path("staff/users/", views_staff.list_users),

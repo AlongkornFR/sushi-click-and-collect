@@ -317,3 +317,55 @@ class OrderDetailView(RetrieveAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     permission_classes = [AllowAny]
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def verify_payment(request, pk):
+    """
+    Pull-based payment verification — ne dépend pas de l'IPN Payplug.
+    Appelé par la page /success pour confirmer le paiement même si IPN retardée
+    ou injoignable (ex: dev localhost).
+    """
+    try:
+        order = Order.objects.get(id=pk)
+    except Order.DoesNotExist:
+        return Response({"detail": "Commande introuvable."}, status=404)
+
+    if order.status == "paid":
+        return Response(OrderSerializer(order).data)
+
+    if not order.payment_id:
+        return Response(OrderSerializer(order).data)
+
+    if not settings.PAYPLUG_SECRET_KEY:
+        return Response({"detail": "PAYPLUG_SECRET_KEY missing."}, status=500)
+
+    payplug.set_secret_key(settings.PAYPLUG_SECRET_KEY)
+    payplug.set_api_version(settings.PAYPLUG_API_VERSION)
+
+    try:
+        payment = payplug.Payment.retrieve(order.payment_id)
+    except Exception:
+        return Response(OrderSerializer(order).data)
+
+    is_paid  = bool(getattr(payment, "is_paid", False))
+    amount   = getattr(payment, "amount", None)
+    currency = getattr(payment, "currency", None)
+
+    if not is_paid:
+        return Response(OrderSerializer(order).data)
+    if currency and currency != "EUR":
+        return Response(OrderSerializer(order).data)
+    if amount is None or int(amount) != int(order.total_cents):
+        return Response(OrderSerializer(order).data)
+
+    with transaction.atomic():
+        o = Order.objects.select_for_update().get(id=order.id)
+        if o.status != "paid":
+            o.status = "paid"
+            o.save(update_fields=["status"])
+            _send_receipt_email(o)
+        order = o
+
+    return Response(OrderSerializer(order).data)

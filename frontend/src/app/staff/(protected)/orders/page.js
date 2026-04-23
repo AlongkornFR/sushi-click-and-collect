@@ -39,6 +39,16 @@ const STATUS_ACTIONS = {
 const ALL_STATUSES = ["pending", "paid", "preparing", "ready", "collected", "cancelled"];
 
 /* ── Helpers ── */
+function formatCountdown(ms) {
+  if (ms <= 0) return "0m";
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  if (h > 0) return `${h}h${String(m).padStart(2, "0")}`;
+  if (m > 0) return `${m}m${String(s).padStart(2, "0")}`;
+  return `${s}s`;
+}
+
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] || { label: status, badge: "bg-zinc-100 text-zinc-500", dot: "bg-zinc-300" };
   return (
@@ -104,6 +114,9 @@ export default function StaffOrdersPage() {
 
   // IDs déjà auto-imprimés dans cette session (évite les doublons)
   const autoPrintedRef = useRef(new Set());
+
+  // Auto-collect: 2h côté serveur — frontend affiche juste countdown
+  const AUTO_COLLECT_DELAY_MS = 2 * 60 * 60 * 1000;
 
   // ── Fetch commandes ────────────────────────────────────────────────────────
 
@@ -198,6 +211,13 @@ export default function StaffOrdersPage() {
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, statusFilter]);
+
+  // ── Tick 1s pour rafraîchir les countdowns ─────────────────────────────
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // ── Auto-impression — toutes les 5s ──────────────────────────────────────
 
@@ -353,6 +373,17 @@ export default function StaffOrdersPage() {
                           🖨️ Imprimé
                         </span>
                       )}
+                      {o.status === "ready" && o.ready_at && (() => {
+                        const remaining = new Date(o.ready_at).getTime() + AUTO_COLLECT_DELAY_MS - Date.now();
+                        const soon = remaining < 10 * 60 * 1000;
+                        return (
+                          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                            soon ? "bg-red-500/15 text-red-400" : "bg-emerald-500/10 text-emerald-400"
+                          }`}>
+                            ⏳ Auto-collect dans {formatCountdown(remaining)}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <p className="text-sm font-semibold text-white/80">{o.full_name}</p>
                     {o.phone && <p className="text-xs text-white/40">{o.phone}</p>}

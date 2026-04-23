@@ -24,6 +24,7 @@ class OrderStaffSerializer(serializers.ModelSerializer):
             "status", "total_cents", "total_eur",
             "payment_id",
             "printed", "printed_at",
+            "ready_at",
             "items",
         )
 

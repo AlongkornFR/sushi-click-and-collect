@@ -12,14 +12,16 @@ const TABS = [
   { id: "extras",    label: "Plus"      },
 ];
 
-const STATUS_LABELS = {
-  pending:    { label: "En attente",    color: "text-yellow-500" },
-  paid:       { label: "Payé",          color: "text-blue-500"   },
-  preparing:  { label: "En préparation",color: "text-orange-500" },
-  ready:      { label: "Prêt",          color: "text-green-500"  },
-  collected:  { label: "Récupéré",      color: "text-zinc-400"   },
-  cancelled:  { label: "Annulé",        color: "text-red-500"    },
+const STATUS_META = {
+  pending:    { label: "En attente",     icon: "⏳", pill: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300 ring-1 ring-yellow-500/20",  dot: "bg-yellow-500"  },
+  paid:       { label: "Payé",           icon: "💳", pill: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 ring-1 ring-blue-500/20",            dot: "bg-blue-500"    },
+  preparing:  { label: "En préparation", icon: "👨‍🍳", pill: "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300 ring-1 ring-orange-500/20", dot: "bg-orange-500"  },
+  ready:      { label: "Prêt",           icon: "🔔", pill: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 ring-1 ring-green-500/20",       dot: "bg-green-500"   },
+  collected:  { label: "Récupéré",       icon: "✅", pill: "bg-zinc-100 text-zinc-600 dark:bg-white/10 dark:text-white/60 ring-1 ring-zinc-400/20",                dot: "bg-zinc-400"    },
+  cancelled:  { label: "Annulé",         icon: "✖️", pill: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300 ring-1 ring-red-500/20",                  dot: "bg-red-500"     },
 };
+
+const STEPPER = ["paid", "preparing", "ready", "collected"];
 
 export default function AccountPage() {
   const router = useRouter();
@@ -295,53 +297,262 @@ function OrdersTab({ authHeaders }) {
   const [orders, setOrders]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [expanded, setExpanded] = useState(() => new Set());
+  const [printing, setPrinting] = useState(null);
+  const [lastSync, setLastSync] = useState(null);
+
+  const fetchOrders = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    else         setRefreshing(true);
+    try {
+      const r = await api.get("/auth/orders/", { headers: authHeaders() });
+      setOrders((prev) => {
+        const next = r.data;
+        if (prev.length && next.length) {
+          next.forEach((no) => {
+            const old = prev.find((p) => p.id === no.id);
+            if (old && old.status !== no.status) {
+              // status changed — keep card expanded if it was
+            }
+          });
+        }
+        return next;
+      });
+      setError("");
+      setLastSync(new Date());
+    } catch {
+      setError("Impossible de charger les commandes.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    api.get("/auth/orders/", { headers: authHeaders() })
-      .then((r) => setOrders(r.data))
-      .catch(() => setError("Impossible de charger les commandes."))
-      .finally(() => setLoading(false));
+    fetchOrders();
+    const hasLive = () => orders.some((o) => !["collected", "cancelled"].includes(o.status));
+    const id = setInterval(() => { if (document.visibilityState === "visible") fetchOrders({ silent: true }); }, 15000);
+    const onVis = () => { if (document.visibilityState === "visible") fetchOrders({ silent: true }); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVis); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const toggle = (id) => {
+    setExpanded((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  };
+
+  const downloadReceipt = async (orderId) => {
+    setPrinting(orderId);
+    try {
+      const res = await api.get(`/auth/orders/${orderId}/receipt/`, {
+        headers: authHeaders(),
+        responseType: "blob",
+      });
+      const ct = res.data?.type || "";
+      if (!ct.includes("pdf")) {
+        const text = await res.data.text();
+        let detail = text;
+        try { detail = JSON.parse(text).detail || text; } catch {}
+        throw new Error(detail || "Réponse invalide.");
+      }
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `recu-surice-${orderId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      let msg = err.message || "Impossible de télécharger le reçu.";
+      if (err.response?.data) {
+        try {
+          const txt = typeof err.response.data.text === "function"
+            ? await err.response.data.text()
+            : err.response.data;
+          const parsed = typeof txt === "string" ? JSON.parse(txt) : txt;
+          msg = parsed?.detail || msg;
+        } catch {
+          if (err.response.status === 401) msg = "Session expirée. Reconnectez-vous.";
+          else if (err.response.status === 404) msg = "Commande introuvable.";
+          else if (err.response.status === 400) msg = "Reçu indisponible (commande non payée).";
+          else if (err.response.status === 500) msg = "Erreur serveur. Vérifiez que Django tourne et qu'il a bien redémarré après les changements.";
+        }
+      } else if (err.message === "Network Error") {
+        msg = "Backend injoignable. Vérifiez que Django tourne sur localhost:8000.";
+      }
+      alert(msg);
+      console.error("Receipt error:", err);
+    } finally {
+      setPrinting(null);
+    }
+  };
+
   if (loading) return <p className="py-8 text-center text-sm text-zinc-400 dark:text-white/30">Chargement…</p>;
-  if (error)   return <p className="py-8 text-center text-sm text-red-500">{error}</p>;
+  if (error && !orders.length) return <p className="py-8 text-center text-sm text-red-500">{error}</p>;
   if (!orders.length) return (
-    <div className="py-12 text-center">
-      <p className="text-sm text-zinc-400 dark:text-white/30">Aucune commande pour l&apos;instant.</p>
+    <div className="rounded-2xl border border-dashed border-zinc-200 dark:border-white/10 py-16 text-center">
+      <div className="mb-3 text-4xl">🍱</div>
+      <p className="text-sm font-medium text-zinc-600 dark:text-white/60">Aucune commande pour l&apos;instant</p>
+      <p className="mt-1 text-xs text-zinc-400 dark:text-white/30">Vos commandes apparaîtront ici.</p>
     </div>
   );
 
   return (
     <div className="space-y-4">
+      {/* Live indicator */}
+      <div className="flex items-center justify-between px-1">
+        <p className="text-xs text-zinc-400 dark:text-white/30">
+          {orders.length} commande{orders.length > 1 ? "s" : ""}
+        </p>
+        <button
+          onClick={() => fetchOrders({ silent: true })}
+          disabled={refreshing}
+          className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-white/40 hover:text-zinc-800 dark:hover:text-white/70 transition disabled:opacity-50"
+        >
+          <span className={`inline-block h-1.5 w-1.5 rounded-full ${refreshing ? "animate-pulse bg-[#FFC366]" : "bg-green-500"}`} />
+          {refreshing ? "Sync…" : "À jour"}
+        </button>
+      </div>
+
       {orders.map((order) => {
-        const st = STATUS_LABELS[order.status] ?? { label: order.status, color: "text-zinc-400" };
+        const st = STATUS_META[order.status] ?? { label: order.status, icon: "•", pill: "bg-zinc-100 text-zinc-600 ring-1 ring-zinc-300/40", dot: "bg-zinc-400" };
+        const isOpen = expanded.has(order.id);
+        const canPrint = ["paid", "preparing", "ready", "collected"].includes(order.status);
+        const isCancelled = order.status === "cancelled";
+        const isActive = !isCancelled && order.status !== "collected";
+        const currentStep = STEPPER.indexOf(order.status);
+
         return (
-          <div key={order.id} className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 p-5">
-            <div className="mb-3 flex items-start justify-between">
-              <div>
-                <p className="text-sm font-semibold text-zinc-900 dark:text-white">Commande #{order.id}</p>
-                <p className="text-xs text-zinc-400 dark:text-white/30">
-                  {new Date(order.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-                  {order.pickup_time && ` · Retrait ${order.pickup_time}`}
-                </p>
-              </div>
-              <span className={`text-xs font-semibold ${st.color}`}>{st.label}</span>
-            </div>
-
-            <div className="space-y-1">
-              {order.items.map((item, i) => (
-                <div key={i} className="flex items-center justify-between text-sm text-zinc-600 dark:text-white/60">
-                  <span>{item.quantity}× {item.name}</span>
-                  <span>{((item.unit_price_cents * item.quantity) / 100).toFixed(2)} €</span>
+          <div
+            key={order.id}
+            className={`rounded-2xl border bg-white dark:bg-white/5 transition-all ${
+              isActive
+                ? "border-[#FFC366]/50 dark:border-[#FFC366]/30 shadow-sm shadow-[#FFC366]/10"
+                : "border-zinc-200 dark:border-white/10"
+            }`}
+          >
+            {/* Header */}
+            <div className="p-5 pb-4">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-white">Commande #{order.id}</p>
+                    {isActive && (
+                      <span className="relative flex h-2 w-2">
+                        <span className={`absolute inline-flex h-full w-full animate-ping rounded-full ${st.dot} opacity-60`} />
+                        <span className={`relative inline-flex h-2 w-2 rounded-full ${st.dot}`} />
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-xs text-zinc-400 dark:text-white/30">
+                    {new Date(order.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                    {order.pickup_time && ` · Retrait ${order.pickup_time}`}
+                  </p>
                 </div>
-              ))}
+                <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${st.pill}`}>
+                  <span>{st.icon}</span>{st.label}
+                </span>
+              </div>
+
+              {/* Stepper */}
+              {!isCancelled && (
+                <div className="mt-4 flex items-center gap-1.5">
+                  {STEPPER.map((s, i) => {
+                    const reached = currentStep >= i;
+                    const current = currentStep === i;
+                    const meta = STATUS_META[s];
+                    return (
+                      <div key={s} className="flex-1 flex flex-col items-center">
+                        <div className={`flex h-full w-full items-center gap-1.5`}>
+                          <div className={`h-1.5 flex-1 rounded-full transition-colors ${reached ? "bg-[#FFC366]" : "bg-zinc-200 dark:bg-white/10"} ${current ? "animate-pulse" : ""}`} />
+                        </div>
+                        <p className={`mt-1.5 text-[10px] font-medium truncate ${reached ? "text-zinc-700 dark:text-white/80" : "text-zinc-400 dark:text-white/30"}`}>
+                          {meta.label}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {isCancelled && (
+                <div className="mt-3 rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                  Commande annulée.
+                </div>
+              )}
+
+              {order.status === "ready" && (
+                <div className="mt-3 rounded-lg bg-green-50 dark:bg-green-900/20 px-3 py-2 text-xs font-medium text-green-700 dark:text-green-400">
+                  🎉 Votre commande est prête à être récupérée !
+                </div>
+              )}
             </div>
 
-            <div className="mt-3 flex justify-end border-t border-zinc-100 dark:border-white/5 pt-3">
-              <span className="text-sm font-semibold text-zinc-900 dark:text-white">
-                Total : {(order.total_cents / 100).toFixed(2)} €
-              </span>
+            {/* Items (collapsed summary / expanded full) */}
+            <div className="border-t border-zinc-100 dark:border-white/5 px-5 py-3">
+              {!isOpen ? (
+                <button
+                  onClick={() => toggle(order.id)}
+                  className="flex w-full items-center justify-between text-left text-sm text-zinc-500 dark:text-white/50 hover:text-zinc-800 dark:hover:text-white/80 transition cursor-pointer"
+                >
+                  <span>
+                    {order.items.reduce((s, i) => s + i.quantity, 0)} article{order.items.reduce((s, i) => s + i.quantity, 0) > 1 ? "s" : ""}
+                    {" · "}
+                    <span className="font-semibold text-zinc-900 dark:text-white">{(order.total_cents / 100).toFixed(2)} €</span>
+                  </span>
+                  <span className="text-xs">Voir détails ↓</span>
+                </button>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    {order.items.map((item, i) => (
+                      <div key={i} className="flex items-center justify-between text-sm">
+                        <span className="text-zinc-700 dark:text-white/70">
+                          <span className="inline-block w-7 text-zinc-400 dark:text-white/30 font-medium">{item.quantity}×</span>
+                          {item.name}
+                        </span>
+                        <span className="text-zinc-600 dark:text-white/60 tabular-nums">
+                          {((item.unit_price_cents * item.quantity) / 100).toFixed(2)} €
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex justify-between border-t border-zinc-100 dark:border-white/5 pt-3">
+                    <button
+                      onClick={() => toggle(order.id)}
+                      className="text-xs text-zinc-400 dark:text-white/30 hover:text-zinc-700 dark:hover:text-white/60 cursor-pointer"
+                    >
+                      Masquer ↑
+                    </button>
+                    <span className="text-sm font-semibold text-zinc-900 dark:text-white tabular-nums">
+                      Total : {(order.total_cents / 100).toFixed(2)} €
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 border-t border-zinc-100 dark:border-white/5 px-5 py-3">
+              <button
+                onClick={() => downloadReceipt(order.id)}
+                disabled={!canPrint || printing === order.id}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-white/70 transition hover:border-[#FFC366] hover:text-zinc-900 dark:hover:text-white active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                title={canPrint ? "Télécharger le reçu PDF" : "Reçu disponible après paiement"}
+              >
+                {printing === order.id ? (
+                  <>⏳ Génération…</>
+                ) : (
+                  <>🧾 Imprimer le reçu</>
+                )}
+              </button>
             </div>
           </div>
         );

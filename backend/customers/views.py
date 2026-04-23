@@ -4,9 +4,11 @@ from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from django.http import HttpResponse
 from .models import Customer
 from .serializers import CustomerProfileSerializer, OrderHistorySerializer, RegisterSerializer
 from orders.models import Order
+from orders.receipt import generate_receipt_pdf
 
 
 @api_view(["POST"])
@@ -135,3 +137,28 @@ def order_history(request):
 
     orders = Order.objects.filter(user=request.user).prefetch_related("items").order_by("-created_at")
     return Response(OrderHistorySerializer(orders, many=True).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def order_receipt(request, pk):
+    if not hasattr(request.user, "customer"):
+        return Response({"detail": "Compte non client."}, status=403)
+
+    try:
+        order = Order.objects.prefetch_related("items").get(id=pk, user=request.user)
+    except Order.DoesNotExist:
+        return Response({"detail": "Commande introuvable."}, status=404)
+
+    if order.status not in {"paid", "preparing", "ready", "collected"}:
+        return Response({"detail": "Reçu indisponible tant que la commande n'est pas payée."}, status=400)
+
+    try:
+        pdf_bytes = generate_receipt_pdf(order)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return Response({"detail": f"Erreur génération PDF: {type(e).__name__}: {e}"}, status=500)
+
+    resp = HttpResponse(pdf_bytes, content_type="application/pdf")
+    resp["Content-Disposition"] = f'attachment; filename="recu-surice-{order.id}.pdf"'
+    return resp

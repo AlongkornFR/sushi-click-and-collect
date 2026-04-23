@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import checkout, payplug_ipn, OrderDetailView
+from .views import checkout, payplug_ipn, OrderDetailView, verify_payment
 from .views_staff import (
     staff_login,
     staff_me,
@@ -16,6 +16,7 @@ urlpatterns = [
     path("checkout/",           checkout),
     path("payplug/ipn/",        payplug_ipn),
     path("orders/<int:pk>/",    OrderDetailView.as_view()),
+    path("orders/<int:pk>/verify-payment/", verify_payment),
 
     # Staff — auth
     path("staff/login/",        staff_login),

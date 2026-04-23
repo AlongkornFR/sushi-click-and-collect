@@ -1,5 +1,13 @@
-import io
+import unicodedata
 from fpdf import FPDF
+
+
+def _latin1(s: str) -> str:
+    if s is None:
+        return ""
+    s = str(s)
+    s = unicodedata.normalize("NFKD", s)
+    return s.encode("latin-1", "replace").decode("latin-1")
 
 
 def generate_receipt_pdf(order) -> bytes:
@@ -34,13 +42,13 @@ def generate_receipt_pdf(order) -> bytes:
     pdf.set_text_color(80, 80, 80)
 
     created = order.created_at.strftime("%d/%m/%Y a %H:%M")
-    pdf.cell(0, 6, f"Date         : {created}", ln=True)
-    pdf.cell(0, 6, f"Client       : {order.full_name}", ln=True)
-    pdf.cell(0, 6, f"Email        : {order.email}", ln=True)
-    pdf.cell(0, 6, f"Telephone    : {order.phone}", ln=True)
-    pdf.cell(0, 6, f"Heure retrait: {order.pickup_time}", ln=True)
+    pdf.cell(0, 6, _latin1(f"Date         : {created}"), ln=True)
+    pdf.cell(0, 6, _latin1(f"Client       : {order.full_name}"), ln=True)
+    pdf.cell(0, 6, _latin1(f"Email        : {order.email}"), ln=True)
+    pdf.cell(0, 6, _latin1(f"Telephone    : {order.phone}"), ln=True)
+    pdf.cell(0, 6, _latin1(f"Heure retrait: {order.pickup_time}"), ln=True)
     if order.notes:
-        pdf.cell(0, 6, f"Notes        : {order.notes}", ln=True)
+        pdf.cell(0, 6, _latin1(f"Notes        : {order.notes}"), ln=True)
     pdf.ln(6)
 
     # ── Tableau articles ──────────────────────────────────────
@@ -61,7 +69,7 @@ def generate_receipt_pdf(order) -> bytes:
     for item in items:
         unit = item.unit_price_cents / 100
         total = item.line_total_cents() / 100
-        name = item.product_name[:45]
+        name = _latin1(item.product_name)[:45]
         pdf.cell(col_w[0], 7, name, align="L")
         pdf.cell(col_w[1], 7, str(item.quantity), align="R")
         pdf.cell(col_w[2], 7, f"{unit:.2f} EUR", align="R")
@@ -84,6 +92,5 @@ def generate_receipt_pdf(order) -> bytes:
     pdf.set_text_color(140, 140, 140)
     pdf.cell(0, 5, "Paiement effectue en ligne  |  Merci pour votre commande !", ln=True, align="C")
 
-    buffer = io.BytesIO()
-    pdf.output(buffer)
-    return buffer.getvalue()
+    out = pdf.output()
+    return bytes(out) if isinstance(out, (bytearray, bytes)) else out.encode("latin-1")
