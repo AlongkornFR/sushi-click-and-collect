@@ -12,15 +12,20 @@ from rest_framework.response import Response
 
 from .models import Order
 from .serializers_staff import OrderStaffSerializer
+from .emails import send_order_status_email
 
 ALLOWED_STATUSES = {"pending", "paid", "preparing", "ready", "collected", "cancelled"}
 AUTO_COLLECT_AFTER = timedelta(hours=2)
 
 
 def _auto_collect_ready_orders():
-    """Sweep: toute commande ready depuis >= 2h → collected."""
+    """Sweep: toute commande ready depuis >= 2h → collected + email."""
     threshold = timezone.now() - AUTO_COLLECT_AFTER
-    Order.objects.filter(status="ready", ready_at__lte=threshold).update(status="collected")
+    to_collect = list(Order.objects.filter(status="ready", ready_at__lte=threshold))
+    for o in to_collect:
+        o.status = "collected"
+        o.save(update_fields=["status"])
+        send_order_status_email(o, status="collected")
 
 
 # ── Liste des commandes ────────────────────────────────────────────────────────
@@ -91,6 +96,7 @@ def staff_order_set_status(request, order_id: int):
     except Order.DoesNotExist:
         return Response({"detail": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
+    old_status = order.status
     order.status = new_status
     update_fields = ["status"]
 
@@ -98,12 +104,16 @@ def staff_order_set_status(request, order_id: int):
         order.ready_at = timezone.now()
         update_fields.append("ready_at")
     elif new_status in {"collected", "cancelled"}:
-        # reset pour éviter sweep sur un collected déjà en base
         if order.ready_at is not None:
             order.ready_at = None
             update_fields.append("ready_at")
 
     order.save(update_fields=update_fields)
+
+    # Email client si transition réelle (évite spam sur re-set identique)
+    if old_status != new_status:
+        send_order_status_email(order, status=new_status)
+
     return Response({"ok": True, "id": order.id, "status": order.status, "ready_at": order.ready_at})
 
 

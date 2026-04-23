@@ -167,7 +167,21 @@ PAYPLUG_API_VERSION = os.environ.get("PAYPLUG_API_VERSION", "2019-08-06")
 CLOUDFLARE_ACCOUNT_ID    = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
 CLOUDFLARE_IMAGES_TOKEN  = os.environ.get("CLOUDFLARE_IMAGES_TOKEN", "")
 
-# Email — Resend
+# Email — Resend (legacy)
 RESEND_API_KEY         = os.environ.get("RESEND_API_KEY", "")
 RESEND_FROM_EMAIL      = os.environ.get("RESEND_FROM_EMAIL", "onboarding@resend.dev")
 CONTACT_RECEIVER_EMAIL = os.environ.get("CONTACT_RECEIVER_EMAIL", "")
+
+# Email — Gmail SMTP
+GMAIL_USER         = os.environ.get("GMAIL_USER", "")
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
+EMAIL_FROM_NAME    = os.environ.get("EMAIL_FROM_NAME", "Su-Rice")
+
+if GMAIL_USER and GMAIL_APP_PASSWORD:
+    EMAIL_BACKEND       = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST          = "smtp.gmail.com"
+    EMAIL_PORT          = 587
+    EMAIL_USE_TLS       = True
+    EMAIL_HOST_USER     = GMAIL_USER
+    EMAIL_HOST_PASSWORD = GMAIL_APP_PASSWORD.replace(" ", "")
+    DEFAULT_FROM_EMAIL  = f"{EMAIL_FROM_NAME} <{GMAIL_USER}>"

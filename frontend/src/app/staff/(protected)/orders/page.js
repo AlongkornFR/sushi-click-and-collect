@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useStaffAuth } from "../../_components/useStaffAuth";
 import { printOrder as qzPrint } from "@/lib/printer";
 import PrinterStatus from "@/components/staff/PrinterStatus";
-import { FaPrint, FaTrash } from "react-icons/fa";
+import { FaPrint, FaTrash, FaList, FaTh } from "react-icons/fa";
 
 /* ── Status config ── */
 const STATUS_CONFIG = {
@@ -37,6 +37,46 @@ const STATUS_ACTIONS = {
 };
 
 const ALL_STATUSES = ["pending", "paid", "preparing", "ready", "collected", "cancelled"];
+
+/* ── Colonnes bento kanban ── */
+const BENTO_COLUMNS = [
+  {
+    key: "new",
+    title: "Nouvelles",
+    subtitle: "À prendre en charge",
+    statuses: ["pending", "paid"],
+    accent: "border-blue-500/30 bg-blue-500/5",
+    headerAccent: "text-blue-400",
+    dot: "bg-blue-400",
+  },
+  {
+    key: "preparing",
+    title: "En cuisine",
+    subtitle: "En préparation",
+    statuses: ["preparing"],
+    accent: "border-orange-500/30 bg-orange-500/5",
+    headerAccent: "text-orange-400",
+    dot: "bg-orange-400",
+  },
+  {
+    key: "ready",
+    title: "Prêtes",
+    subtitle: "À servir",
+    statuses: ["ready"],
+    accent: "border-emerald-500/30 bg-emerald-500/5",
+    headerAccent: "text-emerald-400",
+    dot: "bg-emerald-400",
+  },
+  {
+    key: "done",
+    title: "Historique",
+    subtitle: "Récupéré / Annulé",
+    statuses: ["collected", "cancelled"],
+    accent: "border-white/10 bg-white/[0.02]",
+    headerAccent: "text-white/50",
+    dot: "bg-white/30",
+  },
+];
 
 /* ── Helpers ── */
 function formatCountdown(ms) {
@@ -111,6 +151,17 @@ export default function StaffOrdersPage() {
   const [printingId, setPrintingId]     = useState(null);
   const [printError, setPrintError]     = useState("");
   const [deletingId, setDeletingId]     = useState(null);
+
+  // View mode (bento | list), persisté
+  const [viewMode, setViewMode] = useState("bento");
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("staff_orders_view") : null;
+    if (saved === "list" || saved === "bento") setViewMode(saved);
+  }, []);
+  const changeView = (mode) => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") localStorage.setItem("staff_orders_view", mode);
+  };
 
   // IDs déjà auto-imprimés dans cette session (évite les doublons)
   const autoPrintedRef = useRef(new Set());
@@ -257,6 +308,151 @@ export default function StaffOrdersPage() {
   const preparingCount = orders.filter(o => o.status === "preparing").length;
   const readyCount     = orders.filter(o => o.status === "ready").length;
 
+  /* ── Regroupement bento ── */
+  const ordersByColumn = useMemo(() => {
+    const map = Object.fromEntries(BENTO_COLUMNS.map(c => [c.key, []]));
+    for (const o of orders) {
+      if (statusFilter && o.status !== statusFilter) continue;
+      const col = BENTO_COLUMNS.find(c => c.statuses.includes(o.status));
+      if (col) map[col.key].push(o);
+    }
+    return map;
+  }, [orders, statusFilter]);
+
+  /* ── Carte commande réutilisable ── */
+  const renderOrderCard = (o, { compact = false } = {}) => {
+    const actions    = STATUS_ACTIONS[o.status] ?? [];
+    const isUpdating = updating === o.id;
+    const isPrinting = printingId === o.id;
+    const isDeleting = deletingId === o.id;
+
+    return (
+      <div key={o.id} className="group rounded-2xl border border-white/10 bg-[#1D1D1D] p-4 transition hover:border-white/20">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-sm font-bold text-white">#{o.id}</span>
+              <StatusBadge status={o.status} />
+            </div>
+            <p className="truncate text-sm font-semibold text-white/80">{o.full_name}</p>
+            {o.phone && !compact && <p className="text-[11px] text-white/40">{o.phone}</p>}
+          </div>
+          <p className="shrink-0 text-base font-bold text-[#FFC366]">
+            {(o.total_cents / 100).toFixed(2)} €
+          </p>
+        </div>
+
+        {/* Meta badges */}
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {o.pickup_time && (
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/60">
+              ⏱ {o.pickup_time}
+            </span>
+          )}
+          {o.printed && (
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/40">
+              🖨️ Imprimé
+            </span>
+          )}
+          {o.status === "ready" && o.ready_at && (() => {
+            const remaining = new Date(o.ready_at).getTime() + AUTO_COLLECT_DELAY_MS - Date.now();
+            const soon = remaining < 10 * 60 * 1000;
+            return (
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                soon ? "bg-red-500/15 text-red-400" : "bg-emerald-500/10 text-emerald-400"
+              }`}>
+                ⏳ {formatCountdown(remaining)}
+              </span>
+            );
+          })()}
+        </div>
+
+        {/* Items */}
+        {(o.items || []).length > 0 && (
+          <div className="mt-3 rounded-xl bg-white/5 px-3 py-2">
+            <ul className="space-y-0.5">
+              {o.items.map(it => (
+                <li key={it.id} className="flex items-center justify-between text-xs">
+                  <span className="truncate text-white/60 pr-2">
+                    <span className="font-semibold text-white">{it.quantity}×</span>{" "}
+                    {it.product_name}
+                  </span>
+                  <span className="shrink-0 font-semibold text-white/70 tabular-nums">
+                    {(it.line_total_cents / 100).toFixed(2)} €
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Notes */}
+        {o.notes && (
+          <p className="mt-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5 text-[11px] text-amber-400">
+            📝 {o.notes}
+          </p>
+        )}
+
+        {/* Actions rangée */}
+        <div className="mt-3 flex items-center gap-2">
+          {/* Status actions */}
+          {actions.length > 0 && (
+            <div className="flex flex-1 flex-wrap gap-1.5">
+              {actions.map(action => (
+                <button
+                  key={action.status}
+                  type="button"
+                  onClick={() => setStatus(o.id, action.status)}
+                  disabled={isUpdating}
+                  className={`flex-1 cursor-pointer rounded-lg px-2 py-2 text-xs font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
+                    action.style === "primary" ? "bg-[#FFC366] text-black hover:bg-[#ffb347]"
+                    : action.style === "success" ? "bg-emerald-500 text-white hover:bg-emerald-400"
+                    : action.style === "danger"  ? "border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                    : "border border-white/10 text-white/60 hover:bg-white/10"
+                  }`}
+                >
+                  {isUpdating ? "…" : action.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Icon buttons */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => handlePrint(o)}
+              disabled={isPrinting}
+              title={o.printed ? "Réimprimer" : "Imprimer"}
+              className={`flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border transition active:scale-95 disabled:cursor-wait disabled:opacity-50 ${
+                o.printed
+                  ? "border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+                  : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+              }`}
+            >
+              {isPrinting
+                ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
+                : <FaPrint className="text-xs" />
+              }
+            </button>
+            <button
+              type="button"
+              onClick={() => deleteOrder(o.id)}
+              disabled={isDeleting}
+              title="Supprimer"
+              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 transition hover:bg-red-500/20 hover:text-red-300 active:scale-95 disabled:cursor-wait disabled:opacity-50"
+            >
+              {isDeleting
+                ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-500/30 border-t-red-400" />
+                : <FaTrash className="text-xs" />
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   /* ── Render ── */
   return (
     <div className="space-y-5">
@@ -290,6 +486,31 @@ export default function StaffOrdersPage() {
             </div>
             <div className="flex items-center gap-3">
               <PrinterStatus />
+              {/* Toggle view */}
+              <div className="inline-flex rounded-xl border border-white/10 bg-white/5 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => changeView("bento")}
+                  className={`flex h-9 w-10 items-center justify-center rounded-lg text-sm transition cursor-pointer ${
+                    viewMode === "bento" ? "bg-white/15 text-white" : "text-white/40 hover:text-white/70"
+                  }`}
+                  aria-label="Vue bento"
+                  title="Vue bento"
+                >
+                  <FaTh />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeView("list")}
+                  className={`flex h-9 w-10 items-center justify-center rounded-lg text-sm transition cursor-pointer ${
+                    viewMode === "list" ? "bg-white/15 text-white" : "text-white/40 hover:text-white/70"
+                  }`}
+                  aria-label="Vue liste"
+                  title="Vue liste"
+                >
+                  <FaList />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => fetchOrders()}
@@ -338,147 +559,75 @@ export default function StaffOrdersPage() {
           </div>
         )}
 
-        {/* Order list */}
-        <div className="divide-y divide-white/5 px-5 py-2">
-
-          {fetching ? (
-            <div className="space-y-3 py-3">
-              {Array.from({ length: 4 }).map((_, i) => <OrderCardSkeleton key={i} />)}
-            </div>
-          ) : orders.length === 0 ? (
-            <div className="py-16 text-center text-sm text-white/40">
-              Aucune commande{statusFilter ? ` avec le statut « ${STATUS_CONFIG[statusFilter]?.label ?? statusFilter} »` : ""}.
-            </div>
-          ) : orders.map(o => {
-            const actions    = STATUS_ACTIONS[o.status] ?? [];
-            const isUpdating = updating === o.id;
-            const isPrinting = printingId === o.id;
-            const isDeleting = deletingId === o.id;
-
-            return (
-              <div key={o.id} className="py-4">
-                {/* Order header */}
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-bold text-white">#{o.id}</span>
-                      <StatusBadge status={o.status} />
-                      {o.pickup_time && (
-                        <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white/60">
-                          ⏱ {o.pickup_time}
-                        </span>
-                      )}
-                      {o.printed && (
-                        <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white/40">
-                          🖨️ Imprimé
-                        </span>
-                      )}
-                      {o.status === "ready" && o.ready_at && (() => {
-                        const remaining = new Date(o.ready_at).getTime() + AUTO_COLLECT_DELAY_MS - Date.now();
-                        const soon = remaining < 10 * 60 * 1000;
-                        return (
-                          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                            soon ? "bg-red-500/15 text-red-400" : "bg-emerald-500/10 text-emerald-400"
-                          }`}>
-                            ⏳ Auto-collect dans {formatCountdown(remaining)}
-                          </span>
-                        );
-                      })()}
+        {/* Content */}
+        {fetching ? (
+          <div className="p-4">
+            {viewMode === "bento" ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-3">
+                    <div className="skeleton h-6 w-32 rounded-full" />
+                    <OrderCardSkeleton />
+                    <OrderCardSkeleton />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => <OrderCardSkeleton key={i} />)}
+              </div>
+            )}
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="py-16 text-center text-sm text-white/40">
+            Aucune commande{statusFilter ? ` avec le statut « ${STATUS_CONFIG[statusFilter]?.label ?? statusFilter} »` : ""}.
+          </div>
+        ) : viewMode === "bento" ? (
+          /* ── VUE BENTO KANBAN ── */
+          <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-4">
+            {BENTO_COLUMNS.map(col => {
+              const list = ordersByColumn[col.key] || [];
+              return (
+                <div
+                  key={col.key}
+                  className={`flex flex-col rounded-2xl border ${col.accent} p-3`}
+                >
+                  {/* Column header */}
+                  <div className="mb-3 flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${col.dot}`} />
+                      <div>
+                        <p className={`text-sm font-bold ${col.headerAccent}`}>{col.title}</p>
+                        <p className="text-[10px] font-medium uppercase tracking-wider text-white/40">{col.subtitle}</p>
+                      </div>
                     </div>
-                    <p className="text-sm font-semibold text-white/80">{o.full_name}</p>
-                    {o.phone && <p className="text-xs text-white/40">{o.phone}</p>}
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-bold text-white">
+                      {list.length}
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <p className="text-base font-bold text-[#FFC366]">
-                      {(o.total_cents / 100).toFixed(2)} €
-                    </p>
-                    {/* Bouton impression thermique */}
-                    <button
-                      type="button"
-                      onClick={() => handlePrint(o)}
-                      disabled={isPrinting}
-                      title={o.printed ? "Réimprimer" : "Imprimer"}
-                      className={`flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border transition active:scale-95 disabled:cursor-wait disabled:opacity-50 ${
-                        o.printed
-                          ? "border-white/10 bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
-                          : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
-                      }`}
-                      aria-label="Imprimer le ticket"
-                    >
-                      {isPrinting
-                        ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
-                        : <FaPrint className="text-sm" />
-                      }
-                    </button>
-                    {/* Bouton suppression */}
-                    <button
-                      type="button"
-                      onClick={() => deleteOrder(o.id)}
-                      disabled={isDeleting}
-                      title="Supprimer la commande"
-                      className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 transition hover:bg-red-500/20 hover:text-red-300 active:scale-95 disabled:cursor-wait disabled:opacity-50"
-                      aria-label="Supprimer la commande"
-                    >
-                      {isDeleting
-                        ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-500/30 border-t-red-400" />
-                        : <FaTrash className="text-sm" />
-                      }
-                    </button>
+                  {/* Cards */}
+                  <div className="flex flex-col gap-2.5 min-h-[80px]">
+                    {list.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-white/10 py-8 text-center text-[11px] text-white/30">
+                        Vide
+                      </div>
+                    ) : (
+                      list.map(o => renderOrderCard(o, { compact: true }))
+                    )}
                   </div>
                 </div>
-
-                {/* Items */}
-                {(o.items || []).length > 0 && (
-                  <div className="mt-3 rounded-xl bg-white/5 px-4 py-3">
-                    <ul className="space-y-1">
-                      {o.items.map(it => (
-                        <li key={it.id} className="flex items-center justify-between text-sm">
-                          <span className="text-white/60">
-                            <span className="font-semibold text-white">{it.quantity}×</span>{" "}
-                            {it.product_name}
-                          </span>
-                          <span className="font-semibold text-white/70">
-                            {(it.line_total_cents / 100).toFixed(2)} €
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Notes */}
-                {o.notes && (
-                  <p className="mt-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-400">
-                    📝 {o.notes}
-                  </p>
-                )}
-
-                {/* Actions statut */}
-                {actions.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-3">
-                    {actions.map(action => (
-                      <button
-                        key={action.status}
-                        type="button"
-                        onClick={() => setStatus(o.id, action.status)}
-                        disabled={isUpdating}
-                        className={`cursor-pointer rounded-xl px-6 py-3.5 text-sm font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${
-                          action.style === "primary" ? "bg-[#FFC366] text-black hover:bg-[#ffb347]"
-                          : action.style === "success" ? "bg-emerald-500 text-white hover:bg-emerald-400"
-                          : action.style === "danger"  ? "border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                          : "border border-white/10 text-white/60 hover:bg-white/10"
-                        }`}
-                      >
-                        {isUpdating ? "…" : action.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* ── VUE LISTE ── */
+          <div className="flex flex-col gap-3 p-4">
+            {orders
+              .filter(o => !statusFilter || o.status === statusFilter)
+              .map(o => renderOrderCard(o))}
+          </div>
+        )}
       </div>
     </div>
   );

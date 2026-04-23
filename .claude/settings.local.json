@@ -3,7 +3,10 @@
     "allow": [
       "Bash(python manage.py check)",
       "Bash(find c:UsersOrdinateurDesktopSu-rice -name ProductCard* -type f)",
-      "Bash(python -c \":*)"
+      "Bash(python -c \":*)",
+      "Bash(venv/Scripts/python.exe -c ' *)",
+      "Bash(node -e \"require\\('@babel/parser'\\).parse\\(require\\('fs'\\).readFileSync\\('src/app/staff/\\(protected\\)/orders/page.js','utf8'\\),{sourceType:'module',plugins:['jsx']}\\); console.log\\('OK'\\)\")",
+      "Bash(npx --yes @babel/parser --help)"
     ]
   }
 }
