@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/context/AuthContext";
 import { useCart } from "@/components/context/CartContext";
 import { api } from "@/services/api";
+import { LoyaltyCard } from "@/components/loyalty/LoyaltyCard";
 
 const TABS = [
   { id: "profile",   label: "Profil"    },
@@ -87,7 +88,7 @@ export default function AccountPage() {
       {/* Tab content */}
       {tab === "profile"  && <ProfileTab customer={customer} token={token} setCustomer={setCustomer} authHeaders={authHeaders} logout={logout} router={router} fetchMe={fetchMe} />}
       {tab === "orders"   && <OrdersTab token={token} authHeaders={authHeaders} />}
-      {tab === "extras"   && <ExtrasTab />}
+      {tab === "extras"   && <ExtrasTab authHeaders={authHeaders} />}
     </div>
     </div>
   );
@@ -681,14 +682,10 @@ function SecurityTab({ logout, router, authHeaders, fetchMe }) {
 
 /* ─── Extras Tab (section libre) ──────────────────────────────── */
 
-function ExtrasTab() {
+function ExtrasTab({ authHeaders }) {
   return (
     <div className="space-y-4">
-      {/* Fidélité — à implémenter */}
-      <div className="rounded-2xl border border-dashed border-zinc-200 dark:border-white/10 p-6 text-center">
-        <p className="text-sm font-medium text-zinc-400 dark:text-white/30">Programme de fidélité</p>
-        <p className="mt-1 text-xs text-zinc-300 dark:text-white/20">À venir</p>
-      </div>
+      <LoyaltyCard authHeaders={authHeaders} />
 
       {/* Préférences — à implémenter */}
       <div className="rounded-2xl border border-dashed border-zinc-200 dark:border-white/10 p-6 text-center">

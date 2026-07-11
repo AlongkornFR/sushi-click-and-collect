@@ -11,6 +11,7 @@ payplug==1.4.0
 pycparser==3.0
 pyOpenSSL==25.3.0
 python-dotenv==1.2.1
+qrcode[pil]==8.2
 requests==2.32.5
 six==1.17.0
 sqlparse==0.5.5

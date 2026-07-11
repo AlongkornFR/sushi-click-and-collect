@@ -167,6 +167,7 @@ import payplug
 from .models import Order
 from .receipt import generate_receipt_pdf
 from .emails import send_order_status_email
+from loyalty.services import award_point_for_order
 
 
 def _send_receipt_email(order):
@@ -249,6 +250,7 @@ def payplug_ipn(request):
             order.payment_id = str(payment_id)
             order.save(update_fields=["status", "payment_id"])
             _send_receipt_email(order)
+            award_point_for_order(order)
             return Response({"ok": True, "paid": True}, status=status.HTTP_200_OK)
 
     return Response({"ok": True, "paid": False}, status=status.HTTP_200_OK)
@@ -311,6 +313,7 @@ def verify_payment(request, pk):
             o.status = "paid"
             o.save(update_fields=["status"])
             _send_receipt_email(o)
+            award_point_for_order(o)
         order = o
 
     return Response(OrderSerializer(order).data)

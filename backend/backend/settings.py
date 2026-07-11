@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'orders',
     'contact',
     'customers',
+    'loyalty',
 ]
 
 MIDDLEWARE = [
@@ -82,6 +83,11 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.TokenAuthentication",
     ],
+    "DEFAULT_THROTTLE_RATES": {
+        "loyalty_qr": "30/min",
+        "loyalty_scan": "60/min",
+        "loyalty_mutate": "30/min",
+    },
 }
 
 WSGI_APPLICATION = 'backend.wsgi.application'
@@ -185,3 +191,19 @@ if GMAIL_USER and GMAIL_APP_PASSWORD:
     EMAIL_HOST_USER     = GMAIL_USER
     EMAIL_HOST_PASSWORD = GMAIL_APP_PASSWORD.replace(" ", "")
     DEFAULT_FROM_EMAIL  = f"{EMAIL_FROM_NAME} <{GMAIL_USER}>"
+
+# Loyalty program
+# ─────────────────────────────────────────────────────────────────
+LOYALTY_POINT_THRESHOLD_CENTS = 1600  # purchases >= €16 earn 1 point
+LOYALTY_MAX_POINTS = 10
+
+# Fernet key encrypting loyalty QR secrets at rest. Set an explicit
+# LOYALTY_ENCRYPTION_KEY (Fernet.generate_key()) in production — the
+# fallback derived from SECRET_KEY is dev-only convenience so the app
+# runs out of the box, but it changes if SECRET_KEY changes.
+_loyalty_key = os.environ.get("LOYALTY_ENCRYPTION_KEY", "")
+if not _loyalty_key:
+    import base64
+    import hashlib
+    _loyalty_key = base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()).decode()
+LOYALTY_ENCRYPTION_KEY = _loyalty_key
