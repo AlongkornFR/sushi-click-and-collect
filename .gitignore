@@ -13,6 +13,9 @@ node_modules/
 .next/
 .env.local
 
+# Claude Code local settings
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db
