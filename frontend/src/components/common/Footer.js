@@ -39,16 +39,24 @@ const Footer = () => {
               </a>
             </li>
             <li>
-              <a href="cgv" className="hover:text-gray-400 transition">
+              <a href="cgv" className="text-white font-semibold hover:text-gray-400 transition">
                 CGV
               </a>
             </li>
             <li>
               <a
                 href="mentions-legales"
-                className="hover:text-gray-400 transition"
+                className="text-white font-semibold hover:text-gray-400 transition"
               >
                 Mentions légales
+              </a>
+            </li>
+            <li>
+              <a
+                href="politique-de-confidentialite"
+                className="text-white font-semibold hover:text-gray-400 transition"
+              >
+                Politique de confidentialité
               </a>
             </li>
           </ul>

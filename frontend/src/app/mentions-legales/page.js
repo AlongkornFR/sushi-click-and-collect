@@ -5,7 +5,7 @@ export default function Mentionslegales() {
     <div className="text-resize">
       <div
         id="mentions-legales"
-        className="max-w-4xl mx-auto px-4 py-8 text-gray-800"
+        className="max-w-4xl mx-auto px-4 py-8 text-gray-800 dark:text-zinc-200"
       >
         <h1 className="text-4xl font-bold mb-6">Mentions légales :</h1>
         <h3 className="text-2xl font-semibold mb-4 mt-8">
@@ -333,9 +333,101 @@ export default function Mentionslegales() {
         <h4 className="text-xl font-semibold mb-3 mt-6">
           Art. 7 Droit applicable
         </h4>
-        <p>
+        <p className="mb-6">
           Les présentes Conditions Générales d'utilisation sont soumises au
           droit interne français. &nbsp;
+        </p>
+
+        <h3 className="text-2xl font-semibold mb-4 mt-10">
+          Protection des données personnelles (RGPD)
+        </h3>
+
+        <h4 className="text-xl font-semibold mb-3 mt-6">
+          Responsable du traitement
+        </h4>
+        <p className="mb-6">
+          SU-RICE SARL, 53 boulevard Carnot — 06400 Cannes.
+          SIRET : 95196138200011. Contact :{" "}
+          <a
+            href="mailto:contact@su-rice.com"
+            className="text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            contact@su-rice.com
+          </a>
+        </p>
+
+        <h4 className="text-xl font-semibold mb-3 mt-6">
+          Données collectées et finalités
+        </h4>
+        <p className="mb-4">
+          Dans le cadre de la gestion des commandes et de l'utilisation du
+          site, SU-RICE collecte les données suivantes : nom, prénom, adresse
+          e-mail, numéro de téléphone, données de navigation. Ces données sont
+          traitées pour les finalités suivantes :
+        </p>
+        <ul className="list-disc ml-6 mb-6 space-y-2">
+          <li>Gestion et suivi des commandes</li>
+          <li>Communication client (confirmation, notification de commande)</li>
+          <li>Respect des obligations légales et comptables</li>
+          <li>Amélioration du service et analyse de fréquentation</li>
+        </ul>
+
+        <h4 className="text-xl font-semibold mb-3 mt-6">
+          Base légale du traitement
+        </h4>
+        <p className="mb-6">
+          Les traitements reposent sur l'exécution du contrat (commandes),
+          l'obligation légale (comptabilité), l'intérêt légitime (sécurité,
+          amélioration du service) et le consentement pour les cookies
+          d'analyse.
+        </p>
+
+        <h4 className="text-xl font-semibold mb-3 mt-6">
+          Durée de conservation
+        </h4>
+        <ul className="list-disc ml-6 mb-6 space-y-2">
+          <li>Données de commande : 5 ans (obligation fiscale)</li>
+          <li>Données de compte : jusqu'à suppression du compte</li>
+          <li>Cookies : 13 mois maximum</li>
+        </ul>
+
+        <h4 className="text-xl font-semibold mb-3 mt-6">Vos droits</h4>
+        <p className="mb-4">
+          Conformément au Règlement Général sur la Protection des Données
+          (RGPD — Règlement UE 2016/679), vous disposez des droits suivants :
+          accès, rectification, effacement, limitation, portabilité et
+          opposition.
+        </p>
+        <p className="mb-6">
+          Pour exercer ces droits, contactez-nous à{" "}
+          <a
+            href="mailto:contact@su-rice.com"
+            className="text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            contact@su-rice.com
+          </a>{" "}
+          ou par courrier à l'adresse du siège social. En cas de litige, vous
+          pouvez introduire une réclamation auprès de la{" "}
+          <a
+            href="https://www.cnil.fr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            CNIL
+          </a>
+          .
+        </p>
+
+        <p className="mb-6">
+          Pour plus de détails, consultez notre{" "}
+          <a
+            href="/politique-de-confidentialite"
+            className="text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            Politique de confidentialité complète
+          </a>
+          .
         </p>
       </div>
     </div>

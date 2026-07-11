@@ -7,6 +7,7 @@ class Category(models.Model):
     slug = models.SlugField(unique=True)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
+    position = models.PositiveIntegerField(default=0, db_index=True)
 
     def __str__(self):
         return self.name
@@ -17,6 +18,7 @@ class SubCategory(models.Model):
     slug = models.SlugField(unique=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="subcategories")
     is_active = models.BooleanField(default=True)
+    position = models.PositiveIntegerField(default=0, db_index=True)
 
     def __str__(self):
         return f"{self.category.name} - {self.name}"
@@ -31,6 +33,7 @@ class Product(models.Model):
     image_main = models.URLField(blank=True)
     stock = models.IntegerField(default=0)
     is_available = models.BooleanField(default=True)
+    position = models.PositiveIntegerField(default=0, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

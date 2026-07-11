@@ -92,7 +92,7 @@ export default function ProductCard({ product }) {
       {/* ── Card thumbnail ── */}
       <div className="group block w-full text-left">
         {/* Image */}
-        <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-100">
+        <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-100 dark:bg-[#1D1D1D]">
           <img
             src={product.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
             onError={(e) => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE; }}
@@ -131,8 +131,8 @@ export default function ProductCard({ product }) {
           onClick={openOverlay}
           className="w-full cursor-pointer pt-3 text-left"
         >
-          <p className="line-clamp-2 text-sm leading-snug text-zinc-900">{product.name}</p>
-          <p className="mt-1 text-sm font-semibold text-zinc-700">{product.price} €</p>
+          <p className="line-clamp-2 text-sm leading-snug text-zinc-900 dark:text-white">{product.name}</p>
+          <p className="mt-1 text-sm font-semibold text-[#FFC366]">{product.price} €</p>
         </button>
       </div>
 
@@ -152,14 +152,14 @@ export default function ProductCard({ product }) {
               className="
                 modal-enter
                 relative mx-auto w-full max-w-4xl overflow-hidden rounded-3xl
-                bg-[#1c1c1e] text-white shadow-2xl
+                bg-white dark:bg-[#1c1c1e] text-zinc-900 dark:text-white shadow-2xl
                 h-[92dvh] sm:h-[88dvh] md:h-[82dvh] md:max-h-[820px]
               "
             >
               <div className="flex h-full flex-col lg:flex-row">
 
                 {/* ── Image ── */}
-                <div className="relative h-[220px] shrink-0 bg-zinc-900 sm:h-65 lg:h-full lg:w-[46%]">
+                <div className="relative h-[220px] shrink-0 bg-zinc-100 dark:bg-zinc-900 sm:h-65 lg:h-full lg:w-[46%]">
                   <img
                     src={displayedProduct.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
                     onError={(e) => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE; }}
@@ -167,7 +167,7 @@ export default function ProductCard({ product }) {
                     className="h-full w-full object-cover"
                   />
                   {/* Bottom fade on mobile */}
-                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#1c1c1e] to-transparent lg:hidden" />
+                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white dark:from-[#1c1c1e] to-transparent lg:hidden" />
                 </div>
 
                 {/* ── Right column ── */}
@@ -177,7 +177,7 @@ export default function ProductCard({ product }) {
                   <button
                     type="button"
                     onClick={closeOverlay}
-                    className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 active:scale-95"
+                    className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-white transition hover:bg-zinc-200 dark:hover:bg-white/20 active:scale-95"
                     aria-label="Fermer"
                   >
                     <FaXmark className="text-sm" />
@@ -185,16 +185,16 @@ export default function ProductCard({ product }) {
 
                   {/* Header */}
                   <div className="shrink-0 px-6 pb-0 pt-6 pr-14 sm:px-8 sm:pt-8">
-                    <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
+                    <span className="inline-block rounded-full bg-zinc-100 dark:bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
                       {categoryLabel}{subcategoryLabel ? ` · ${subcategoryLabel}` : ""}
                     </span>
 
-                    <h2 className="mt-3 text-2xl font-bold leading-tight text-white sm:text-3xl">
+                    <h2 className="mt-3 text-2xl font-bold leading-tight text-zinc-900 dark:text-white sm:text-3xl">
                       {productName}
                     </h2>
 
-                    <p className="mt-2 text-xl font-semibold text-white">
-                      {productPrice} <span className="text-base font-normal text-zinc-400">€</span>
+                    <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-white">
+                      {productPrice} <span className="text-base font-normal text-zinc-400 dark:text-zinc-400">€</span>
                     </p>
                   </div>
 
@@ -202,11 +202,11 @@ export default function ProductCard({ product }) {
                   <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
 
                     {/* Description */}
-                    <p className="text-sm leading-7 text-zinc-300 sm:text-[15px]">
+                    <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-300 sm:text-[15px]">
                       {productDescription}
                     </p>
 
-                    <div className="mt-6 h-px bg-white/10" />
+                    <div className="mt-6 h-px bg-zinc-200 dark:bg-white/10" />
 
                     {/* Ingredients accordion */}
                     <button
@@ -214,17 +214,17 @@ export default function ProductCard({ product }) {
                       onClick={() => setIngredientsOpen((p) => !p)}
                       className="flex w-full cursor-pointer items-center justify-between py-4 text-left"
                     >
-                      <span className="text-sm font-semibold text-white">Ingrédients et saveurs</span>
+                      <span className="text-sm font-semibold text-zinc-900 dark:text-white">Ingrédients et saveurs</span>
                       {ingredientsOpen
-                        ? <FaChevronUp className="text-xs text-zinc-500" />
-                        : <FaChevronDown className="text-xs text-zinc-500" />
+                        ? <FaChevronUp className="text-xs text-zinc-400 dark:text-zinc-500" />
+                        : <FaChevronDown className="text-xs text-zinc-400 dark:text-zinc-500" />
                       }
                     </button>
                     {ingredientsOpen && (
-                      <p className="pb-4 text-sm leading-7 text-zinc-400">{ingredientsText}</p>
+                      <p className="pb-4 text-sm leading-7 text-zinc-500 dark:text-zinc-400">{ingredientsText}</p>
                     )}
 
-                    <div className="h-px bg-white/10" />
+                    <div className="h-px bg-zinc-200 dark:bg-white/10" />
 
                     {/* Allergens accordion */}
                     <button
@@ -232,21 +232,21 @@ export default function ProductCard({ product }) {
                       onClick={() => setAllergensOpen((p) => !p)}
                       className="flex w-full cursor-pointer items-center justify-between py-4 text-left"
                     >
-                      <span className="text-sm font-semibold text-white">Allergènes</span>
+                      <span className="text-sm font-semibold text-zinc-900 dark:text-white">Allergènes</span>
                       {allergensOpen
-                        ? <FaChevronUp className="text-xs text-zinc-500" />
-                        : <FaChevronDown className="text-xs text-zinc-500" />
+                        ? <FaChevronUp className="text-xs text-zinc-400 dark:text-zinc-500" />
+                        : <FaChevronDown className="text-xs text-zinc-400 dark:text-zinc-500" />
                       }
                     </button>
                     {allergensOpen && (
-                      <p className="pb-4 text-sm leading-7 text-zinc-400">{allergensText}</p>
+                      <p className="pb-4 text-sm leading-7 text-zinc-500 dark:text-zinc-400">{allergensText}</p>
                     )}
 
-                    <div className="h-px bg-white/10" />
+                    <div className="h-px bg-zinc-200 dark:bg-white/10" />
                   </div>
 
                   {/* Footer */}
-                  <div className="shrink-0 border-t border-white/10 px-6 py-5 sm:px-8">
+                  <div className="shrink-0 border-t border-zinc-200 dark:border-white/10 px-6 py-5 sm:px-8">
                     <button
                       type="button"
                       onClick={handleAddToCart}
@@ -255,8 +255,8 @@ export default function ProductCard({ product }) {
                         added
                           ? "cursor-default bg-emerald-500 text-white"
                           : isAdding
-                            ? "cursor-not-allowed bg-white/70 text-black opacity-70"
-                            : "cursor-pointer bg-white text-black hover:bg-zinc-100"
+                            ? "cursor-not-allowed bg-zinc-200 dark:bg-white/70 text-zinc-400 dark:text-black opacity-70"
+                            : "cursor-pointer bg-[#FFC366] text-black hover:bg-[#ffb347]"
                       }`}
                     >
                       {isAdding ? "Ajout en cours…" : added ? "✔ Ajouté au panier" : "Ajouter au panier"}
@@ -267,8 +267,8 @@ export default function ProductCard({ product }) {
 
               {/* Loading overlay */}
               {loading && !fullProduct && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-                  <div className="rounded-full border border-white/10 bg-white/10 px-6 py-3 text-sm text-white">
+                <div className="absolute inset-0 flex items-center justify-center bg-white/30 dark:bg-black/30 backdrop-blur-sm">
+                  <div className="rounded-full border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/10 px-6 py-3 text-sm text-zinc-700 dark:text-white">
                     Chargement…
                   </div>
                 </div>

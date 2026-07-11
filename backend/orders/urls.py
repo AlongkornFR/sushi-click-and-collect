@@ -1,15 +1,31 @@
 from django.urls import path
 
-from .views import checkout, OrderDetailView
-from .views_ipn import payplug_ipn
-from .views_staff import staff_login, staff_me, staff_orders_list, staff_order_set_status
+from .views import checkout, payplug_ipn, OrderDetailView, verify_payment
+from .views_staff import (
+    staff_login,
+    staff_me,
+    staff_orders_list,
+    staff_orders_pending_print,
+    staff_order_set_status,
+    staff_order_mark_printed,
+    staff_order_delete,
+)
 
 urlpatterns = [
-    path("checkout/", checkout),
-    path("payplug/ipn/", payplug_ipn),
-    path("orders/<uuid:token>/", OrderDetailView.as_view()),
-    path("staff/orders/", staff_orders_list),
-    path("staff/orders/<int:order_id>/status/", staff_order_set_status),
-    path("staff/login/", staff_login),
-    path("staff/me/", staff_me),
+    # Public
+    path("checkout/",           checkout),
+    path("payplug/ipn/",        payplug_ipn),
+    path("orders/<int:pk>/",    OrderDetailView.as_view()),
+    path("orders/<int:pk>/verify-payment/", verify_payment),
+
+    # Staff — auth
+    path("staff/login/",        staff_login),
+    path("staff/me/",           staff_me),
+
+    # Staff — orders
+    path("staff/orders/",                              staff_orders_list),
+    path("staff/orders/pending-print/",                staff_orders_pending_print),
+    path("staff/orders/<int:order_id>/status/",        staff_order_set_status),
+    path("staff/orders/<int:order_id>/printed/",       staff_order_mark_printed),
+    path("staff/orders/<int:order_id>/delete/",        staff_order_delete),
 ]

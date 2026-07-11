@@ -80,6 +80,47 @@ export default function StaffProductsPage() {
 
   useEffect(() => { setCurrentPage(1); }, [selectedCategory, selectedSubCategory]);
 
+  /* ── Reorder handlers ── */
+  async function reorderProduct(productId, direction) {
+    try {
+      const res = await authFetch(`${API}/staff/products/${productId}/reorder/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ direction }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setProducts(Array.isArray(data) ? data : []);
+      setCurrentPage(1);
+    } catch (e) { setError(String(e.message || e)); }
+  }
+
+  async function reorderCategory(catId, direction) {
+    try {
+      const res = await authFetch(`${API}/staff/categories/${catId}/reorder/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ direction }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (e) { setError(String(e.message || e)); }
+  }
+
+  async function reorderSubcategory(subId, direction) {
+    try {
+      const res = await authFetch(`${API}/staff/subcategories/${subId}/reorder/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ direction }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setSubcategories(Array.isArray(data) ? data : []);
+    } catch (e) { setError(String(e.message || e)); }
+  }
+
   /* ── Form handlers ── */
   function onChange(e) {
     const { name, value, type, checked } = e.target;
@@ -241,6 +282,7 @@ export default function StaffProductsPage() {
         onPageChange={setCurrentPage}
         onOpenCreate={openCreate}
         onOpenEdit={openEdit}
+        onReorder={reorderProduct}
       />
 
       <ProductDrawer
@@ -254,6 +296,7 @@ export default function StaffProductsPage() {
         loading={loading}
         error={error}
         categories={categories}
+        subcategories={subcategories}
         formSubcategories={formSubcategories}
         newCategory={newCategory}
         setNewCategory={setNewCategory}
@@ -263,6 +306,8 @@ export default function StaffProductsPage() {
         setNewSubCategoryParentId={setNewSubCategoryParentId}
         onCreateCategory={createCategory}
         onCreateSubCategory={createSubCategory}
+        onReorderCategory={reorderCategory}
+        onReorderSubcategory={reorderSubcategory}
       />
     </>
   );

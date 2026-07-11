@@ -42,7 +42,7 @@ def checkout(request):
     pickup_time = (data.get("pickup_time") or "").strip()
     notes = (data.get("notes") or "").strip()
 
-    if not full_name or not email or not phone or not pickup_time:
+    if not full_name or not email or not pickup_time:
         return Response({"detail": "Champs client invalides."}, status=400)
     if not PICKUP_TIME_RE.match(pickup_time):
         return Response({"detail": "Créneau de retrait invalide."}, status=400)
@@ -130,18 +130,18 @@ def checkout(request):
             "first_name": first_name,
             "last_name": last_name,
             "email": email,
-            "address1": "Click & Collect",
-            "postcode": "00000",
-            "city": "—",
+            "address1": "53 boulevard Carnot",
+            "postcode": "06400",
+            "city": "Cannes",
             "country": "FR",
         },
         "shipping": {
             "first_name": first_name,
             "last_name": last_name,
             "email": email,
-            "address1": "Retrait sur place",
-            "postcode": "00000",
-            "city": "—",
+            "address1": "53 boulevard Carnot",
+            "postcode": "06400",
+            "city": "Cannes",
             "country": "FR",
         },
         "hosted_payment": {"return_url": return_url, "cancel_url": cancel_url},
@@ -154,17 +154,46 @@ def checkout(request):
     except Exception as e:
         return Response({"detail": f"Payplug error: {str(e)}"}, status=400)
 
-    order.payment_id = str(getattr(payment, "id", "")) or order.payment_id
-    order.payment_url = payment.hosted_payment.payment_url
-    order.save(update_fields=["payment_id", "payment_url"])
+    with transaction.atomic():
+        order.payment_id = str(getattr(payment, "id", "")) or order.payment_id
+        order.payment_url = payment.hosted_payment.payment_url
+        order.save(update_fields=["payment_id", "payment_url"])
 
-    return Response(
-        {
-            "order_id": order.id,
-            "order_token": str(order.public_token),
-            "payment_url": order.payment_url,
-        },
-        status=201,
+    return Response({"order_id": order.id, "payment_url": order.payment_url}, status=201)
+
+
+
+
+
+# orders/views.py (suite)
+import base64
+import requests as http_requests
+
+from django.db import transaction
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+import payplug
+
+from .models import Order
+from .receipt import generate_receipt_pdf
+from .emails import send_order_status_email
+
+
+def _send_receipt_email(order):
+    """Wrapper legacy — utilise système unifié SMTP Gmail."""
+    send_order_status_email(order, status="paid")
+
+
+def _extract_payment_id(payload: dict):
+    if not isinstance(payload, dict):
+        return None
+    return (
+        payload.get("id")
+        or payload.get("payment_id")
+        or (payload.get("payment") or {}).get("id")
+        or (payload.get("data") or {}).get("id")
     )
 
 
@@ -173,5 +202,55 @@ class OrderDetailView(RetrieveAPIView):
     queryset = Order.objects.prefetch_related("items")
     serializer_class = OrderSerializer
     permission_classes = [AllowAny]
-    lookup_field = "public_token"
-    lookup_url_kwarg = "token"
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def verify_payment(request, pk):
+    """
+    Pull-based payment verification — ne dépend pas de l'IPN Payplug.
+    Appelé par la page /success pour confirmer le paiement même si IPN retardée
+    ou injoignable (ex: dev localhost).
+    """
+    try:
+        order = Order.objects.get(id=pk)
+    except Order.DoesNotExist:
+        return Response({"detail": "Commande introuvable."}, status=404)
+
+    if order.status == "paid":
+        return Response(OrderSerializer(order).data)
+
+    if not order.payment_id:
+        return Response(OrderSerializer(order).data)
+
+    if not settings.PAYPLUG_SECRET_KEY:
+        return Response({"detail": "PAYPLUG_SECRET_KEY missing."}, status=500)
+
+    payplug.set_secret_key(settings.PAYPLUG_SECRET_KEY)
+    payplug.set_api_version(settings.PAYPLUG_API_VERSION)
+
+    try:
+        payment = payplug.Payment.retrieve(order.payment_id)
+    except Exception:
+        return Response(OrderSerializer(order).data)
+
+    is_paid  = bool(getattr(payment, "is_paid", False))
+    amount   = getattr(payment, "amount", None)
+    currency = getattr(payment, "currency", None)
+
+    if not is_paid:
+        return Response(OrderSerializer(order).data)
+    if currency and currency != "EUR":
+        return Response(OrderSerializer(order).data)
+    if amount is None or int(amount) != int(order.total_cents):
+        return Response(OrderSerializer(order).data)
+
+    with transaction.atomic():
+        o = Order.objects.select_for_update().get(id=order.id)
+        if o.status != "paid":
+            o.status = "paid"
+            o.save(update_fields=["status"])
+            _send_receipt_email(o)
+        order = o
+
+    return Response(OrderSerializer(order).data)

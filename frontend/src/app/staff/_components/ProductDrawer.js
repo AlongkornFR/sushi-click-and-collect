@@ -20,6 +20,7 @@ export default function ProductDrawer({
   loading,
   error,
   categories,
+  subcategories,
   formSubcategories,
   // Category management
   newCategory,
@@ -30,6 +31,8 @@ export default function ProductDrawer({
   setNewSubCategoryParentId,
   onCreateCategory,
   onCreateSubCategory,
+  onReorderCategory,
+  onReorderSubcategory,
 }) {
   const [catOpen, setCatOpen] = useState(false);
 
@@ -161,6 +164,34 @@ export default function ProductDrawer({
                   </form>
                 </div>
 
+                {categories.length > 0 && (
+                  <>
+                    <div className="h-px bg-zinc-200" />
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-zinc-400">
+                        Ordre des catégories
+                      </p>
+                      <div className="space-y-1">
+                        {categories.map(c => (
+                          <div key={c.id} className="flex items-center justify-between rounded-lg bg-white px-3 py-1.5">
+                            <span className="truncate text-sm text-zinc-700">{c.name}</span>
+                            <div className="ml-2 flex shrink-0 gap-1">
+                              <button type="button" onClick={() => onReorderCategory(c.id, "up")}
+                                className="cursor-pointer rounded px-1.5 py-0.5 text-sm text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 active:scale-95">
+                                ↑
+                              </button>
+                              <button type="button" onClick={() => onReorderCategory(c.id, "down")}
+                                className="cursor-pointer rounded px-1.5 py-0.5 text-sm text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 active:scale-95">
+                                ↓
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 <div className="h-px bg-zinc-200" />
 
                 <div>
@@ -191,6 +222,39 @@ export default function ProductDrawer({
                     </div>
                   </form>
                 </div>
+
+                {newSubCategoryParentId && (() => {
+                  const filtered = subcategories.filter(
+                    sc => String(sc.category?.id || sc.category_id) === String(newSubCategoryParentId)
+                  );
+                  return filtered.length > 0 ? (
+                    <>
+                      <div className="h-px bg-zinc-200" />
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-zinc-400">
+                          Ordre des sous-catégories
+                        </p>
+                        <div className="space-y-1">
+                          {filtered.map(sc => (
+                            <div key={sc.id} className="flex items-center justify-between rounded-lg bg-white px-3 py-1.5">
+                              <span className="truncate text-sm text-zinc-700">{sc.name}</span>
+                              <div className="ml-2 flex shrink-0 gap-1">
+                                <button type="button" onClick={() => onReorderSubcategory(sc.id, "up")}
+                                  className="cursor-pointer rounded px-1.5 py-0.5 text-sm text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 active:scale-95">
+                                  ↑
+                                </button>
+                                <button type="button" onClick={() => onReorderSubcategory(sc.id, "down")}
+                                  className="cursor-pointer rounded px-1.5 py-0.5 text-sm text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 active:scale-95">
+                                  ↓
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : null;
+                })()}
               </div>
             )}
           </div>

@@ -7,7 +7,7 @@ export default function CGVPage() {
         Conditions générales de vente
       </h1>
 
-      <div className="space-y-8 text-sm md:text-base text-zinc-700 leading-relaxed">
+      <div className="space-y-8 text-sm md:text-base text-zinc-700 dark:text-zinc-200 leading-relaxed">
         {/* Intro */}
         <p>
           Il est recommandé de rédiger les présentes conditions générales de
@@ -307,7 +307,7 @@ export default function CGVPage() {
           </p>
         </section>
 
-        <p className="text-xs text-zinc-500 mt-10">
+        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-10">
           Dernière mise à jour : 2026
         </p>
       </div>
