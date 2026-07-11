@@ -54,8 +54,9 @@ function CheckIcon() {
 }
 
 export default function SuccessPageClient() {
-  const sp      = useSearchParams();
-  const orderId = sp.get("order_id");
+  const sp = useSearchParams();
+  // Token public (UUID) de la commande — non devinable, contrairement à l'ID.
+  const orderToken = sp.get("order");
   const { clear } = useCart();
 
   const [order, setOrder]   = useState(null);
@@ -66,9 +67,9 @@ export default function SuccessPageClient() {
     setError("");
     setOrder(null);
 
-    if (!orderId) {
+    if (!orderToken) {
       setLoading(false);
-      setError("order_id manquant dans l'URL.");
+      setError("Référence de commande manquante dans l'URL.");
       return;
     }
 
@@ -77,7 +78,7 @@ export default function SuccessPageClient() {
 
     const fetchOrder = async () => {
       try {
-        const res = await api.get(`orders/${orderId}/`);
+        const res = await api.get(`orders/${orderToken}/`);
         if (cancelled) return;
         setOrder(res.data);
         setLoading(false);
@@ -94,7 +95,7 @@ export default function SuccessPageClient() {
 
     fetchOrder();
     return () => { cancelled = true; };
-  }, [orderId]);
+  }, [orderToken]);
 
   useEffect(() => {
     if (!order || order.status !== "paid") return;

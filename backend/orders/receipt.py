@@ -1,4 +1,6 @@
 import io
+
+from django.utils import timezone
 from fpdf import FPDF
 
 
@@ -33,7 +35,7 @@ def generate_receipt_pdf(order) -> bytes:
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(80, 80, 80)
 
-    created = order.created_at.strftime("%d/%m/%Y a %H:%M")
+    created = timezone.localtime(order.created_at).strftime("%d/%m/%Y a %H:%M")
     pdf.cell(0, 6, f"Date         : {created}", ln=True)
     pdf.cell(0, 6, f"Client       : {order.full_name}", ln=True)
     pdf.cell(0, 6, f"Email        : {order.email}", ln=True)
