@@ -17,8 +17,10 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
+        # payment_id volontairement absent : identifiant interne Payplug,
+        # inutile côté client.
         fields = [
             "id", "status", "total_cents", "pickup_time", "notes",
-            "payment_provider", "payment_id", "payment_url", "created_at",
+            "payment_provider", "payment_url", "created_at",
             "items",
         ]

@@ -30,6 +30,15 @@ def _auto_collect_ready_orders():
 
 # ── Liste des commandes ────────────────────────────────────────────────────────
 
+DEFAULT_LIMIT = 200
+MAX_LIMIT = 500
+
+
+class StaffLoginThrottle(AnonRateThrottle):
+    """Limite les tentatives de connexion staff (anti brute-force)."""
+    scope = "staff_login"
+
+
 @api_view(["GET"])
 @permission_classes([IsAdminUser])
 def staff_orders_list(request):
@@ -47,6 +56,14 @@ def staff_orders_list(request):
         if dt:
             qs = qs.filter(created_at__gte=dt)
 
+    # pagination simple (limit/offset), réponse inchangée : un tableau
+    try:
+        limit = min(int(request.query_params.get("limit", DEFAULT_LIMIT)), MAX_LIMIT)
+        offset = max(int(request.query_params.get("offset", 0)), 0)
+    except (TypeError, ValueError):
+        limit, offset = DEFAULT_LIMIT, 0
+
+    qs = qs[offset:offset + limit]
     return Response(OrderStaffSerializer(qs, many=True).data)
 
 
@@ -134,6 +151,7 @@ def staff_order_delete(request, order_id: int):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([StaffLoginThrottle])
 def staff_login(request):
     data     = request.data or {}
     username = (data.get("username") or "").strip()

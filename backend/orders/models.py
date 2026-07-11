@@ -1,4 +1,6 @@
 # orders/models.py
+import uuid
+
 from django.db import models
 from django.contrib.auth import get_user_model
 
@@ -13,6 +15,11 @@ class Order(models.Model):
         ("collected", "Collected"),
         ("cancelled", "Cancelled"),
     ]
+
+    # Token public non devinable : utilisé pour consulter la commande
+    # côté client (à la place de l'ID séquentiel, qui exposerait les
+    # données personnelles de n'importe quelle commande).
+    public_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     full_name = models.CharField(max_length=120)

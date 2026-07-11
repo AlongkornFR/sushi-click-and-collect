@@ -50,8 +50,9 @@ function CheckIcon() {
 }
 
 export default function SuccessPageClient() {
-  const sp      = useSearchParams();
-  const orderId = sp.get("order_id");
+  const sp = useSearchParams();
+  // Token public (UUID) de la commande — non devinable, contrairement à l'ID.
+  const orderToken = sp.get("order");
   const { clear } = useCart();
 
   const [order, setOrder]   = useState(null);
@@ -76,7 +77,7 @@ export default function SuccessPageClient() {
 
     const pollStatus = async () => {
       try {
-        const res = await api.get(`orders/${orderId}/`);
+        const res = await api.get(`orders/${orderToken}/`);
         if (cancelled) return;
         if (res.data.status === "paid") { finalize(res.data); return; }
         tries += 1;
@@ -105,7 +106,7 @@ export default function SuccessPageClient() {
     })();
 
     return () => { cancelled = true; };
-  }, [orderId]);
+  }, [orderToken]);
 
   useEffect(() => {
     if (!order || order.status !== "paid") return;

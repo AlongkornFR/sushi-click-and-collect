@@ -22,11 +22,24 @@ load_dotenv(BASE_DIR / ".env")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-1w1w0g93*57)7h+hwcd8t4l3*e(hzputg2y2eb3qt400=a(78(")
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "False") == "True"
+
+# SECURITY WARNING: keep the secret key used in production secret!
+# En production (DEBUG=False), SECRET_KEY DOIT être définie dans
+# l'environnement — sinon on refuse de démarrer plutôt que de tourner
+# silencieusement avec une clé publique connue.
+SECRET_KEY = os.environ.get("SECRET_KEY", "")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-dev-only-do-not-use-in-prod"
+    else:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured(
+            "La variable d'environnement SECRET_KEY est obligatoire quand DEBUG=False. "
+            "Générez-en une avec : python -c \"from django.core.management.utils import "
+            "get_random_secret_key; print(get_random_secret_key())\""
+        )
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".ngrok-free.app", ".ngrok-free.dev", ".onrender.com"]
 
@@ -82,6 +95,10 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.TokenAuthentication",
     ],
+    # Anti brute-force sur le login staff (voir orders.views_staff.StaffLoginThrottle)
+    "DEFAULT_THROTTLE_RATES": {
+        "staff_login": "5/min",
+    },
 }
 
 WSGI_APPLICATION = 'backend.wsgi.application'
@@ -128,9 +145,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'fr-fr'
 
-TIME_ZONE = 'UTC'
+# Les dates restent stockées en UTC en base (USE_TZ=True), mais les
+# affichages (admin, reçus via localtime) sont en heure française.
+TIME_ZONE = 'Europe/Paris'
 
 USE_I18N = True
 
