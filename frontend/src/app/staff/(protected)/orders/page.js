@@ -8,7 +8,7 @@ import { FaPrint, FaTrash, FaList, FaTh } from "react-icons/fa";
 
 /* ── Status config ── */
 const STATUS_CONFIG = {
-  pending:   { label: "En attente",     badge: "bg-amber-100 text-amber-700",    dot: "bg-amber-400"  },
+  pending:   { label: "Non payée",      badge: "bg-amber-100 text-amber-700",    dot: "bg-amber-400"  },
   paid:      { label: "Payée",          badge: "bg-blue-100 text-blue-700",      dot: "bg-blue-400"   },
   preparing: { label: "En préparation", badge: "bg-orange-100 text-orange-700",  dot: "bg-orange-400" },
   ready:     { label: "Prête",          badge: "bg-emerald-100 text-emerald-700",dot: "bg-emerald-400"},
@@ -17,8 +17,8 @@ const STATUS_CONFIG = {
 };
 
 const STATUS_ACTIONS = {
+  // Non payée : rien à préparer. Le staff peut seulement l'annuler.
   pending:   [
-    { label: "En préparation", status: "preparing", style: "primary" },
     { label: "Annuler",        status: "cancelled", style: "danger"  },
   ],
   paid:      [
@@ -44,7 +44,7 @@ const BENTO_COLUMNS = [
     key: "new",
     title: "Nouvelles",
     subtitle: "À prendre en charge",
-    statuses: ["pending", "paid"],
+    statuses: ["paid"],
     accent: "border-blue-500/30 bg-blue-500/5",
     headerAccent: "text-blue-400",
     dot: "bg-blue-400",
@@ -189,6 +189,7 @@ export default function StaffOrdersPage() {
   // ── Impression manuelle ────────────────────────────────────────────────────
 
   async function handlePrint(order) {
+    if (order.status === "pending") return; // jamais de ticket cuisine pour une commande non payée
     setPrintingId(order.id);
     setPrintError("");
     try {
@@ -304,7 +305,8 @@ export default function StaffOrdersPage() {
   }, [token]);
 
   /* ── Stats ── */
-  const pendingCount   = orders.filter(o => o.status === "pending" || o.status === "paid").length;
+  const pendingCount   = orders.filter(o => o.status === "paid").length;
+  const awaitingPayment = orders.filter(o => o.status === "pending");
   const preparingCount = orders.filter(o => o.status === "preparing").length;
   const readyCount     = orders.filter(o => o.status === "ready").length;
 
@@ -419,6 +421,7 @@ export default function StaffOrdersPage() {
           )}
           {/* Icon buttons */}
           <div className="flex shrink-0 items-center gap-1.5">
+            {o.status !== "pending" && (
             <button
               type="button"
               onClick={() => handlePrint(o)}
@@ -435,6 +438,7 @@ export default function StaffOrdersPage() {
                 : <FaPrint className="text-xs" />
               }
             </button>
+            )}
             <button
               type="button"
               onClick={() => deleteOrder(o.id)}
@@ -464,7 +468,7 @@ export default function StaffOrdersPage() {
         ) : (
           <>
             <StatCard label="Total"          value={orders.length} />
-            <StatCard label="En attente"     value={pendingCount}   color="text-amber-400" />
+            <StatCard label="Nouvelles"      value={pendingCount}   color="text-amber-400" />
             <StatCard label="En préparation" value={preparingCount} color="text-orange-400" />
             <StatCard label="Prêtes"         value={readyCount}     color="text-emerald-400" />
           </>
@@ -585,6 +589,16 @@ export default function StaffOrdersPage() {
         ) : viewMode === "bento" ? (
           /* ── VUE BENTO KANBAN ── */
           <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-4">
+            {awaitingPayment.length > 0 && !statusFilter && (
+              <details className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 md:col-span-2 xl:col-span-4">
+                <summary className="cursor-pointer px-1 text-sm font-semibold text-white/60">
+                  Paiement en cours ({awaitingPayment.length}) : non payées, ne pas préparer
+                </summary>
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {awaitingPayment.map(o => renderOrderCard(o, { compact: true }))}
+                </div>
+              </details>
+            )}
             {BENTO_COLUMNS.map(col => {
               const list = ordersByColumn[col.key] || [];
               return (

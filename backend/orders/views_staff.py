@@ -15,6 +15,8 @@ from .serializers_staff import OrderStaffSerializer
 from .emails import send_order_status_email
 
 ALLOWED_STATUSES = {"pending", "paid", "preparing", "ready", "collected", "cancelled"}
+# Seules les commandes payées et encore en cours partent en cuisine.
+PRINTABLE_STATUSES = ("paid", "preparing", "ready")
 AUTO_COLLECT_AFTER = timedelta(hours=2)
 
 
@@ -55,12 +57,14 @@ def staff_orders_list(request):
 @api_view(["GET"])
 @permission_classes([IsAdminUser])
 def staff_orders_pending_print(request):
-    """Retourne les commandes avec printed=False, ordonnées par date de création."""
+    """Commandes payées non encore imprimées, par date de création.
+
+    Une commande "pending" n'est pas payée : elle ne doit jamais partir en cuisine.
+    """
     qs = (
         Order.objects
         .prefetch_related("items")
-        .filter(printed=False)
-        .exclude(status="cancelled")
+        .filter(printed=False, status__in=PRINTABLE_STATUSES)
         .order_by("created_at")
     )
     return Response(OrderStaffSerializer(qs, many=True).data)

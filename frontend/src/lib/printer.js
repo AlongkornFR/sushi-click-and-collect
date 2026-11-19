@@ -107,6 +107,9 @@ function padLine(left, right) {
 }
 
 function buildTicket(order) {
+  if (order.status === "pending") {
+    throw new Error(`Commande #${order.id} non payée : pas de ticket cuisine.`);
+  }
   const items = order.items || [];
   const total = (order.total_cents / 100).toFixed(2);
 
@@ -120,6 +123,7 @@ function buildTicket(order) {
   t += ESC.NORMAL + ESC.BOLD_OFF;
   t += "\n";
   t += ESC.BOLD_ON + `Commande #${order.id}` + ESC.BOLD_OFF + "\n";
+  t += ESC.BOLD_ON + `PAYEE - ${total} EUR` + ESC.BOLD_OFF + "\n";
   t += "\n";
 
   // Infos client
