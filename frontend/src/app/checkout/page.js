@@ -146,13 +146,37 @@ export default function CheckoutPage() {
 
   const canSubmit = Object.keys(validation).length === 0 && !loading;
 
-  const setField   = (name, value) => setForm(p => ({ ...p, [name]: value }));
+  // Ce qui manque encore, affiché sous le bouton (lot H4).
+  const MISSING_LABELS = {
+    full_name: "votre nom",
+    phone: "votre téléphone",
+    email: "votre email",
+    pickup_time: "l'heure de retrait",
+  };
+  const missing = Object.keys(validation).filter(k => MISSING_LABELS[k]).map(k => MISSING_LABELS[k]);
+
+  function focusFirstInvalid() {
+    const order = ["full_name", "phone", "email", "pickup_time"];
+    const first = order.find(k => validation[k]);
+    const el = first && document.getElementById(first === "pickup_time" ? "pickup-section" : first);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (el.tagName === "INPUT") el.focus({ preventScroll: true });
+  }
+
+  // Toute saisie efface le message d'erreur précédent : il serait périmé.
+  const setField   = (name, value) => { setError(""); setForm(p => ({ ...p, [name]: value })); };
   const markTouched = (name) => setTouched(t => ({ ...t, [name]: true }));
 
   async function handlePay() {
     setError("");
     setTouched({ full_name: true, email: true, phone: true, pickup_time: true });
-    if (!canSubmit) { setError("Veuillez corriger les champs indiqués."); return; }
+    if (loading) return;
+    if (!canSubmit) {
+      setError(`Il manque ${missing.join(", ")}.`);
+      focusFirstInvalid();
+      return;
+    }
     setLoading(true);
     try {
       const payload = {
@@ -197,12 +221,6 @@ export default function CheckoutPage() {
 
           {/* Customer info card */}
           <div className="rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6">
-
-            {error && (
-              <div className="mb-5 rounded-xl border border-red-100 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
-                {error}
-              </div>
-            )}
 
             {customer ? (
               /* ── Logged in: show account summary ── */
@@ -261,8 +279,10 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <FormField label="Nom & prénom" error={touched.full_name ? validation.full_name : ""}>
+                  <FormField id="full_name" label="Nom & prénom" error={touched.full_name ? validation.full_name : ""}>
                     <input
+                      name="full_name"
+                      autoComplete="name"
                       value={form.full_name}
                       onChange={e => setField("full_name", e.target.value)}
                       onBlur={() => markTouched("full_name")}
@@ -271,8 +291,12 @@ export default function CheckoutPage() {
                     />
                   </FormField>
 
-                  <FormField label="Téléphone" error={touched.phone ? validation.phone : ""}>
+                  <FormField id="phone" label="Téléphone" error={touched.phone ? validation.phone : ""}>
                     <input
+                      name="phone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
                       value={form.phone}
                       onChange={e => setField("phone", e.target.value)}
                       onBlur={() => markTouched("phone")}
@@ -282,8 +306,12 @@ export default function CheckoutPage() {
                   </FormField>
 
                   <div className="md:col-span-2">
-                    <FormField label="Email" error={touched.email ? validation.email : ""}>
+                    <FormField id="email" label="Email" error={touched.email ? validation.email : ""}>
                       <input
+                        name="email"
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
                         value={form.email}
                         onChange={e => setField("email", e.target.value)}
                         onBlur={() => markTouched("email")}
@@ -298,12 +326,12 @@ export default function CheckoutPage() {
           </div>
 
           {/* Pickup time card */}
-          <div className="rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6">
+          <div id="pickup-section" className="scroll-mt-28 rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6">
             <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
               Heure de retrait
             </h2>
             <p className="mb-4 text-xs text-zinc-400 dark:text-white/30">
-              Préparation ~ {schedule?.prep_minutes ?? 20} min en fonction de l'heure ou vous commander la commande il y a peut être de l'attente
+              Comptez au moins {schedule?.prep_minutes ?? 20} minutes de préparation. Aux heures d&apos;affluence, l&apos;attente peut être plus longue.
             </p>
 
             {scheduleError && (
@@ -334,7 +362,7 @@ export default function CheckoutPage() {
             </div>
 
             {touched.pickup_time && validation.pickup_time && (
-              <p className="mb-3 text-xs text-red-500 dark:text-red-400">{validation.pickup_time}</p>
+              <p role="alert" className="mb-3 text-xs text-red-500 dark:text-red-400">{validation.pickup_time}</p>
             )}
 
             {schedule && services.length === 0 ? (
@@ -433,15 +461,24 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 onClick={handlePay}
-                disabled={!canSubmit}
-                className={`mt-5 w-full cursor-pointer rounded-xl py-3.5 text-sm font-semibold transition active:scale-[.98] ${
-                  canSubmit
-                    ? "bg-[#FFC366] text-black hover:bg-[#ffb347]"
-                    : "cursor-not-allowed bg-zinc-100 dark:bg-white/10 text-zinc-400 dark:text-white/30"
-                }`}
+                disabled={loading}
+                aria-describedby="pay-hint"
+                className="mt-5 w-full cursor-pointer rounded-xl bg-[#FFC366] py-3.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-[.98] disabled:cursor-wait disabled:opacity-70"
               >
                 {loading ? "Redirection…" : "Payer maintenant"}
               </button>
+
+              <div id="pay-hint" aria-live="polite">
+                {error ? (
+                  <p role="alert" className="mt-3 rounded-xl border border-red-100 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 px-3 py-2.5 text-xs text-red-600 dark:text-red-400">
+                    {error}
+                  </p>
+                ) : missing.length > 0 ? (
+                  <p className="mt-3 text-xs text-zinc-500 dark:text-white/50">
+                    Pour payer, indiquez {missing.join(", ")}.
+                  </p>
+                ) : null}
+              </div>
 
               <div className="mt-4 space-y-1.5 border-t border-zinc-100 dark:border-white/10 pt-4">
                 <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-white/30">

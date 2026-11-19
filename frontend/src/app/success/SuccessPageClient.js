@@ -224,7 +224,14 @@ export default function SuccessPageClient() {
             <FaMapMarkerAlt className="shrink-0 text-zinc-300 dark:text-white/20" />
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-white/30">Lieu</p>
-              <p className="text-sm font-semibold text-zinc-900 dark:text-white">Su-Rice · Cannes</p>
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=Su-Rice%2053%20boulevard%20Carnot%20Cannes"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-semibold text-zinc-900 underline-offset-2 hover:underline dark:text-white"
+              >
+                53 bd Carnot, Cannes
+              </a>
             </div>
           </div>
         </div>
@@ -251,6 +258,18 @@ export default function SuccessPageClient() {
             <span className="text-lg font-bold text-zinc-900 dark:text-white">{formatEURFromCents(order.total_cents)}</span>
           </div>
         )}
+      </div>
+
+      <div className="success-content mt-6 rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] px-5 py-4 text-sm text-zinc-600 dark:text-white/60">
+        <p className="font-semibold text-zinc-900 dark:text-white">Pour récupérer votre commande</p>
+        <p className="mt-1.5">
+          Présentez-vous au comptoir à l&apos;heure choisie et donnez le numéro{" "}
+          <span className="font-semibold text-zinc-900 dark:text-white">#{order.id}</span>.
+        </p>
+        <p className="mt-1.5">
+          Un empêchement ou un retard ? Appelez-nous au{" "}
+          <a href="tel:+33493680812" className="font-semibold text-zinc-900 underline dark:text-white">04 93 68 08 12</a>.
+        </p>
       </div>
 
       <div className="success-content mt-6 text-center">
