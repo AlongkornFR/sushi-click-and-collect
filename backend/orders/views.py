@@ -115,8 +115,9 @@ def checkout(request):
     payplug.set_secret_key(settings.PAYPLUG_SECRET_KEY)
     payplug.set_api_version(settings.PAYPLUG_API_VERSION)
 
-    return_url = f"{settings.FRONTEND_BASE_URL}/success?order_id={order.id}"
-    cancel_url = f"{settings.FRONTEND_BASE_URL}/cancel?order_id={order.id}"
+    query = f"order_id={order.id}&token={order.public_token}"
+    return_url = f"{settings.FRONTEND_BASE_URL}/success?{query}"
+    cancel_url = f"{settings.FRONTEND_BASE_URL}/cancel?{query}"
     notification_url = f"{settings.BACKEND_BASE_URL}/api/payplug/ipn/"
 
     first_name, last_name = split_name(full_name)
@@ -157,7 +158,10 @@ def checkout(request):
         order.payment_url = payment.hosted_payment.payment_url
         order.save(update_fields=["payment_id", "payment_url"])
 
-    return Response({"order_id": order.id, "payment_url": order.payment_url}, status=201)
+    return Response(
+        {"order_id": order.id, "token": str(order.public_token), "payment_url": order.payment_url},
+        status=201,
+    )
 
 
 
@@ -272,58 +276,38 @@ def payplug_ipn(request):
     return Response({"ok": True, "paid": False}, status=status.HTTP_200_OK)
 
 from rest_framework.generics import RetrieveAPIView
-from rest_framework.permissions import AllowAny
-from .models import Order
-from .serializers import OrderSerializer
-
-class OrderDetailView(RetrieveAPIView):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
-    permission_classes = [AllowAny]
+from .serializers import OrderSerializer, OrderStatusSerializer
 
 
-@api_view(["POST"])
-@permission_classes([AllowAny])
-def verify_payment(request, pk):
+def _confirm_payment_if_paid(order):
+    """Interroge Payplug et passe la commande en "paid" si le paiement est confirmé.
+
+    Ne dépend pas de l'IPN : appelé par la page /success. Seule une commande
+    "pending" peut devenir "paid". Renvoie la commande à jour, sans jamais
+    lever d'erreur vers le client.
     """
-    Pull-based payment verification — ne dépend pas de l'IPN Payplug.
-    Appelé par la page /success pour confirmer le paiement même si IPN retardée
-    ou injoignable (ex: dev localhost).
-    """
-    try:
-        order = Order.objects.get(id=pk)
-    except Order.DoesNotExist:
-        return Response({"detail": "Commande introuvable."}, status=404)
-
-    # Seule une commande "pending" peut devenir "paid" : on ne touche jamais
-    # au statut d'une commande déjà payée, en cuisine, récupérée ou annulée.
-    if order.status != "pending":
-        return Response(OrderSerializer(order).data)
-
-    if not order.payment_id:
-        return Response(OrderSerializer(order).data)
-
+    if order.status != "pending" or not order.payment_id:
+        return order
     if not settings.PAYPLUG_SECRET_KEY:
-        return Response({"detail": "PAYPLUG_SECRET_KEY missing."}, status=500)
+        logger.error("PAYPLUG_SECRET_KEY absente : impossible de vérifier la commande #%s.", order.id)
+        return order
 
     payplug.set_secret_key(settings.PAYPLUG_SECRET_KEY)
     payplug.set_api_version(settings.PAYPLUG_API_VERSION)
-
     try:
         payment = payplug.Payment.retrieve(order.payment_id)
     except Exception:
-        return Response(OrderSerializer(order).data)
+        logger.exception("Payplug injoignable pour la commande #%s.", order.id)
+        return order
 
-    is_paid  = bool(getattr(payment, "is_paid", False))
-    amount   = getattr(payment, "amount", None)
+    amount = getattr(payment, "amount", None)
     currency = getattr(payment, "currency", None)
-
-    if not is_paid:
-        return Response(OrderSerializer(order).data)
+    if not getattr(payment, "is_paid", False):
+        return order
     if currency and currency != "EUR":
-        return Response(OrderSerializer(order).data)
+        return order
     if amount is None or int(amount) != int(order.total_cents):
-        return Response(OrderSerializer(order).data)
+        return order
 
     with transaction.atomic():
         o = Order.objects.select_for_update().get(id=order.id)
@@ -332,6 +316,45 @@ def verify_payment(request, pk):
             o.save(update_fields=["status"])
             _send_receipt_email(o)
             award_point_for_order(o)
-        order = o
+    return o
 
-    return Response(OrderSerializer(order).data)
+
+# ── Accès client par jeton (lot C5) ─────────────────────────────────────────
+
+class OrderByTokenView(RetrieveAPIView):
+    """Détail d'une commande, accessible seulement avec son jeton public."""
+    queryset = Order.objects.prefetch_related("items")
+    serializer_class = OrderSerializer
+    permission_classes = [AllowAny]
+    lookup_field = "public_token"
+    lookup_url_kwarg = "token"
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def verify_payment_by_token(request, token):
+    try:
+        order = Order.objects.get(public_token=token)
+    except Order.DoesNotExist:
+        return Response({"detail": "Commande introuvable."}, status=404)
+    return Response(OrderSerializer(_confirm_payment_if_paid(order)).data)
+
+
+# ── Anciennes routes par ID (transition) ────────────────────────────────────
+# Gardées pour les clients partis payer avant le déploiement : elles ne
+# renvoient plus que l'ID et le statut, jamais le contenu de la commande.
+
+class OrderDetailView(RetrieveAPIView):
+    queryset = Order.objects.all()
+    serializer_class = OrderStatusSerializer
+    permission_classes = [AllowAny]
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def verify_payment(request, pk):
+    try:
+        order = Order.objects.get(id=pk)
+    except Order.DoesNotExist:
+        return Response({"detail": "Commande introuvable."}, status=404)
+    return Response(OrderStatusSerializer(_confirm_payment_if_paid(order)).data)

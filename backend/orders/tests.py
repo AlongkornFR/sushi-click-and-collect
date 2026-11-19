@@ -8,7 +8,9 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import SimpleTestCase, TestCase, override_settings
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
@@ -157,8 +159,18 @@ class CheckoutTests(OrderFixturesMixin, TestCase):
 
     def test_order_detail_exposes_pickup_label(self, _create):
         res = self.client.post("/api/checkout/", self.checkout_payload(), format="json")
-        detail = self.client.get(f"/api/orders/{res.data['order_id']}/")
+        detail = self.client.get(f"/api/orders/t/{res.data['token']}/")
         self.assertIn("à 12h30", detail.data["pickup_label"])
+
+    # Lot C5 : la commande se consulte avec un jeton, pas avec l'ID.
+    def test_checkout_returns_token_and_puts_it_in_return_url(self, create):
+        res = self.client.post("/api/checkout/", self.checkout_payload(), format="json")
+        order = Order.objects.get(id=res.data["order_id"])
+        self.assertEqual(res.data["token"], str(order.public_token))
+        urls = create.call_args.kwargs["hosted_payment"]
+        self.assertIn(f"token={order.public_token}", urls["return_url"])
+        self.assertIn(f"order_id={order.id}", urls["return_url"])
+        self.assertIn(f"token={order.public_token}", urls["cancel_url"])
 
 
 @override_settings(PAYPLUG_SECRET_KEY="sk_test_dummy")
@@ -346,3 +358,84 @@ class OpeningHoursTests(SimpleTestCase):
         self.assertEqual(days["6"], [])                       # samedi
         self.assertEqual(days["1"], [["12:00", "14:30"], ["19:15", "21:45"]])  # lundi
         self.assertEqual(days["5"][1], ["19:15", "22:00"])    # vendredi
+
+
+@override_settings(PAYPLUG_SECRET_KEY="sk_test_dummy")
+class OrderAccessTests(OrderFixturesMixin, TestCase):
+    """Lot C5 : le contenu d'une commande n'est lisible qu'avec son jeton."""
+
+    def setUp(self):
+        super().setUp()
+        self.order = self.make_order(notes="Allergie aux arachides")
+
+    def test_token_gives_full_order(self):
+        res = self.client.get(f"/api/orders/t/{self.order.public_token}/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["id"], self.order.id)
+        self.assertEqual(len(res.data["items"]), 1)
+        self.assertIn("payment_url", res.data)
+
+    def test_token_response_hides_payment_id_and_notes(self):
+        res = self.client.get(f"/api/orders/t/{self.order.public_token}/")
+        self.assertNotIn("payment_id", res.data)
+        self.assertNotIn("notes", res.data)
+
+    def test_unknown_token_is_404(self):
+        res = self.client.get("/api/orders/t/00000000-0000-0000-0000-000000000000/")
+        self.assertEqual(res.status_code, 404)
+
+    def test_sequential_id_only_gives_status(self):
+        res = self.client.get(f"/api/orders/{self.order.id}/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(set(res.data), {"id", "status"})
+
+    def test_legacy_verify_payment_only_gives_status(self):
+        with patch("orders.views.payplug.Payment.retrieve", return_value=fake_payment(self.order, is_paid=False)):
+            res = self.client.post(f"/api/orders/{self.order.id}/verify-payment/")
+        self.assertEqual(set(res.data), {"id", "status"})
+
+    @patch("orders.views.award_point_for_order")
+    @patch("orders.views._send_receipt_email")
+    def test_verify_payment_by_token_marks_paid(self, send_email, _award):
+        with patch("orders.views.payplug.Payment.retrieve", return_value=fake_payment(self.order)):
+            res = self.client.post(f"/api/orders/t/{self.order.public_token}/verify-payment/")
+        self.assertEqual(res.data["status"], "paid")
+        self.assertEqual(len(res.data["items"]), 1)
+        send_email.assert_called_once()
+
+    def test_each_order_gets_its_own_token(self):
+        other = self.make_order()
+        self.assertNotEqual(self.order.public_token, other.public_token)
+
+
+class PublicTokenMigrationTests(TransactionTestCase):
+    """La migration 0005 donne un jeton distinct à chaque commande existante."""
+
+    migrate_from = [("orders", "0004_order_pickup_at")]
+    migrate_to = [("orders", "0005_order_public_token")]
+
+    def test_existing_orders_get_distinct_tokens(self):
+        executor = MigrationExecutor(connection)
+        executor.migrate(self.migrate_from)
+        old_apps = executor.loader.project_state(self.migrate_from).apps
+        OldOrder = old_apps.get_model("orders", "Order")
+        ids = [
+            OldOrder.objects.create(full_name=f"Client {i}", email="c@example.com", phone="06",
+                                    pickup_time="12:30", total_cents=1000).id
+            for i in range(3)
+        ]
+
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        executor.migrate(self.migrate_to)
+        new_apps = executor.loader.project_state(self.migrate_to).apps
+        NewOrder = new_apps.get_model("orders", "Order")
+        tokens = list(NewOrder.objects.filter(id__in=ids).values_list("public_token", flat=True))
+        self.assertEqual(len(tokens), 3)
+        self.assertNotIn(None, tokens)
+        self.assertEqual(len(set(tokens)), 3)
+        self.assertEqual(NewOrder.objects.filter(id__in=ids).count(), 3)
+
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        executor.migrate(executor.loader.graph.leaf_nodes())

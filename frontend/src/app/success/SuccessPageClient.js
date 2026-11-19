@@ -63,6 +63,10 @@ function CheckIcon() {
 export default function SuccessPageClient() {
   const sp      = useSearchParams();
   const orderId = sp.get("order_id");
+  // Jeton public (lot C5). Sans jeton (client parti payer avant la mise à
+  // jour), l'ancienne route par ID ne renvoie que le statut.
+  const token   = sp.get("token");
+  const base    = token ? `orders/t/${token}/` : `orders/${orderId}/`;
   const { clear } = useCart();
 
   const [order, setOrder]   = useState(null);
@@ -73,7 +77,7 @@ export default function SuccessPageClient() {
     setError("");
     setOrder(null);
     setLoading(true);
-    if (!orderId) { setLoading(false); setError("order_id manquant dans l'URL."); return; }
+    if (!orderId && !token) { setLoading(false); setError("Lien de commande incomplet."); return; }
 
     let cancelled = false;
     const MAX_TRIES = 12;
@@ -87,7 +91,7 @@ export default function SuccessPageClient() {
 
     const pollStatus = async () => {
       try {
-        const res = await api.get(`orders/${orderId}/`);
+        const res = await api.get(base);
         if (cancelled) return;
         if (PAID_STATUSES.has(res.data.status) || res.data.status === "cancelled") { finalize(res.data); return; }
         tries += 1;
@@ -103,7 +107,7 @@ export default function SuccessPageClient() {
     (async () => {
       try {
         // Étape 1: force verify côté backend (pull Payplug — shortcut IPN)
-        const res = await api.post(`orders/${orderId}/verify-payment/`);
+        const res = await api.post(`${base}verify-payment/`);
         if (cancelled) return;
         if (PAID_STATUSES.has(res.data.status) || res.data.status === "cancelled") { finalize(res.data); return; }
         // Étape 2: si pas encore paid, on poll GET classique (IPN peut arriver après)
@@ -116,7 +120,7 @@ export default function SuccessPageClient() {
     })();
 
     return () => { cancelled = true; };
-  }, [orderId]);
+  }, [orderId, token, base]);
 
   useEffect(() => {
     if (!order || !PAID_STATUSES.has(order.status)) return;
@@ -213,7 +217,7 @@ export default function SuccessPageClient() {
             <FaClock className="shrink-0 text-zinc-300 dark:text-white/20" />
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-white/30">Retrait</p>
-              <p className="text-sm font-semibold text-zinc-900 dark:text-white">{order.pickup_label || order.pickup_time}</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-white">{order.pickup_label || order.pickup_time || "Voir l'email de confirmation"}</p>
             </div>
           </div>
           <div className="flex items-center gap-2.5 px-5 py-4">
@@ -241,10 +245,12 @@ export default function SuccessPageClient() {
           </div>
         )}
 
-        <div className="flex items-center justify-between border-t border-zinc-100 dark:border-white/10 px-5 py-4">
-          <span className="text-sm font-medium text-zinc-500 dark:text-white/50">Total payé</span>
-          <span className="text-lg font-bold text-zinc-900 dark:text-white">{formatEURFromCents(order.total_cents)}</span>
-        </div>
+        {order.total_cents != null && (
+          <div className="flex items-center justify-between border-t border-zinc-100 dark:border-white/10 px-5 py-4">
+            <span className="text-sm font-medium text-zinc-500 dark:text-white/50">Total payé</span>
+            <span className="text-lg font-bold text-zinc-900 dark:text-white">{formatEURFromCents(order.total_cents)}</span>
+          </div>
+        )}
       </div>
 
       <div className="success-content mt-6 text-center">

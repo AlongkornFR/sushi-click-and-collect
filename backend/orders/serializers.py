@@ -20,10 +20,20 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            "id", "status", "total_cents", "pickup_time", "pickup_at", "pickup_label", "notes",
-            "payment_provider", "payment_id", "payment_url", "created_at",
+            # payment_id et notes ne sont plus exposés publiquement (lot C5) :
+            # la note peut contenir des informations de santé (allergies).
+            "id", "status", "total_cents", "pickup_time", "pickup_at", "pickup_label",
+            "payment_provider", "payment_url", "created_at",
             "items",
         ]
 
     def get_pickup_label(self, obj):
         return pickup_label(obj)
+
+
+class OrderStatusSerializer(serializers.ModelSerializer):
+    """Réponse minimale des anciennes routes par ID."""
+
+    class Meta:
+        model = Order
+        fields = ["id", "status"]
