@@ -1,5 +1,6 @@
+import { SITE_URL as BASE } from "@/lib/site";
+
 // sitemap.xml (lot M8)
-const BASE = "https://su-rice.com";
 
 export default function sitemap() {
   return [

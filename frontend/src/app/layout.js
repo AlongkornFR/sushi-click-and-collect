@@ -6,7 +6,8 @@ import "./globals.css";
 import Footer from "@/components/common/Footer";
 import { Analytics } from "@vercel/analytics/next";
 
-const SITE_URL = "https://su-rice.com";
+import { INDEXABLE, SITE_URL } from "@/lib/site";
+
 const DESCRIPTION =
   "Sushis, makis et plats thaïlandais à commander en ligne et à retirer au 53 boulevard Carnot, à Cannes. Retrait du lundi au vendredi, midi et soir.";
 
@@ -19,6 +20,8 @@ export const metadata = {
   },
   description: DESCRIPTION,
   alternates: { canonical: "/" },
+  // Adresse temporaire : pas d'indexation tant que su-rice.com n'a pas basculé.
+  ...(INDEXABLE ? {} : { robots: { index: false, follow: false } }),
   openGraph: {
     type: "website",
     locale: "fr_FR",
