@@ -16,7 +16,7 @@ from products.views import VISIBLE
 from .models import Order, OrderItem
 from .opening_hours import PickupError, parse_pickup, public_schedule
 from .serializers import CheckoutSerializer, first_error_message
-from .services import PAUSE_MESSAGE, ordering_pause_state
+from .services import PAUSE_MESSAGE, mark_refund_needed, ordering_pause_state
 
 PAYMENT_UNAVAILABLE = (
     "Le paiement en ligne n'a pas pu démarrer. Réessayez dans un instant "
@@ -124,6 +124,7 @@ def checkout(request):
                 product_name=p.name,
                 unit_price_cents=unit_cents,
                 quantity=qty,
+                vat_rate=p.vat_rate,  # figé au moment de l'achat (lot A7)
             )
 
     # Paiement Payplug après la création de la commande
@@ -279,6 +280,7 @@ def payplug_ipn(request):
             if order.status == "cancelled" and is_paid:
                 logger.warning("Paiement %s reçu pour la commande annulée #%s : remboursement à prévoir.",
                                payment_id, order.id)
+                mark_refund_needed(order)
             return Response({"ok": True, "already_processed": True, "status": order.status},
                             status=status.HTTP_200_OK)
 

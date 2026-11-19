@@ -1,5 +1,6 @@
 # orders/models.py
 import uuid
+from decimal import Decimal
 
 from django.db import models
 from django.contrib.auth import get_user_model
@@ -42,6 +43,11 @@ class Order(models.Model):
 
     ready_at   = models.DateTimeField(null=True, blank=True)
 
+    # Lot A7 : suivi des remboursements (le remboursement se fait sur Payplug)
+    REFUND_CHOICES = [("", "Aucun"), ("to_refund", "À rembourser"), ("refunded", "Remboursée")]
+    refund_status = models.CharField(max_length=12, choices=REFUND_CHOICES, blank=True, default="", db_index=True)
+    refunded_at   = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -53,8 +59,11 @@ class OrderItem(models.Model):
 
     product_id = models.IntegerField()  # snapshot simple
     product_name = models.CharField(max_length=120)
-    unit_price_cents = models.PositiveIntegerField()
+    unit_price_cents = models.PositiveIntegerField()  # TTC
     quantity = models.PositiveIntegerField(default=1)
+    # Lot A7 : taux de TVA figé au moment de l'achat (changer le taux d'un
+    # produit ne modifie pas les ventes passées). 10 % pour l'existant.
+    vat_rate = models.DecimalField(max_digits=4, decimal_places=1, default=Decimal("10.0"))
 
     def line_total_cents(self):
         return self.unit_price_cents * self.quantity

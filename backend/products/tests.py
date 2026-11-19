@@ -136,3 +136,23 @@ class NewItemsGoLastTests(StaffCatalogBase):
                          "subcategory_id": self.sub.id}, format="json")
         group = Product.objects.filter(subcategory=self.sub).order_by("position", "name")
         self.assertEqual(group.last().name, "Aaa maki")
+
+
+class VatRateTests(StaffCatalogBase):
+    """Lot A7 : taux de TVA d'un produit (5,5 / 10 / 20 %)."""
+
+    def test_existing_products_default_to_10(self):
+        res = self.client.get("/api/staff/products/").data
+        self.assertEqual(float(res[0]["vat_rate"]), 10.0)
+
+    def test_set_each_allowed_rate(self):
+        for rate in ("5.5", "10.0", "20.0"):
+            res = self.client.patch(f"/api/staff/products/{self.p.id}/", {"vat_rate": rate}, format="json")
+            self.assertEqual(res.status_code, 200, res.data)
+            self.p.refresh_from_db()
+            self.assertEqual(self.p.vat_rate, Decimal(rate))
+
+    def test_other_rates_are_refused(self):
+        for rate in ("5", "15", "7.0"):
+            res = self.client.patch(f"/api/staff/products/{self.p.id}/", {"vat_rate": rate}, format="json")
+            self.assertEqual(res.status_code, 400)

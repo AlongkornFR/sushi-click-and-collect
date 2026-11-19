@@ -14,6 +14,7 @@ const NAV = [
   { href: "/staff/categories", label: "Catégories" },
   { href: "/staff/loyalty",    label: "Fidélité" },
   { href: "/staff/users",      label: "Clients" },
+  { href: "/staff/pilotage",   label: "Pilotage" },
 ];
 
 export default function StaffShell({ children, requireAuth = true }) {
