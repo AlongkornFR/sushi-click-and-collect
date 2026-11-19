@@ -22,11 +22,34 @@ load_dotenv(BASE_DIR / ".env")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-1w1w0g93*57)7h+hwcd8t4l3*e(hzputg2y2eb3qt400=a(78(")
+import sys
+
+from django.core.exceptions import ImproperlyConfigured
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "False") == "True"
+
+# Les tests Django tournent avec DEBUG=False : ils ont droit aux valeurs de
+# développement, comme un poste local avec DEBUG=True.
+_RUNNING_TESTS = len(sys.argv) > 1 and sys.argv[1] == "test"
+_DEV_FALLBACK_ALLOWED = DEBUG or _RUNNING_TESTS
+
+
+def _required_secret(name, dev_value=""):
+    """Lot H3 : en production, un secret manquant arrête le démarrage au lieu
+    de basculer silencieusement sur une valeur connue de tous."""
+    value = os.environ.get(name, "")
+    if value:
+        return value
+    if _DEV_FALLBACK_ALLOWED:
+        return dev_value
+    raise ImproperlyConfigured(
+        f"La variable d'environnement {name} est obligatoire en production (DEBUG=False)."
+    )
+
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = _required_secret("SECRET_KEY", dev_value="django-insecure-dev-only-not-for-production")
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".ngrok-free.app", ".ngrok-free.dev", ".onrender.com"]
 
@@ -212,9 +235,11 @@ LOYALTY_MAX_POINTS = 10
 # LOYALTY_ENCRYPTION_KEY (Fernet.generate_key()) in production — the
 # fallback derived from SECRET_KEY is dev-only convenience so the app
 # runs out of the box, but it changes if SECRET_KEY changes.
-_loyalty_key = os.environ.get("LOYALTY_ENCRYPTION_KEY", "")
-if not _loyalty_key:
-    import base64
-    import hashlib
-    _loyalty_key = base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()).decode()
-LOYALTY_ENCRYPTION_KEY = _loyalty_key
+# Lot H3 : obligatoire en production, comme SECRET_KEY.
+import base64
+import hashlib
+
+LOYALTY_ENCRYPTION_KEY = _required_secret(
+    "LOYALTY_ENCRYPTION_KEY",
+    dev_value=base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()).decode(),
+)
