@@ -1,6 +1,9 @@
 from datetime import timedelta
 
+from functools import partial
+
 from django.contrib.auth import authenticate
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -15,8 +18,27 @@ from backend.throttles import LoginThrottle
 from .models import Order
 from .serializers_staff import OrderStaffSerializer
 from .emails import send_order_status_email
+from .services import on_paid_order_cancelled
 
 ALLOWED_STATUSES = {"pending", "paid", "preparing", "ready", "collected", "cancelled"}
+
+STATUS_LABELS = {
+    "pending": "Non payée", "paid": "Payée", "preparing": "En préparation",
+    "ready": "Prête", "collected": "Récupérée", "cancelled": "Annulée",
+}
+PAID_STATUSES = {"paid", "preparing", "ready", "collected"}
+
+# Lot M2 : transitions autorisées depuis l'écran staff. Le passage en
+# « payée » n'est jamais manuel (seul Payplug le décide). Un pas en arrière
+# reste possible pour corriger une erreur de clic.
+ALLOWED_TRANSITIONS = {
+    "pending":   {"cancelled"},
+    "paid":      {"preparing", "cancelled"},
+    "preparing": {"ready", "paid", "cancelled"},
+    "ready":     {"collected", "preparing", "cancelled"},
+    "collected": {"ready"},
+    "cancelled": set(),
+}
 # Seules les commandes payées et encore en cours partent en cuisine.
 PRINTABLE_STATUSES = ("paid", "preparing", "ready")
 # Commandes encore à traiter : toujours affichées, quel que soit leur âge.
@@ -101,45 +123,58 @@ def staff_order_mark_printed(request, order_id: int):
 def staff_order_set_status(request, order_id: int):
     new_status = (request.data or {}).get("status")
     if new_status not in ALLOWED_STATUSES:
-        return Response({"detail": "Invalid status"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Statut inconnu."}, status=status.HTTP_400_BAD_REQUEST)
 
-    try:
-        order = Order.objects.get(id=order_id)
-    except Order.DoesNotExist:
-        return Response({"detail": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+    with transaction.atomic():
+        try:
+            order = Order.objects.select_for_update().get(id=order_id)
+        except Order.DoesNotExist:
+            return Response({"detail": "Commande introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
-    old_status = order.status
-    order.status = new_status
-    update_fields = ["status"]
+        old_status = order.status
+        if new_status == old_status:
+            return Response({"ok": True, "id": order.id, "status": order.status, "ready_at": order.ready_at})
+        if new_status not in ALLOWED_TRANSITIONS[old_status]:
+            return Response(
+                {"detail": f"Impossible de passer de « {STATUS_LABELS[old_status]} » à « {STATUS_LABELS[new_status]} »."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-    if new_status == "ready":
-        order.ready_at = timezone.now()
-        update_fields.append("ready_at")
-    elif new_status in {"collected", "cancelled"}:
-        if order.ready_at is not None:
+        order.status = new_status
+        update_fields = ["status"]
+        if new_status == "ready":
+            order.ready_at = timezone.now()
+            update_fields.append("ready_at")
+        elif new_status in {"collected", "cancelled", "preparing"} and order.ready_at is not None:
             order.ready_at = None
             update_fields.append("ready_at")
+        order.save(update_fields=update_fields)
 
-    order.save(update_fields=update_fields)
+        # Une commande payée puis annulée doit être remboursée à la main sur Payplug.
+        refund_needed = new_status == "cancelled" and old_status in PAID_STATUSES
+        if refund_needed:
+            on_paid_order_cancelled(order, actor=request.user)
 
-    # Email client si transition réelle (évite spam sur re-set identique)
-    if old_status != new_status:
-        send_order_status_email(order, status=new_status)
+        transaction.on_commit(partial(send_order_status_email, order, status=new_status))
 
-    return Response({"ok": True, "id": order.id, "status": order.status, "ready_at": order.ready_at})
+    return Response({
+        "ok": True, "id": order.id, "status": order.status, "ready_at": order.ready_at,
+        "refund_needed": refund_needed,
+    })
 
 
-# ── Supprimer une commande ────────────────────────────────────────────────────
+# ── Suppression désactivée (lot M2) ───────────────────────────────────────────
+# Supprimer effaçait la commande, ses lignes et le lien avec la fidélité.
+# La route reste pour ne pas casser d'ancien client, mais renvoie une erreur :
+# on annule une commande, on ne l'efface plus.
 
 @api_view(["DELETE"])
 @permission_classes([IsAdminUser])
 def staff_order_delete(request, order_id: int):
-    try:
-        order = Order.objects.get(id=order_id)
-    except Order.DoesNotExist:
-        return Response({"detail": "Not found"}, status=status.HTTP_404_NOT_FOUND)
-    order.delete()
-    return Response(status=status.HTTP_204_NO_CONTENT)
+    return Response(
+        {"detail": "La suppression est désactivée : annulez la commande à la place."},
+        status=status.HTTP_400_BAD_REQUEST,
+    )
 
 
 # ── Authentification staff ────────────────────────────────────────────────────

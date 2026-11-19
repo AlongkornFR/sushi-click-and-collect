@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useStaffAuth } from "../../_components/useStaffAuth";
 import { printOrder as qzPrint } from "@/lib/printer";
 import PrinterStatus from "@/components/staff/PrinterStatus";
-import { FaPrint, FaTrash, FaList, FaTh } from "react-icons/fa";
+import { FaPrint, FaList, FaTh } from "react-icons/fa";
 
 /* ── Status config ── */
 const STATUS_CONFIG = {
@@ -31,8 +31,12 @@ const STATUS_ACTIONS = {
   ],
   ready:     [
     { label: "Récupérée", status: "collected", style: "neutral" },
+    { label: "Retour en cuisine", status: "preparing", style: "neutral" },
   ],
-  collected: [],
+  // Correction d'un clic trop rapide (lot M2)
+  collected: [
+    { label: "Pas encore récupérée", status: "ready", style: "neutral" },
+  ],
   cancelled: [],
 };
 
@@ -152,7 +156,8 @@ export default function StaffOrdersPage() {
   const [updating, setUpdating]         = useState(null);
   const [printingId, setPrintingId]     = useState(null);
   const [printError, setPrintError]     = useState("");
-  const [deletingId, setDeletingId]     = useState(null);
+  // Rappel « rembourser sur Payplug » après annulation d'une commande payée (lot M2)
+  const [refundNotice, setRefundNotice] = useState("");
 
   // View mode (bento | list), persisté
   const [viewMode, setViewMode] = useState("bento");
@@ -221,6 +226,13 @@ export default function StaffOrdersPage() {
   // ── Changement de statut ──────────────────────────────────────────────────
 
   async function setStatus(orderId, status) {
+    const current = orders.find(o => o.id === orderId);
+    const wasPaid = current && ["paid", "preparing", "ready", "collected"].includes(current.status);
+    if (status === "cancelled" && !confirm(
+      wasPaid
+        ? `Annuler la commande #${orderId} ? Elle est payée : il faudra la rembourser sur Payplug.`
+        : `Annuler la commande #${orderId} ?`,
+    )) return;
     setUpdating(orderId);
     setError("");
     try {
@@ -229,7 +241,11 @@ export default function StaffOrdersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status} – ${await res.text()}`);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || `Erreur ${res.status}`);
+      if (body.refund_needed) {
+        setRefundNotice(`Commande #${orderId} annulée : pensez à la rembourser sur Payplug.`);
+      }
       await fetchOrders(true);
     } catch (e) {
       setError(String(e.message || e));
@@ -239,21 +255,6 @@ export default function StaffOrdersPage() {
   }
 
   // ── Supprimer une commande ────────────────────────────────────────────────
-
-  async function deleteOrder(orderId) {
-    if (!confirm(`Supprimer définitivement la commande #${orderId} ?`)) return;
-    setDeletingId(orderId);
-    setError("");
-    try {
-      const res = await authFetch(`${API}/staff/orders/${orderId}/delete/`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`HTTP ${res.status} – ${await res.text()}`);
-      setOrders(prev => prev.filter(o => o.id !== orderId));
-    } catch (e) {
-      setError(String(e.message || e));
-    } finally {
-      setDeletingId(null);
-    }
-  }
 
   // ── Polling commandes (affichage) — toutes les 3s ─────────────────────────
 
@@ -328,7 +329,6 @@ export default function StaffOrdersPage() {
     const actions    = STATUS_ACTIONS[o.status] ?? [];
     const isUpdating = updating === o.id;
     const isPrinting = printingId === o.id;
-    const isDeleting = deletingId === o.id;
 
     return (
       <div key={o.id} className="group rounded-2xl border border-white/10 bg-[#1D1D1D] p-4 transition hover:border-white/20">
@@ -443,18 +443,6 @@ export default function StaffOrdersPage() {
               }
             </button>
             )}
-            <button
-              type="button"
-              onClick={() => deleteOrder(o.id)}
-              disabled={isDeleting}
-              title="Supprimer"
-              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 transition hover:bg-red-500/20 hover:text-red-300 active:scale-95 disabled:cursor-wait disabled:opacity-50"
-            >
-              {isDeleting
-                ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-500/30 border-t-red-400" />
-                : <FaTrash className="text-xs" />
-              }
-            </button>
           </div>
         </div>
       </div>
@@ -570,6 +558,14 @@ export default function StaffOrdersPage() {
         {error && (
           <div className="mx-5 mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {error}
+          </div>
+        )}
+        {refundNotice && (
+          <div role="alert" className="mx-5 mt-4 flex items-start justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+            <span>{refundNotice}</span>
+            <button type="button" onClick={() => setRefundNotice("")} className="shrink-0 cursor-pointer text-amber-200 underline">
+              Compris
+            </button>
           </div>
         )}
         {printError && (

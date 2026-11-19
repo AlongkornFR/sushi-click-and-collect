@@ -606,3 +606,65 @@ class ThrottleTests(OrderFixturesMixin, TestCase):
                  for _ in range(21)]
         self.assertEqual(codes[:20], [201] * 20)
         self.assertEqual(codes[20], 429)
+
+
+class StaffStatusTransitionTests(OrderFixturesMixin, TestCase):
+    """Lot M2 : transitions de statut encadrées, plus de suppression."""
+
+    def setUp(self):
+        super().setUp()
+        staff = User.objects.create_user("chef2", password="motdepasse-solide-1", is_staff=True)
+        self.staff_client = APIClient()
+        self.staff_client.credentials(HTTP_AUTHORIZATION=f"Token {Token.objects.create(user=staff).key}")
+
+    def set_status(self, order, new_status):
+        with self.captureOnCommitCallbacks(execute=True):
+            return self.staff_client.patch(f"/api/staff/orders/{order.id}/status/", {"status": new_status},
+                                           format="json")
+
+    @patch("orders.views_staff.send_order_status_email")
+    def test_normal_flow_is_allowed(self, send_email):
+        order = self.make_order(status="paid")
+        for step in ["preparing", "ready", "collected"]:
+            res = self.set_status(order, step)
+            self.assertEqual(res.status_code, 200, res.data)
+        self.assertEqual(send_email.call_count, 3)
+
+    @patch("orders.views_staff.send_order_status_email")
+    def test_pending_cannot_be_marked_paid_or_prepared_by_staff(self, send_email):
+        order = self.make_order(status="pending")
+        self.assertEqual(self.set_status(order, "paid").status_code, 400)
+        self.assertEqual(self.set_status(order, "preparing").status_code, 400)
+        order.refresh_from_db()
+        self.assertEqual(order.status, "pending")
+        send_email.assert_not_called()
+
+    @patch("orders.views_staff.send_order_status_email")
+    def test_cancelled_is_final(self, _send_email):
+        order = self.make_order(status="cancelled")
+        self.assertEqual(self.set_status(order, "paid").status_code, 400)
+        self.assertEqual(self.set_status(order, "preparing").status_code, 400)
+
+    @patch("orders.views_staff.send_order_status_email")
+    def test_one_step_back_is_allowed(self, _send_email):
+        order = self.make_order(status="collected")
+        self.assertEqual(self.set_status(order, "ready").status_code, 200)
+
+    @patch("orders.views_staff.send_order_status_email")
+    def test_cancelling_a_paid_order_flags_refund(self, _send_email):
+        paid = self.make_order(status="preparing")
+        self.assertTrue(self.set_status(paid, "cancelled").data["refund_needed"])
+        unpaid = self.make_order(status="pending")
+        self.assertFalse(self.set_status(unpaid, "cancelled").data["refund_needed"])
+
+    @patch("orders.views_staff.send_order_status_email")
+    def test_same_status_sends_no_email(self, send_email):
+        order = self.make_order(status="paid")
+        self.assertEqual(self.set_status(order, "paid").status_code, 200)
+        send_email.assert_not_called()
+
+    def test_delete_no_longer_erases_orders(self):
+        order = self.make_order(status="paid")
+        res = self.staff_client.delete(f"/api/staff/orders/{order.id}/delete/")
+        self.assertEqual(res.status_code, 400)
+        self.assertTrue(Order.objects.filter(id=order.id).exists())
