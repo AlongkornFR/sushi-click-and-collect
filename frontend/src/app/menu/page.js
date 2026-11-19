@@ -1,10 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useEffect } from "react";
-import useSWR from "swr";
-import { api } from "@/services/api";
-
-const fetcher = (url) => api.get(url).then(r => Array.isArray(r.data) ? r.data : []);
+import { useCatalog } from "@/hooks/useCatalog";
 import ProductCard from "@/components/common/ProductCard";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 
@@ -52,18 +49,16 @@ export default function MenuPage() {
   const [activeSubId, setActiveSubId]       = useState(null);
   const pillsRef = useRef(null);
 
-  const { data: products = [], isLoading: loading } = useSWR("products/", fetcher, {
-    dedupingInterval: 5 * 60 * 1000,
-    revalidateOnFocus: false,
-    onError: (err) => console.error("Erreur lors du chargement des produits :", err),
-  });
+  const { products, isLoading: loading, error: loadError, reload } = useCatalog();
 
   const groupedData = useMemo(() => {
     const groups = {};
     products.forEach((product) => {
-      if (!product.category?.name || !product.subcategory?.name) return;
+      // Lot M7 : un produit sans sous-catégorie reste visible, rangé
+      // directement sous sa catégorie (sous-section sans titre).
+      if (!product.category?.name) return;
       const cat = product.category.name;
-      const sub = product.subcategory.name;
+      const sub = product.subcategory?.name || "";
       if (!groups[cat]) groups[cat] = {};
       if (!groups[cat][sub]) groups[cat][sub] = [];
       groups[cat][sub].push(product);
@@ -83,7 +78,7 @@ export default function MenuPage() {
           id: `category-${slugify(cat)}`,
         });
       } else {
-        subs.forEach((sub) => {
+        subs.filter(Boolean).forEach((sub) => {
           result.push({
             label: sub,
             id: `subcategory-${slugify(cat)}-${slugify(sub)}`,
@@ -149,9 +144,10 @@ export default function MenuPage() {
                 <button
                   key={id}
                   data-pill-id={id}
+                  aria-pressed={activeSubId === id}
                   type="button"
                   onClick={() => handlePillClick(id)}
-                  className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition active:scale-95 ${
+                  className={`min-h-10 shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition active:scale-95 ${
                     activeSubId === id
                       ? "bg-[#FFC366] text-black"
                       : "border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-[#1D1D1D] text-zinc-600 dark:text-white/60 hover:bg-zinc-200 dark:hover:bg-white/10"
@@ -227,14 +223,14 @@ export default function MenuPage() {
 
                   {!singleSub && openCategories[categoryName] && (
                     <div className="mb-1 ml-3 mt-0.5 space-y-0.5 border-l-2 border-zinc-200 dark:border-white/10 pl-3">
-                      {subcategories.map((subcategoryName) => {
+                      {subcategories.filter(Boolean).map((subcategoryName) => {
                         const subcategoryId = `subcategory-${slugify(categoryName)}-${slugify(subcategoryName)}`;
                         return (
                           <button
                             key={subcategoryName}
                             type="button"
                             onClick={() => scrollToSection(subcategoryId)}
-                            className="block w-full cursor-pointer rounded-lg px-2 py-1.5 text-left text-sm text-zinc-400 dark:text-white/40 transition hover:bg-zinc-200 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white"
+                            className="block w-full cursor-pointer rounded-lg px-2 py-1.5 text-left text-sm text-zinc-500 dark:text-white/60 transition hover:bg-zinc-200 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white"
                           >
                             {subcategoryName}
                           </button>
@@ -251,10 +247,10 @@ export default function MenuPage() {
         {/* ── Contenu principal ── */}
         <main className="lg:col-span-9">
 
-          {/* Header desktop */}
-          <div className="mb-10 hidden lg:block">
-            <h1 className="text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">Notre Menu</h1>
-            <p className="mt-2 text-base text-zinc-400 dark:text-white/40">Commandez en ligne · Récupérez sur place</p>
+          {/* En-tête (visible aussi sur mobile : seul h1 de la page, lot M8) */}
+          <div className="mb-6 lg:mb-10">
+            <h1 className="text-3xl lg:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">Notre Menu</h1>
+            <p className="mt-2 text-base text-zinc-500 dark:text-white/60">Commandez en ligne · Récupérez sur place</p>
             <div className="mt-5 h-px bg-zinc-200 dark:bg-white/10" />
           </div>
 
@@ -286,15 +282,17 @@ export default function MenuPage() {
                         return (
                           <section key={subcategoryName} id={subcategoryId} className="scroll-mt-52 lg:scroll-mt-36">
                             {/* Subcategory header */}
+                            {subcategoryName && (
                             <div className="mb-6 flex items-center gap-3">
-                              <h3 className="text-base font-semibold uppercase tracking-widest text-zinc-400 dark:text-white/30">
+                              <h3 className="text-base font-semibold uppercase tracking-widest text-zinc-500 dark:text-white/60">
                                 {subcategoryName}
                               </h3>
                               <div className="h-px flex-1 bg-zinc-200 dark:bg-white/10" />
-                              <span className="text-xs text-zinc-300 dark:text-white/20">
+                              <span className="text-xs text-zinc-500 dark:text-white/50">
                                 {subcategoryProducts.length} produit{subcategoryProducts.length > 1 ? "s" : ""}
                               </span>
                             </div>
+                            )}
 
                             <div className="grid grid-cols-2 gap-x-4 gap-y-8 xl:grid-cols-3">
                               {subcategoryProducts.map((product) => (
@@ -311,12 +309,30 @@ export default function MenuPage() {
             </div>
           )}
 
+          {/* ── Erreur de chargement (lot H5) : distincte d'un menu vide ── */}
+          {!loading && loadError && categoryNames.length === 0 && (
+            <div role="alert" className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-300 dark:border-white/10 px-6 py-20 text-center">
+              <p className="text-base font-medium text-zinc-700 dark:text-white/80">Le menu n&apos;a pas pu être chargé.</p>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-white/50">
+                Vérifiez votre connexion, ou commandez par téléphone au{" "}
+                <a href="tel:+33493680812" className="font-semibold underline">04 93 68 08 12</a>.
+              </p>
+              <button
+                type="button"
+                onClick={reload}
+                className="mt-6 cursor-pointer rounded-xl bg-[#FFC366] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#ffb347]"
+              >
+                Réessayer
+              </button>
+            </div>
+          )}
+
           {/* ── Empty state ── */}
-          {!loading && categoryNames.length === 0 && (
+          {!loading && !loadError && categoryNames.length === 0 && (
             <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-300 dark:border-white/10 py-24 text-center">
               <span className="text-5xl">🍣</span>
-              <p className="mt-4 text-base font-medium text-zinc-400 dark:text-white/50">Aucun produit disponible pour le moment.</p>
-              <p className="mt-1 text-sm text-zinc-300 dark:text-white/30">Revenez bientôt !</p>
+              <p className="mt-4 text-base font-medium text-zinc-500 dark:text-white/60">Aucun produit disponible pour le moment.</p>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-white/60">Revenez bientôt !</p>
             </div>
           )}
         </main>

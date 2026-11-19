@@ -1,10 +1,18 @@
+from django.db.models import Q
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from .models import Product, SubCategory
 from .serializers import ProductSerializer, SubCategorySerializer
 
 
+# Lot M7 : un produit n'apparaît que si sa catégorie (et sa sous-catégorie,
+# s'il en a une) est active.
+VISIBLE = Q(is_available=True, category__is_active=True) & (
+    Q(subcategory__isnull=True) | Q(subcategory__is_active=True)
+)
+
+
 class ProductListView(ListAPIView):
-    queryset = Product.objects.select_related("category", "subcategory").filter(is_available=True).order_by(
+    queryset = Product.objects.select_related("category", "subcategory").filter(VISIBLE).order_by(
         "category__position", "category__name",
         "subcategory__position", "subcategory__name",
         "position", "name",
@@ -13,7 +21,7 @@ class ProductListView(ListAPIView):
 
 
 class ProductDetailView(RetrieveAPIView):
-    queryset = Product.objects.select_related("category", "subcategory").filter(is_available=True)
+    queryset = Product.objects.select_related("category", "subcategory").filter(VISIBLE)
     serializer_class = ProductSerializer
     lookup_field = "slug"
 

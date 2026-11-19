@@ -1,5 +1,6 @@
 "use client";
 
+import { formatEUR } from "@/utils/formatting";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api } from "@/services/api";
@@ -39,7 +40,7 @@ export default function ProductPage() {
         <h1 className="text-3xl font-bold">{product.name}</h1>
         <p className="mt-4 text-gray-600">{product.description}</p>
 
-        <div className="mt-6 text-2xl font-semibold">{product.price} €</div>
+        <div className="mt-6 text-2xl font-semibold">{formatEUR(product.price)}</div>
 
         <button
           onClick={() => addItem(product, 1)}

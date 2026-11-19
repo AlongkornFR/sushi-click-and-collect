@@ -1,5 +1,8 @@
 import unicodedata
+from django.utils import timezone
 from fpdf import FPDF
+
+from .opening_hours import pickup_label
 
 
 def _latin1(s: str) -> str:
@@ -41,12 +44,12 @@ def generate_receipt_pdf(order) -> bytes:
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(80, 80, 80)
 
-    created = order.created_at.strftime("%d/%m/%Y a %H:%M")
+    created = timezone.localtime(order.created_at).strftime("%d/%m/%Y a %H:%M")
     pdf.cell(0, 6, _latin1(f"Date         : {created}"), ln=True)
     pdf.cell(0, 6, _latin1(f"Client       : {order.full_name}"), ln=True)
     pdf.cell(0, 6, _latin1(f"Email        : {order.email}"), ln=True)
     pdf.cell(0, 6, _latin1(f"Telephone    : {order.phone}"), ln=True)
-    pdf.cell(0, 6, _latin1(f"Heure retrait: {order.pickup_time}"), ln=True)
+    pdf.cell(0, 6, _latin1(f"Retrait      : {pickup_label(order)}"), ln=True)
     if order.notes:
         pdf.cell(0, 6, _latin1(f"Notes        : {order.notes}"), ln=True)
     pdf.ln(6)

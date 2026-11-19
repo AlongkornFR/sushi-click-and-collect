@@ -4,11 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useStaffAuth } from "../../_components/useStaffAuth";
 import { printOrder as qzPrint } from "@/lib/printer";
 import PrinterStatus from "@/components/staff/PrinterStatus";
-import { FaPrint, FaTrash, FaList, FaTh } from "react-icons/fa";
+import { FaPrint, FaList, FaTh } from "react-icons/fa";
 
 /* ── Status config ── */
 const STATUS_CONFIG = {
-  pending:   { label: "En attente",     badge: "bg-amber-100 text-amber-700",    dot: "bg-amber-400"  },
+  pending:   { label: "Non payée",      badge: "bg-amber-100 text-amber-700",    dot: "bg-amber-400"  },
   paid:      { label: "Payée",          badge: "bg-blue-100 text-blue-700",      dot: "bg-blue-400"   },
   preparing: { label: "En préparation", badge: "bg-orange-100 text-orange-700",  dot: "bg-orange-400" },
   ready:     { label: "Prête",          badge: "bg-emerald-100 text-emerald-700",dot: "bg-emerald-400"},
@@ -17,8 +17,8 @@ const STATUS_CONFIG = {
 };
 
 const STATUS_ACTIONS = {
+  // Non payée : rien à préparer. Le staff peut seulement l'annuler.
   pending:   [
-    { label: "En préparation", status: "preparing", style: "primary" },
     { label: "Annuler",        status: "cancelled", style: "danger"  },
   ],
   paid:      [
@@ -31,8 +31,12 @@ const STATUS_ACTIONS = {
   ],
   ready:     [
     { label: "Récupérée", status: "collected", style: "neutral" },
+    { label: "Retour en cuisine", status: "preparing", style: "neutral" },
   ],
-  collected: [],
+  // Correction d'un clic trop rapide (lot M2)
+  collected: [
+    { label: "Pas encore récupérée", status: "ready", style: "neutral" },
+  ],
   cancelled: [],
 };
 
@@ -44,7 +48,7 @@ const BENTO_COLUMNS = [
     key: "new",
     title: "Nouvelles",
     subtitle: "À prendre en charge",
-    statuses: ["pending", "paid"],
+    statuses: ["paid"],
     accent: "border-blue-500/30 bg-blue-500/5",
     headerAccent: "text-blue-400",
     dot: "bg-blue-400",
@@ -145,12 +149,15 @@ export default function StaffOrdersPage() {
 
   const [orders, setOrders]             = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
+  // Par défaut : dernières 24 h + commandes en cours (lot H7).
+  const [showHistory, setShowHistory]   = useState(false);
   const [error, setError]               = useState("");
   const [fetching, setFetching]         = useState(true);
   const [updating, setUpdating]         = useState(null);
   const [printingId, setPrintingId]     = useState(null);
   const [printError, setPrintError]     = useState("");
-  const [deletingId, setDeletingId]     = useState(null);
+  // Rappel « rembourser sur Payplug » après annulation d'une commande payée (lot M2)
+  const [refundNotice, setRefundNotice] = useState("");
 
   // View mode (bento | list), persisté
   const [viewMode, setViewMode] = useState("bento");
@@ -167,7 +174,6 @@ export default function StaffOrdersPage() {
   const autoPrintedRef = useRef(new Set());
 
   // Auto-collect: 2h côté serveur — frontend affiche juste countdown
-  const AUTO_COLLECT_DELAY_MS = 2 * 60 * 60 * 1000;
 
   // ── Fetch commandes ────────────────────────────────────────────────────────
 
@@ -177,6 +183,7 @@ export default function StaffOrdersPage() {
     try {
       const url = new URL(`${API}/staff/orders/`);
       if (statusFilter) url.searchParams.set("status", statusFilter);
+      if (showHistory) url.searchParams.set("scope", "all");
       const res = await authFetch(url.toString(), { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status} – ${await res.text()}`);
       const data = await res.json();
@@ -189,6 +196,7 @@ export default function StaffOrdersPage() {
   // ── Impression manuelle ────────────────────────────────────────────────────
 
   async function handlePrint(order) {
+    if (order.status === "pending") return; // jamais de ticket cuisine pour une commande non payée
     setPrintingId(order.id);
     setPrintError("");
     try {
@@ -218,6 +226,13 @@ export default function StaffOrdersPage() {
   // ── Changement de statut ──────────────────────────────────────────────────
 
   async function setStatus(orderId, status) {
+    const current = orders.find(o => o.id === orderId);
+    const wasPaid = current && ["paid", "preparing", "ready", "collected"].includes(current.status);
+    if (status === "cancelled" && !confirm(
+      wasPaid
+        ? `Annuler la commande #${orderId} ? Elle est payée : il faudra la rembourser sur Payplug.`
+        : `Annuler la commande #${orderId} ?`,
+    )) return;
     setUpdating(orderId);
     setError("");
     try {
@@ -226,7 +241,11 @@ export default function StaffOrdersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status} – ${await res.text()}`);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || `Erreur ${res.status}`);
+      if (body.refund_needed) {
+        setRefundNotice(`Commande #${orderId} annulée : pensez à la rembourser sur Payplug.`);
+      }
       await fetchOrders(true);
     } catch (e) {
       setError(String(e.message || e));
@@ -237,21 +256,6 @@ export default function StaffOrdersPage() {
 
   // ── Supprimer une commande ────────────────────────────────────────────────
 
-  async function deleteOrder(orderId) {
-    if (!confirm(`Supprimer définitivement la commande #${orderId} ?`)) return;
-    setDeletingId(orderId);
-    setError("");
-    try {
-      const res = await authFetch(`${API}/staff/orders/${orderId}/delete/`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`HTTP ${res.status} – ${await res.text()}`);
-      setOrders(prev => prev.filter(o => o.id !== orderId));
-    } catch (e) {
-      setError(String(e.message || e));
-    } finally {
-      setDeletingId(null);
-    }
-  }
-
   // ── Polling commandes (affichage) — toutes les 3s ─────────────────────────
 
   useEffect(() => {
@@ -261,7 +265,7 @@ export default function StaffOrdersPage() {
     const id = setInterval(() => fetchOrders(true), 3000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, statusFilter]);
+  }, [token, statusFilter, showHistory]);
 
   // ── Tick 1s pour rafraîchir les countdowns ─────────────────────────────
   const [, setTick] = useState(0);
@@ -304,7 +308,8 @@ export default function StaffOrdersPage() {
   }, [token]);
 
   /* ── Stats ── */
-  const pendingCount   = orders.filter(o => o.status === "pending" || o.status === "paid").length;
+  const pendingCount   = orders.filter(o => o.status === "paid").length;
+  const awaitingPayment = orders.filter(o => o.status === "pending");
   const preparingCount = orders.filter(o => o.status === "preparing").length;
   const readyCount     = orders.filter(o => o.status === "ready").length;
 
@@ -324,7 +329,6 @@ export default function StaffOrdersPage() {
     const actions    = STATUS_ACTIONS[o.status] ?? [];
     const isUpdating = updating === o.id;
     const isPrinting = printingId === o.id;
-    const isDeleting = deletingId === o.id;
 
     return (
       <div key={o.id} className="group rounded-2xl border border-white/10 bg-[#1D1D1D] p-4 transition hover:border-white/20">
@@ -347,7 +351,7 @@ export default function StaffOrdersPage() {
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {o.pickup_time && (
             <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/60">
-              ⏱ {o.pickup_time}
+              ⏱ {o.pickup_label || o.pickup_time}
             </span>
           )}
           {o.printed && (
@@ -356,13 +360,15 @@ export default function StaffOrdersPage() {
             </span>
           )}
           {o.status === "ready" && o.ready_at && (() => {
-            const remaining = new Date(o.ready_at).getTime() + AUTO_COLLECT_DELAY_MS - Date.now();
-            const soon = remaining < 10 * 60 * 1000;
+            // Temps écoulé depuis que la commande est prête (plus de passage
+            // automatique en « récupérée »).
+            const waiting = Date.now() - new Date(o.ready_at).getTime();
+            const long = waiting > 30 * 60 * 1000;
             return (
               <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                soon ? "bg-red-500/15 text-red-400" : "bg-emerald-500/10 text-emerald-400"
+                long ? "bg-red-500/15 text-red-400" : "bg-emerald-500/10 text-emerald-400"
               }`}>
-                ⏳ {formatCountdown(remaining)}
+                Prête depuis {formatCountdown(waiting)}
               </span>
             );
           })()}
@@ -419,6 +425,7 @@ export default function StaffOrdersPage() {
           )}
           {/* Icon buttons */}
           <div className="flex shrink-0 items-center gap-1.5">
+            {o.status !== "pending" && (
             <button
               type="button"
               onClick={() => handlePrint(o)}
@@ -435,18 +442,7 @@ export default function StaffOrdersPage() {
                 : <FaPrint className="text-xs" />
               }
             </button>
-            <button
-              type="button"
-              onClick={() => deleteOrder(o.id)}
-              disabled={isDeleting}
-              title="Supprimer"
-              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 transition hover:bg-red-500/20 hover:text-red-300 active:scale-95 disabled:cursor-wait disabled:opacity-50"
-            >
-              {isDeleting
-                ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-500/30 border-t-red-400" />
-                : <FaTrash className="text-xs" />
-              }
-            </button>
+            )}
           </div>
         </div>
       </div>
@@ -464,7 +460,7 @@ export default function StaffOrdersPage() {
         ) : (
           <>
             <StatCard label="Total"          value={orders.length} />
-            <StatCard label="En attente"     value={pendingCount}   color="text-amber-400" />
+            <StatCard label="Nouvelles"      value={pendingCount}   color="text-amber-400" />
             <StatCard label="En préparation" value={preparingCount} color="text-orange-400" />
             <StatCard label="Prêtes"         value={readyCount}     color="text-emerald-400" />
           </>
@@ -544,6 +540,17 @@ export default function StaffOrdersPage() {
                 {STATUS_CONFIG[s]?.label ?? s}
               </button>
             ))}
+            <span className="mx-1 w-px shrink-0 bg-white/10" aria-hidden="true" />
+            <button
+              type="button"
+              aria-pressed={showHistory}
+              onClick={() => setShowHistory(v => !v)}
+              className={`shrink-0 cursor-pointer rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                showHistory ? "bg-white text-black" : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white"
+              }`}
+            >
+              {showHistory ? "Historique complet" : "24 dernières heures"}
+            </button>
           </div>
         </div>
 
@@ -551,6 +558,14 @@ export default function StaffOrdersPage() {
         {error && (
           <div className="mx-5 mt-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {error}
+          </div>
+        )}
+        {refundNotice && (
+          <div role="alert" className="mx-5 mt-4 flex items-start justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+            <span>{refundNotice}</span>
+            <button type="button" onClick={() => setRefundNotice("")} className="shrink-0 cursor-pointer text-amber-200 underline">
+              Compris
+            </button>
           </div>
         )}
         {printError && (
@@ -585,6 +600,16 @@ export default function StaffOrdersPage() {
         ) : viewMode === "bento" ? (
           /* ── VUE BENTO KANBAN ── */
           <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-4">
+            {awaitingPayment.length > 0 && !statusFilter && (
+              <details className="rounded-2xl border border-white/10 bg-white/[0.02] p-3 md:col-span-2 xl:col-span-4">
+                <summary className="cursor-pointer px-1 text-sm font-semibold text-white/60">
+                  Paiement en cours ({awaitingPayment.length}) : non payées, ne pas préparer
+                </summary>
+                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {awaitingPayment.map(o => renderOrderCard(o, { compact: true }))}
+                </div>
+              </details>
+            )}
             {BENTO_COLUMNS.map(col => {
               const list = ordersByColumn[col.key] || [];
               return (

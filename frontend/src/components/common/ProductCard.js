@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { formatEUR } from "@/utils/formatting";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "@/services/api";
 import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
@@ -22,6 +23,19 @@ export default function ProductCard({ product }) {
 
   const [quickAdded, setQuickAdded] = useState(false);
 
+  // Lot M6 : à l'ouverture, le focus va au bouton Fermer ; à la fermeture,
+  // il revient sur l'élément qui a ouvert la fiche.
+  const closeButtonRef = useRef(null);
+  const openerRef = useRef(null);
+  useEffect(() => {
+    if (open) {
+      closeButtonRef.current?.focus();
+      return;
+    }
+    openerRef.current?.focus?.();
+    openerRef.current = null;
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e) => { if (e.key === "Escape") closeOverlay(); };
@@ -34,6 +48,7 @@ export default function ProductCard({ product }) {
   }, [open]);
 
   async function openOverlay() {
+    openerRef.current = document.activeElement;
     setOpen(true);
     setAdded(false);
     if (fullProduct) return;
@@ -70,22 +85,26 @@ export default function ProductCard({ product }) {
   }
 
   const displayedProduct   = fullProduct || product;
-  const categoryLabel      = displayedProduct.category?.name    || "Catégorie";
+  // Lot H6 : plus de texte de remplissage visible par le client. Un bloc
+  // sans contenu est masqué.
+  const categoryLabel      = displayedProduct.category?.name    || "";
   const subcategoryLabel   = displayedProduct.subcategory?.name || "";
-  const productName        = displayedProduct.name              || "Nom du produit";
+  const productName        = displayedProduct.name              || "";
   const productPrice       = displayedProduct.price             || "0.00";
-  const productDescription = displayedProduct.description       || "Aucune description disponible.";
+  const productDescription = displayedProduct.description?.trim() || "";
 
   const ingredientsText =
     displayedProduct.ingredients ||
     displayedProduct.flavors     ||
     displayedProduct.saveurs     ||
-    "Informations sur les ingrédients et saveurs bientôt disponibles.";
+    "";
 
+  // Mesure provisoire en attendant la liste du restaurant (CC-05) : elle ne
+  // remplace pas l'affichage obligatoire des allergènes par produit.
   const allergensText =
     displayedProduct.allergens  ||
     displayedProduct.allergenes ||
-    "Informations sur les allergènes bientôt disponibles.";
+    "La liste des allergènes de ce plat est disponible sur demande : appelez-nous au 04 93 68 08 12 avant de commander.";
 
   return (
     <>
@@ -95,7 +114,13 @@ export default function ProductCard({ product }) {
         <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-100 dark:bg-[#1D1D1D]">
           <img
             src={product.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
-            onError={(e) => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE; }}
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              if (e.currentTarget.dataset.fallback) return;
+              e.currentTarget.dataset.fallback = "1";
+              e.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
+            }}
             alt={product.name}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
@@ -117,7 +142,7 @@ export default function ProductCard({ product }) {
             className={`absolute bottom-2 right-2 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full shadow-md transition-all duration-300 group-hover:opacity-100 ${
               quickAdded
                 ? "bg-emerald-500 text-white opacity-100"
-                : "bg-white text-black opacity-0"
+                : "bg-white text-black opacity-0 [@media(hover:none)]:opacity-100"
             }`}
             aria-label={`Ajouter ${product.name} au panier`}
           >
@@ -132,13 +157,21 @@ export default function ProductCard({ product }) {
           className="w-full cursor-pointer pt-3 text-left"
         >
           <p className="line-clamp-2 text-sm leading-snug text-zinc-900 dark:text-white">{product.name}</p>
-          <p className="mt-1 text-sm font-semibold text-[#FFC366]">{product.price} €</p>
+          {product.description?.trim() && (
+            <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500 dark:text-white/50">{product.description}</p>
+          )}
+          <p className="mt-1 text-sm font-semibold text-amber-700 dark:text-[#FFC366]">{formatEUR(product.price)}</p>
         </button>
       </div>
 
       {/* ── Modal (portal → hors de tout parent overflow/stacking) ── */}
       {open && createPortal(
-        <div className="fixed inset-0 z-[120]">
+        <div
+          className="fixed inset-0 z-[120]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`product-title-${product.id}`}
+        >
           {/* Backdrop */}
           <button
             type="button"
@@ -162,7 +195,13 @@ export default function ProductCard({ product }) {
                 <div className="relative h-[220px] shrink-0 bg-zinc-100 dark:bg-zinc-900 sm:h-65 lg:h-full lg:w-[46%]">
                   <img
                     src={displayedProduct.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
-                    onError={(e) => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE; }}
+                    loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              if (e.currentTarget.dataset.fallback) return;
+              e.currentTarget.dataset.fallback = "1";
+              e.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
+            }}
                     alt={displayedProduct.name}
                     className="h-full w-full object-cover"
                   />
@@ -179,22 +218,25 @@ export default function ProductCard({ product }) {
                     onClick={closeOverlay}
                     className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-white transition hover:bg-zinc-200 dark:hover:bg-white/20 active:scale-95"
                     aria-label="Fermer"
+                    ref={closeButtonRef}
                   >
                     <FaXmark className="text-sm" />
                   </button>
 
                   {/* Header */}
                   <div className="shrink-0 px-6 pb-0 pt-6 pr-14 sm:px-8 sm:pt-8">
-                    <span className="inline-block rounded-full bg-zinc-100 dark:bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-                      {categoryLabel}{subcategoryLabel ? ` · ${subcategoryLabel}` : ""}
-                    </span>
+                    {categoryLabel && (
+                      <span className="inline-block rounded-full bg-zinc-100 dark:bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                        {categoryLabel}{subcategoryLabel ? ` · ${subcategoryLabel}` : ""}
+                      </span>
+                    )}
 
-                    <h2 className="mt-3 text-2xl font-bold leading-tight text-zinc-900 dark:text-white sm:text-3xl">
+                    <h2 id={`product-title-${product.id}`} className="mt-3 text-2xl font-bold leading-tight text-zinc-900 dark:text-white sm:text-3xl">
                       {productName}
                     </h2>
 
                     <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-white">
-                      {productPrice} <span className="text-base font-normal text-zinc-400 dark:text-zinc-400">€</span>
+                      {formatEUR(productPrice)}
                     </p>
                   </div>
 
@@ -202,16 +244,21 @@ export default function ProductCard({ product }) {
                   <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
 
                     {/* Description */}
-                    <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-300 sm:text-[15px]">
-                      {productDescription}
-                    </p>
-
-                    <div className="mt-6 h-px bg-zinc-200 dark:bg-white/10" />
+                    {productDescription && (
+                      <>
+                        <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-300 sm:text-[15px]">
+                          {productDescription}
+                        </p>
+                        <div className="mt-6 h-px bg-zinc-200 dark:bg-white/10" />
+                      </>
+                    )}
 
                     {/* Ingredients accordion */}
+                    {ingredientsText && (<>
                     <button
                       type="button"
                       onClick={() => setIngredientsOpen((p) => !p)}
+                      aria-expanded={ingredientsOpen}
                       className="flex w-full cursor-pointer items-center justify-between py-4 text-left"
                     >
                       <span className="text-sm font-semibold text-zinc-900 dark:text-white">Ingrédients et saveurs</span>
@@ -225,11 +272,13 @@ export default function ProductCard({ product }) {
                     )}
 
                     <div className="h-px bg-zinc-200 dark:bg-white/10" />
+                    </>)}
 
                     {/* Allergens accordion */}
                     <button
                       type="button"
                       onClick={() => setAllergensOpen((p) => !p)}
+                      aria-expanded={allergensOpen}
                       className="flex w-full cursor-pointer items-center justify-between py-4 text-left"
                     >
                       <span className="text-sm font-semibold text-zinc-900 dark:text-white">Allergènes</span>

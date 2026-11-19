@@ -1,3 +1,5 @@
+from functools import partial
+
 from django.conf import settings
 from django.db import transaction
 
@@ -95,7 +97,40 @@ def award_point_for_order(order) -> LoyaltyTransaction | None:
         )
         _log(account, "add_point_online", 1, metadata={"order_id": order.id, "transaction_id": str(txn.transaction_id)})
 
-    _notify_after_award(account, txn)
+    # Lot M1 : notification après validation de la transaction englobante.
+    transaction.on_commit(partial(_notify_after_award, account, txn))
+    return txn
+
+
+def revoke_point_for_order(order, actor=None) -> LoyaltyTransaction | None:
+    """Lot M11 (validé le 19/11/2026) : retire le point gagné par une commande
+    payée puis annulée. Une seule fois par commande. Si la carte est déjà à
+    zéro (récompense utilisée entre-temps), rien n'est retiré et c'est tracé."""
+    award = LoyaltyTransaction.objects.filter(order=order, delta__gt=0).select_related("account").first()
+    if award is None:
+        return None
+
+    with transaction.atomic():
+        account = LoyaltyAccount.objects.select_for_update().get(pk=award.account_id)
+        if AuditLog.objects.filter(account=account, action__in=["revoke_point_order", "revoke_skipped_card_empty"],
+                                   metadata__order_id=order.id).exists():
+            return None
+        if account.points <= 0:
+            _log(account, "revoke_skipped_card_empty", 0, actor=actor, metadata={"order_id": order.id})
+            return None
+
+        account.points -= 1
+        account.save(update_fields=["points", "updated_at"])
+        txn = LoyaltyTransaction.objects.create(
+            account=account,
+            delta=-1,
+            source="adjustment",
+            admin_user=actor,
+            reason=f"Commande #{order.id} annulée",
+            balance_after=account.points,
+        )
+        _log(account, "revoke_point_order", -1, actor=actor,
+             metadata={"order_id": order.id, "transaction_id": str(txn.transaction_id)})
     return txn
 
 
@@ -125,7 +160,8 @@ def admin_add_point(account: LoyaltyAccount, admin_user, store="", reason="", cl
         )
         _log(account, "add_point_in_store", 1, actor=admin_user, metadata={"store": store, "reason": reason}, ip_address=ip_address)
 
-    _notify_after_award(account, txn)
+    # Lot M1 : notification après validation de la transaction englobante.
+    transaction.on_commit(partial(_notify_after_award, account, txn))
     return txn
 
 
@@ -169,7 +205,7 @@ def redeem_reward(account: LoyaltyAccount, admin_user, ip_address=None) -> Loyal
         )
         _log(account, "redeem_reward", delta, actor=admin_user, ip_address=ip_address)
 
-    _notify_reward_redeemed(account)
+    transaction.on_commit(partial(_notify_reward_redeemed, account))
     return txn
 
 

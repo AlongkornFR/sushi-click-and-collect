@@ -65,7 +65,16 @@ class OrderAdmin(admin.ModelAdmin):
         ("Paiement", {"fields": ("payment_provider", "payment_id", "payment_url", "payplug_link")}),
     )
 
-    actions = ("mark_preparing", "mark_ready", "mark_collected", "mark_cancelled")
+    # Lot M2 : le statut se change depuis l'écran staff, qui applique les
+    # transitions autorisées et prévient le client. Ni action en masse ni
+    # suppression dans l'admin.
+    actions = None
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_readonly_fields(self, request, obj=None):
+        return self.readonly_fields + ("status",)
 
     @admin.display(description="Total (€)")
     def total_eur(self, obj: Order):
@@ -83,19 +92,3 @@ class OrderAdmin(admin.ModelAdmin):
         if not obj.payment_url:
             return "—"
         return format_html('<a href="{}" target="_blank" rel="noopener">Ouvrir paiement</a>', obj.payment_url)
-
-    @admin.action(description="Passer en Preparing")
-    def mark_preparing(self, request, queryset):
-        queryset.update(status="preparing")
-
-    @admin.action(description="Passer en Ready")
-    def mark_ready(self, request, queryset):
-        queryset.update(status="ready")
-
-    @admin.action(description="Passer en Collected")
-    def mark_collected(self, request, queryset):
-        queryset.update(status="collected")
-
-    @admin.action(description="Passer en Cancelled")
-    def mark_cancelled(self, request, queryset):
-        queryset.update(status="cancelled")

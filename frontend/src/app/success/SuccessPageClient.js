@@ -14,6 +14,17 @@ function formatEURFromCents(cents) {
   });
 }
 
+// Statuts qui prouvent que le paiement a été reçu : une commande en cuisine,
+// prête ou récupérée a forcément été payée.
+const PAID_STATUSES = new Set(["paid", "preparing", "ready", "collected"]);
+
+const STATUS_LABELS = {
+  paid:      "Payée",
+  preparing: "En préparation",
+  ready:     "Prête à retirer",
+  collected: "Récupérée",
+};
+
 function Spinner() {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 px-6">
@@ -24,7 +35,7 @@ function Spinner() {
       </div>
       <div className="text-center">
         <p className="text-base font-semibold text-zinc-800 dark:text-white">Confirmation en cours…</p>
-        <p className="mt-1 text-sm text-zinc-400 dark:text-white/40">Ne fermez pas cette page</p>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-white/60">Ne fermez pas cette page</p>
       </div>
     </div>
   );
@@ -52,6 +63,10 @@ function CheckIcon() {
 export default function SuccessPageClient() {
   const sp      = useSearchParams();
   const orderId = sp.get("order_id");
+  // Jeton public (lot C5). Sans jeton (client parti payer avant la mise à
+  // jour), l'ancienne route par ID ne renvoie que le statut.
+  const token   = sp.get("token");
+  const base    = token ? `orders/t/${token}/` : `orders/${orderId}/`;
   const { clear } = useCart();
 
   const [order, setOrder]   = useState(null);
@@ -62,7 +77,7 @@ export default function SuccessPageClient() {
     setError("");
     setOrder(null);
     setLoading(true);
-    if (!orderId) { setLoading(false); setError("order_id manquant dans l'URL."); return; }
+    if (!orderId && !token) { setLoading(false); setError("Lien de commande incomplet."); return; }
 
     let cancelled = false;
     const MAX_TRIES = 12;
@@ -76,9 +91,9 @@ export default function SuccessPageClient() {
 
     const pollStatus = async () => {
       try {
-        const res = await api.get(`orders/${orderId}/`);
+        const res = await api.get(base);
         if (cancelled) return;
-        if (res.data.status === "paid") { finalize(res.data); return; }
+        if (PAID_STATUSES.has(res.data.status) || res.data.status === "cancelled") { finalize(res.data); return; }
         tries += 1;
         if (tries >= MAX_TRIES) { finalize(res.data); return; }
         setTimeout(pollStatus, 1500);
@@ -92,9 +107,9 @@ export default function SuccessPageClient() {
     (async () => {
       try {
         // Étape 1: force verify côté backend (pull Payplug — shortcut IPN)
-        const res = await api.post(`orders/${orderId}/verify-payment/`);
+        const res = await api.post(`${base}verify-payment/`);
         if (cancelled) return;
-        if (res.data.status === "paid") { finalize(res.data); return; }
+        if (PAID_STATUSES.has(res.data.status) || res.data.status === "cancelled") { finalize(res.data); return; }
         // Étape 2: si pas encore paid, on poll GET classique (IPN peut arriver après)
         setOrder(res.data);
         pollStatus();
@@ -105,10 +120,10 @@ export default function SuccessPageClient() {
     })();
 
     return () => { cancelled = true; };
-  }, [orderId]);
+  }, [orderId, token, base]);
 
   useEffect(() => {
-    if (!order || order.status !== "paid") return;
+    if (!order || !PAID_STATUSES.has(order.status)) return;
     const key = `cart_cleared_for_order_${order.id}`;
     if (typeof window !== "undefined" && localStorage.getItem(key)) return;
     clear();
@@ -124,7 +139,7 @@ export default function SuccessPageClient() {
           <span className="text-3xl text-red-400">✕</span>
         </div>
         <h1 className="mt-5 text-2xl font-bold text-zinc-900 dark:text-white">Une erreur est survenue</h1>
-        <p className="mt-2 text-sm text-zinc-400 dark:text-white/40">{error}</p>
+        <p className="mt-2 text-sm text-zinc-500 dark:text-white/60">{error}</p>
         <Link href="/menu" className="mt-8 rounded-xl bg-[#FFC366] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-95">
           Revenir au menu
         </Link>
@@ -132,7 +147,22 @@ export default function SuccessPageClient() {
     );
   }
 
-  const paid = order?.status === "paid";
+  const paid = PAID_STATUSES.has(order?.status);
+
+  if (order?.status === "cancelled") {
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center">
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Commande annulée</h1>
+        <p className="mt-2 max-w-sm text-sm text-zinc-500 dark:text-white/50">
+          La commande #{order.id} a été annulée. Pour toute question, appelez-nous au{" "}
+          <a href="tel:+33493680812" className="font-semibold underline">04 93 68 08 12</a>.
+        </p>
+        <Link href="/menu" className="mt-8 rounded-xl bg-[#FFC366] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-95">
+          Revenir au menu
+        </Link>
+      </div>
+    );
+  }
 
   if (!paid) {
     return (
@@ -141,7 +171,7 @@ export default function SuccessPageClient() {
           <span className="text-4xl text-red-400">✕</span>
         </div>
         <h1 className="mt-5 text-2xl font-bold text-zinc-900 dark:text-white">Paiement non confirmé</h1>
-        <p className="mt-2 max-w-sm text-sm text-zinc-400 dark:text-white/40">
+        <p className="mt-2 max-w-sm text-sm text-zinc-500 dark:text-white/60">
           Votre paiement n&apos;a pas été validé. Vous pouvez réessayer ou revenir au panier.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -165,7 +195,7 @@ export default function SuccessPageClient() {
         <CheckIcon />
         <div className="success-content mt-6">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Commande confirmée !</h1>
-          <p className="mt-2 text-sm text-zinc-400 dark:text-white/40">
+          <p className="mt-2 text-sm text-zinc-500 dark:text-white/60">
             Merci ! Votre commande est enregistrée et va être préparée.
           </p>
         </div>
@@ -174,58 +204,79 @@ export default function SuccessPageClient() {
       <div className="success-content mt-8 overflow-hidden rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D]">
         <div className="flex items-center justify-between border-b border-zinc-100 dark:border-white/10 px-5 py-4">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-white/30">Commande</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500 dark:text-white/60">Commande</p>
             <p className="text-lg font-bold text-zinc-900 dark:text-white">#{order.id}</p>
           </div>
           <span className="rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-            Payée
+            {STATUS_LABELS[order.status] ?? "Payée"}
           </span>
         </div>
 
         <div className="grid grid-cols-2 divide-x divide-zinc-100 dark:divide-white/10 border-b border-zinc-100 dark:border-white/10">
           <div className="flex items-center gap-2.5 px-5 py-4">
-            <FaClock className="shrink-0 text-zinc-300 dark:text-white/20" />
+            <FaClock className="shrink-0 text-zinc-500 dark:text-white/50" />
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-white/30">Retrait</p>
-              <p className="text-sm font-semibold text-zinc-900 dark:text-white">{order.pickup_time}</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-white/60">Retrait</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-white">{order.pickup_label || order.pickup_time || "Voir l'email de confirmation"}</p>
             </div>
           </div>
           <div className="flex items-center gap-2.5 px-5 py-4">
-            <FaMapMarkerAlt className="shrink-0 text-zinc-300 dark:text-white/20" />
+            <FaMapMarkerAlt className="shrink-0 text-zinc-500 dark:text-white/50" />
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-white/30">Lieu</p>
-              <p className="text-sm font-semibold text-zinc-900 dark:text-white">Su-Rice · Cannes</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-white/60">Lieu</p>
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=Su-Rice%2053%20boulevard%20Carnot%20Cannes"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-semibold text-zinc-900 underline-offset-2 hover:underline dark:text-white"
+              >
+                53 bd Carnot, Cannes
+              </a>
             </div>
           </div>
         </div>
 
         {order.items?.length > 0 && (
           <div className="px-5 py-4">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-white/30">Détail</p>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-zinc-500 dark:text-white/60">Détail</p>
             <ul className="space-y-2">
               {order.items.map(it => (
                 <li key={it.id} className="flex items-center justify-between text-sm">
                   <span className="text-zinc-600 dark:text-white/60">
                     <span className="font-semibold text-zinc-900 dark:text-white">{it.quantity}×</span>{" "}{it.product_name}
                   </span>
-                  <span className="font-semibold text-[#FFC366]">{formatEURFromCents(it.line_total_cents)}</span>
+                  <span className="font-semibold text-amber-700 dark:text-[#FFC366]">{formatEURFromCents(it.line_total_cents)}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
 
-        <div className="flex items-center justify-between border-t border-zinc-100 dark:border-white/10 px-5 py-4">
-          <span className="text-sm font-medium text-zinc-500 dark:text-white/50">Total payé</span>
-          <span className="text-lg font-bold text-zinc-900 dark:text-white">{formatEURFromCents(order.total_cents)}</span>
-        </div>
+        {order.total_cents != null && (
+          <div className="flex items-center justify-between border-t border-zinc-100 dark:border-white/10 px-5 py-4">
+            <span className="text-sm font-medium text-zinc-500 dark:text-white/50">Total payé</span>
+            <span className="text-lg font-bold text-zinc-900 dark:text-white">{formatEURFromCents(order.total_cents)}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="success-content mt-6 rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] px-5 py-4 text-sm text-zinc-600 dark:text-white/60">
+        <p className="font-semibold text-zinc-900 dark:text-white">Pour récupérer votre commande</p>
+        <p className="mt-1.5">
+          Présentez-vous au comptoir à l&apos;heure choisie et donnez le numéro{" "}
+          <span className="font-semibold text-zinc-900 dark:text-white">#{order.id}</span>.
+        </p>
+        <p className="mt-1.5">
+          Un empêchement ou un retard ? Appelez-nous au{" "}
+          <a href="tel:+33493680812" className="font-semibold text-zinc-900 underline dark:text-white">04 93 68 08 12</a>.
+        </p>
       </div>
 
       <div className="success-content mt-6 text-center">
         <Link href="/menu" className="inline-block rounded-xl bg-[#FFC366] px-8 py-3.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-95">
           Revenir au menu
         </Link>
-        <p className="mt-4 text-xs text-zinc-400 dark:text-white/30">
+        <p className="mt-4 text-xs text-zinc-500 dark:text-white/60">
           Un récapitulatif vous a été envoyé par email.
         </p>
       </div>

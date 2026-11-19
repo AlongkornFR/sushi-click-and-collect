@@ -1,4 +1,6 @@
 # orders/models.py
+import uuid
+
 from django.db import models
 from django.contrib.auth import get_user_model
 
@@ -14,12 +16,18 @@ class Order(models.Model):
         ("cancelled", "Cancelled"),
     ]
 
+    # Identifiant public non devinable : seul moyen pour un client non
+    # connecté de consulter sa commande (l'ID séquentiel ne suffit plus).
+    public_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     full_name = models.CharField(max_length=120)
     email = models.EmailField()
     phone = models.CharField(max_length=30)
 
-    pickup_time = models.CharField(max_length=10)  # "18:30" (simple)
+    pickup_time = models.CharField(max_length=10)  # "18:30" : conservé pour les anciennes commandes et l'API
+    # Date et heure de retrait. Nul pour les commandes passées avant l'ajout du champ.
+    pickup_at = models.DateTimeField(null=True, blank=True, db_index=True)
     notes = models.TextField(blank=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")

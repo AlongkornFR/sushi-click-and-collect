@@ -37,7 +37,7 @@ export default function LoginPage() {
         <h1 className="mb-1 text-2xl font-bold text-zinc-900 dark:text-white">Connexion</h1>
         <p className="mb-8 text-sm text-zinc-500 dark:text-white/50">
           Pas encore de compte ?{" "}
-          <Link href="/account/register" className="font-medium text-[#FFC366] hover:underline">
+          <Link href="/account/register" className="font-medium text-amber-700 dark:text-[#FFC366] hover:underline">
             S&apos;inscrire
           </Link>
         </p>
@@ -69,6 +69,9 @@ export default function LoginPage() {
               className="w-full rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-white/30 outline-none focus:border-[#FFC366] focus:ring-2 focus:ring-[#FFC366]/20"
               placeholder="••••••••"
             />
+            <Link href="/account/forgot" className="mt-2 inline-block text-xs text-zinc-500 dark:text-white/50 hover:underline">
+              Mot de passe oublié ?
+            </Link>
           </div>
 
           {error && (

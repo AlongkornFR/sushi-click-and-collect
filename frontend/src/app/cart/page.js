@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/components/context/CartContext";
 import { formatEUR } from "@/utils/formatting";
 import ProductImage from "@/components/common/ProductImage";
+import CartSyncNotice from "@/components/common/CartSyncNotice";
 import { FaXmark } from "react-icons/fa6";
 import { FaShieldAlt, FaMapMarkerAlt, FaMinus, FaPlus, FaShoppingBag, FaTrash } from "react-icons/fa";
 
@@ -13,21 +14,32 @@ const SWIPE_THRESHOLD = 72;
 function SwipeToDelete({ onDelete, children }) {
   const [offsetX, setOffsetX]   = useState(0);
   const [animating, setAnimating] = useState(false);
-  const startXRef = useRef(null);
+  const startRef = useRef(null);
+  // "swipe" ou "scroll", décidé au premier mouvement net (lot H5) : un
+  // défilement vertical ne doit jamais supprimer un article.
+  const modeRef = useRef(null);
 
   function handleTouchStart(e) {
-    startXRef.current = e.touches[0].clientX;
+    startRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    modeRef.current = null;
     setAnimating(false);
   }
 
   function handleTouchMove(e) {
-    if (startXRef.current === null) return;
-    setOffsetX(e.touches[0].clientX - startXRef.current);
+    if (!startRef.current) return;
+    const dx = e.touches[0].clientX - startRef.current.x;
+    const dy = e.touches[0].clientY - startRef.current.y;
+    if (!modeRef.current) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) modeRef.current = "scroll";
+      else if (Math.abs(dx) > 10) modeRef.current = "swipe";
+    }
+    if (modeRef.current === "swipe") setOffsetX(dx);
   }
 
   function handleTouchEnd() {
-    startXRef.current = null;
+    startRef.current = null;
     setAnimating(true);
+    if (modeRef.current !== "swipe") { setOffsetX(0); return; }
     if (Math.abs(offsetX) > SWIPE_THRESHOLD) {
       setOffsetX(offsetX > 0 ? 600 : -600);
       setTimeout(onDelete, 280);
@@ -72,17 +84,50 @@ function SwipeToDelete({ onDelete, children }) {
 }
 
 export default function CartPage() {
-  const { items, subtotal, increment, decrement, removeItem, clear } = useCart();
+  const { items, hydrated, subtotal, count, increment, decrement, removeItem, restoreItem, clear } = useCart();
+
+  // Dernier article supprimé, pour le bouton « Annuler » (lot H5).
+  const [lastRemoved, setLastRemoved] = useState(null);
+  useEffect(() => {
+    if (!lastRemoved) return;
+    const t = setTimeout(() => setLastRemoved(null), 6000);
+    return () => clearTimeout(t);
+  }, [lastRemoved]);
+
+  function handleRemove(item, index) {
+    removeItem(item.id);
+    setLastRemoved({ item, index });
+  }
+
+  const undoToast = lastRemoved && (
+    <div role="status" className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl bg-zinc-900 px-4 py-3 text-sm text-white shadow-lg dark:bg-white dark:text-black">
+      <span className="min-w-0 truncate">{lastRemoved.item.name} retiré du panier</span>
+      <button
+        type="button"
+        onClick={() => { restoreItem(lastRemoved.item, lastRemoved.index); setLastRemoved(null); }}
+        className="shrink-0 cursor-pointer rounded-lg px-3 py-2 font-semibold text-[#FFC366] dark:text-amber-700"
+      >
+        Annuler
+      </button>
+    </div>
+  );
+
+  // Panier pas encore relu depuis le navigateur : rien à afficher.
+  if (!hydrated) {
+    return <div className="min-h-[80vh]" aria-busy="true" />;
+  }
 
   /* ── Empty state ── */
   if (items.length === 0) {
     return (
+      <>
+      {undoToast}
       <div className="flex min-h-[80vh] flex-col items-center justify-center px-6 py-16 text-center">
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-zinc-100 dark:bg-[#1D1D1D]">
-          <FaShoppingBag className="text-3xl text-zinc-300 dark:text-white/20" />
+          <FaShoppingBag className="text-3xl text-zinc-500 dark:text-white/50" />
         </div>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Votre panier est vide</h1>
-        <p className="mt-2 max-w-xs text-sm text-zinc-500 dark:text-white/40">
+        <p className="mt-2 max-w-xs text-sm text-zinc-500 dark:text-white/60">
           Ajoutez des produits depuis le menu pour commencer votre commande.
         </p>
         <Link
@@ -92,6 +137,7 @@ export default function CartPage() {
           Voir le menu
         </Link>
       </div>
+      </>
     );
   }
 
@@ -102,14 +148,14 @@ export default function CartPage() {
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Panier</h1>
-          <p className="mt-1 text-sm text-zinc-400 dark:text-white/40">
-            {items.length} article{items.length > 1 ? "s" : ""} · Retrait sur place
+          <p className="mt-1 text-sm text-zinc-500 dark:text-white/60">
+            {count} article{count > 1 ? "s" : ""} · Retrait sur place
           </p>
         </div>
         <button
           type="button"
           onClick={clear}
-          className="cursor-pointer text-xs text-zinc-400 dark:text-white/40 transition hover:text-red-400"
+          className="cursor-pointer text-xs text-zinc-500 dark:text-white/60 transition hover:text-red-400"
         >
           Vider le panier
         </button>
@@ -119,10 +165,11 @@ export default function CartPage() {
 
         {/* ── Items ── */}
         <div className="space-y-3 lg:col-span-2">
-          {items.map((it) => {
+          <CartSyncNotice />
+          {items.map((it, index) => {
             const lineTotal = Number(it.price) * it.quantity;
             return (
-              <SwipeToDelete key={it.id} onDelete={() => removeItem(it.id)}>
+              <SwipeToDelete key={it.id} onDelete={() => handleRemove(it, index)}>
                 <div className="flex gap-4 rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-4">
 
                   {/* Image */}
@@ -137,12 +184,12 @@ export default function CartPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-zinc-900 dark:text-white">{it.name}</p>
-                        <p className="mt-0.5 text-xs text-zinc-400 dark:text-white/40">{formatEUR(it.price)} / unité</p>
+                        <p className="mt-0.5 text-xs text-zinc-500 dark:text-white/60">{formatEUR(it.price)} / unité</p>
                       </div>
                       <button
                         type="button"
-                        onClick={() => removeItem(it.id)}
-                        className="shrink-0 cursor-pointer rounded-lg p-1.5 text-zinc-300 dark:text-white/30 transition hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-600 dark:hover:text-white/70"
+                        onClick={() => handleRemove(it, index)}
+                        className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg text-zinc-500 dark:text-white/60 transition hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-600 dark:hover:text-white/70"
                         aria-label={`Supprimer ${it.name}`}
                       >
                         <FaXmark className="text-xs" />
@@ -155,7 +202,7 @@ export default function CartPage() {
                         <button
                           type="button"
                           onClick={() => decrement(it.id)}
-                          className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-zinc-500 dark:text-white/50 transition hover:bg-white dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white active:scale-95"
+                          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-zinc-500 dark:text-white/50 transition hover:bg-white dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white active:scale-95"
                           aria-label="Diminuer"
                         >
                           <FaMinus className="text-[10px]" />
@@ -166,14 +213,14 @@ export default function CartPage() {
                         <button
                           type="button"
                           onClick={() => increment(it.id)}
-                          className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-zinc-500 dark:text-white/50 transition hover:bg-white dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white active:scale-95"
+                          className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg text-zinc-500 dark:text-white/50 transition hover:bg-white dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white active:scale-95"
                           aria-label="Augmenter"
                         >
                           <FaPlus className="text-[10px]" />
                         </button>
                       </div>
 
-                      <p className="text-sm font-bold text-[#FFC366]">{formatEUR(lineTotal)}</p>
+                      <p className="text-sm font-bold text-amber-700 dark:text-[#FFC366]">{formatEUR(lineTotal)}</p>
                     </div>
                   </div>
                 </div>
@@ -210,12 +257,12 @@ export default function CartPage() {
 
             {/* Trust indicators */}
             <div className="mt-5 space-y-2 border-t border-zinc-100 dark:border-white/10 pt-4">
-              <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-white/30">
-                <FaShieldAlt className="shrink-0 text-zinc-300 dark:text-white/20" />
+              <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-white/60">
+                <FaShieldAlt className="shrink-0 text-zinc-500 dark:text-white/50" />
                 Paiement 100 % sécurisé via Payplug
               </div>
-              <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-white/30">
-                <FaMapMarkerAlt className="shrink-0 text-zinc-300 dark:text-white/20" />
+              <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-white/60">
+                <FaMapMarkerAlt className="shrink-0 text-zinc-500 dark:text-white/50" />
                 Retrait sur place à Cannes
               </div>
             </div>
@@ -223,6 +270,7 @@ export default function CartPage() {
         </div>
 
       </div>
+      {undoToast}
     </div>
   );
 }

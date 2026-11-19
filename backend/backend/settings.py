@@ -22,13 +22,40 @@ load_dotenv(BASE_DIR / ".env")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-1w1w0g93*57)7h+hwcd8t4l3*e(hzputg2y2eb3qt400=a(78(")
+import re
+import sys
+
+from django.core.exceptions import ImproperlyConfigured
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".ngrok-free.app", ".ngrok-free.dev", ".onrender.com"]
+# Les tests Django tournent avec DEBUG=False : ils ont droit aux valeurs de
+# développement, comme un poste local avec DEBUG=True.
+_RUNNING_TESTS = len(sys.argv) > 1 and sys.argv[1] == "test"
+_DEV_FALLBACK_ALLOWED = DEBUG or _RUNNING_TESTS
+
+
+def _required_secret(name, dev_value=""):
+    """Lot H3 : en production, un secret manquant arrête le démarrage au lieu
+    de basculer silencieusement sur une valeur connue de tous."""
+    value = os.environ.get(name, "")
+    if value:
+        return value
+    if _DEV_FALLBACK_ALLOWED:
+        return dev_value
+    raise ImproperlyConfigured(
+        f"La variable d'environnement {name} est obligatoire en production (DEBUG=False)."
+    )
+
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = _required_secret("SECRET_KEY", dev_value="django-insecure-dev-only-not-for-production")
+
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".onrender.com"]
+if DEBUG:
+    # Tunnels de développement uniquement (lot M4)
+    ALLOWED_HOSTS += [".ngrok-free.app", ".ngrok-free.dev"]
 
 
 # Application definition
@@ -83,7 +110,16 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.TokenAuthentication",
     ],
+    # Derrière le proxy de Render, l'IP du client est la dernière adresse de
+    # X-Forwarded-For. Ajustable sans modifier le code (THROTTLE_NUM_PROXIES).
+    "NUM_PROXIES": int(os.environ.get("THROTTLE_NUM_PROXIES", "1")),
     "DEFAULT_THROTTLE_RATES": {
+        # Lot H2 : limites par adresse IP
+        "login": "10/min",
+        "register": "5/hour",
+        "checkout": "20/min",
+        "contact": "5/hour",
+        "password_reset": "5/hour",
         "loyalty_qr": "30/min",
         "loyalty_scan": "60/min",
         "loyalty_mutate": "30/min",
@@ -134,9 +170,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'fr-fr'
 
-TIME_ZONE = 'UTC'
+# Les dates restent stockées en UTC (USE_TZ = True) ; ce réglage ne change
+# que l'heure locale utilisée pour les créneaux, les emails et les reçus.
+TIME_ZONE = 'Europe/Paris'
 
 USE_I18N = True
 
@@ -152,8 +190,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://localhost:3000")
 BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://127.0.0.1:8000")
 
+# Lot M4 : domaine de production confirmé le 19/11/2026.
 CORS_ALLOWED_ORIGINS = [
     FRONTEND_BASE_URL,
+    "https://su-rice.com",
+    "https://www.su-rice.com",
     "http://localhost:3000",
 ]
 
@@ -162,10 +203,25 @@ _extra = os.environ.get("CORS_EXTRA_ORIGINS", "")
 if _extra:
     CORS_ALLOWED_ORIGINS += [o.strip() for o in _extra.split(",") if o.strip()]
 
-# Covers all *.vercel.app preview/staging deployments
+# Aperçus Vercel. Par défaut, tous les *.vercel.app sont acceptés (comme
+# avant). Définir VERCEL_PROJECT_PREFIX (ex. "sushi-click-and-collect")
+# limite aux aperçus de ce projet : https://<prefix>-xxx.vercel.app
+_vercel_prefix = os.environ.get("VERCEL_PROJECT_PREFIX", "").strip()
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://[\w-]+\.vercel\.app$",
+    rf"^https://{re.escape(_vercel_prefix)}[\w-]*\.vercel\.app$" if _vercel_prefix
+    else r"^https://[\w-]+\.vercel\.app$",
 ]
+
+# HTTPS derrière le proxy Render (lot M4). Pas de redirection forcée :
+# Render la fait déjà, et elle casserait ses contrôles de santé en HTTP.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+
+# Adresse de l'admin Django, modifiable sans toucher au code (ADMIN_URL).
+ADMIN_URL = os.environ.get("ADMIN_URL", "admin/").strip("/") + "/"
 PAYPLUG_SECRET_KEY  = os.environ.get("PAYPLUG_SECRET_KEY", "")
 PAYPLUG_API_VERSION = os.environ.get("PAYPLUG_API_VERSION", "2019-08-06")
 
@@ -192,6 +248,9 @@ if GMAIL_USER and GMAIL_APP_PASSWORD:
     EMAIL_HOST_PASSWORD = GMAIL_APP_PASSWORD.replace(" ", "")
     DEFAULT_FROM_EMAIL  = f"{EMAIL_FROM_NAME} <{GMAIL_USER}>"
 
+# Lien « mot de passe oublié » valable 1 heure (lot H8)
+PASSWORD_RESET_TIMEOUT = 60 * 60
+
 # Loyalty program
 # ─────────────────────────────────────────────────────────────────
 LOYALTY_POINT_THRESHOLD_CENTS = 1600  # purchases >= €16 earn 1 point
@@ -201,9 +260,11 @@ LOYALTY_MAX_POINTS = 10
 # LOYALTY_ENCRYPTION_KEY (Fernet.generate_key()) in production — the
 # fallback derived from SECRET_KEY is dev-only convenience so the app
 # runs out of the box, but it changes if SECRET_KEY changes.
-_loyalty_key = os.environ.get("LOYALTY_ENCRYPTION_KEY", "")
-if not _loyalty_key:
-    import base64
-    import hashlib
-    _loyalty_key = base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()).decode()
-LOYALTY_ENCRYPTION_KEY = _loyalty_key
+# Lot H3 : obligatoire en production, comme SECRET_KEY.
+import base64
+import hashlib
+
+LOYALTY_ENCRYPTION_KEY = _required_secret(
+    "LOYALTY_ENCRYPTION_KEY",
+    dev_value=base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()).decode(),
+)

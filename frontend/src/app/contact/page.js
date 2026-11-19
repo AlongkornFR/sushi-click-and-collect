@@ -26,8 +26,8 @@ const INFO = [
   {
     icon: FaClock,
     label: "Horaires",
-    value: "12h00 – 14h30 · 19h00 – 21h30",
-    sub: "Fermé le lundi",
+    value: "Lun. au jeu. : 12h00 – 14h30 et 19h15 – 21h45",
+    sub: "Ven. : 12h00 – 14h30 et 19h15 – 22h00 · Fermé samedi et dimanche",
   },
   {
     icon: FaEnvelope,
@@ -40,7 +40,7 @@ const INFO = [
 const emptyForm = { lastName: "", firstName: "", email: "", phone: "", message: "" };
 
 const inputCls =
-  "w-full rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 px-4 py-3 text-sm text-zinc-900 dark:text-white outline-none transition placeholder:text-zinc-400 dark:placeholder:text-white/30 focus:border-zinc-400 dark:focus:border-white/30 focus:bg-white dark:focus:bg-white/10";
+  "w-full rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 px-4 py-3 text-sm text-zinc-900 dark:text-white outline-none transition placeholder:text-zinc-500 dark:placeholder:text-white/40 focus:border-zinc-400 dark:focus:border-white/30 focus:bg-white dark:focus:bg-white/10";
 
 export default function ContactPage() {
   const [form, setForm]       = useState(emptyForm);
@@ -82,7 +82,7 @@ export default function ContactPage() {
         <div className="flex flex-col justify-between gap-8 rounded-3xl bg-zinc-900 dark:bg-[#1D1D1D] border border-zinc-700 dark:border-white/10 p-8 text-white lg:col-span-2 lg:p-10">
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 dark:text-white/30">
+            <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-white/60">
               Su-Rice · Cannes
             </p>
             <h1 className="mt-3 text-3xl font-bold leading-tight lg:text-4xl">
@@ -99,7 +99,7 @@ export default function ContactPage() {
             {INFO.map(({ icon: Icon, label, value, sub, href }) => (
               <li key={label} className="flex items-start gap-4">
                 <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10">
-                  <Icon className="text-sm text-[#FFC366]" />
+                  <Icon className="text-sm text-amber-700 dark:text-[#FFC366]" />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
@@ -142,7 +142,7 @@ export default function ContactPage() {
               </div>
               <div>
                 <p className="text-xl font-bold text-zinc-900 dark:text-white">Message envoyé !</p>
-                <p className="mt-1.5 text-sm text-zinc-400 dark:text-white/40">
+                <p className="mt-1.5 text-sm text-zinc-500 dark:text-white/60">
                   Nous vous répondrons dans les plus brefs délais.
                 </p>
               </div>
@@ -159,7 +159,7 @@ export default function ContactPage() {
             <>
               <div className="mb-7">
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Envoyer un message</h2>
-                <p className="mt-1 text-sm text-zinc-400 dark:text-white/40">
+                <p className="mt-1 text-sm text-zinc-500 dark:text-white/60">
                   Nous répondons généralement sous 24h.
                 </p>
               </div>

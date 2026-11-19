@@ -78,7 +78,7 @@ export default function Navbar() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Voir sur Google Maps"
-                className="text-zinc-400 dark:text-white/40 transition-colors hover:text-zinc-700 dark:hover:text-white"
+                className="text-zinc-500 dark:text-white/60 transition-colors hover:text-zinc-700 dark:hover:text-white"
               >
                 <FaMapMarkerAlt className="h-4 w-4" />
               </Link>
@@ -99,7 +99,7 @@ export default function Navbar() {
                 type="button"
                 onClick={toggle}
                 aria-label={dark ? "Passer en mode clair" : "Passer en mode sombre"}
-                className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-zinc-500 dark:text-white/50 transition hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white active:scale-95"
+                className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-zinc-500 dark:text-white/50 transition hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white active:scale-95"
               >
                 {dark ? <FaMoon className="text-base" /> : <FaSun className="text-base" />}
               </button>
@@ -108,7 +108,7 @@ export default function Navbar() {
               <Link
                 href="/account"
                 aria-label="Mon compte"
-                className="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-zinc-500 dark:text-white/50 transition hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white active:scale-95"
+                className="relative inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-zinc-500 dark:text-white/50 transition hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white active:scale-95"
               >
                 <FaUser className="text-base" />
                 {customer && (
@@ -137,7 +137,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setOpen(true)}
-              className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-zinc-600 dark:text-white/70 transition hover:bg-zinc-100 dark:hover:bg-white/10 active:scale-95"
+              className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-zinc-600 dark:text-white/70 transition hover:bg-zinc-100 dark:hover:bg-white/10 active:scale-95"
               aria-label="Ouvrir le menu"
             >
               <FaBars className="text-lg" />
@@ -153,14 +153,14 @@ export default function Navbar() {
                 type="button"
                 onClick={toggle}
                 aria-label={dark ? "Passer en mode clair" : "Passer en mode sombre"}
-                className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-zinc-500 dark:text-white/50 transition hover:bg-zinc-100 dark:hover:bg-white/10 active:scale-95"
+                className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-zinc-500 dark:text-white/50 transition hover:bg-zinc-100 dark:hover:bg-white/10 active:scale-95"
               >
                 {dark ? <FaMoon className="text-base" /> : <FaSun className="text-base" />}
               </button>
 
               <Link
                 href="/cart"
-                className="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-zinc-600 dark:text-white/70 transition hover:bg-zinc-100 dark:hover:bg-white/10 active:scale-95"
+                className="relative inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-zinc-600 dark:text-white/70 transition hover:bg-zinc-100 dark:hover:bg-white/10 active:scale-95"
                 aria-label="Panier"
               >
                 <FaShoppingBag className="text-lg" />
@@ -193,7 +193,7 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl text-zinc-500 dark:text-white/60 transition hover:bg-zinc-100 dark:hover:bg-white/10 active:scale-95"
+                className="inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-zinc-500 dark:text-white/60 transition hover:bg-zinc-100 dark:hover:bg-white/10 active:scale-95"
                 aria-label="Fermer"
               >
                 <FaXmark className="text-lg" />
@@ -225,7 +225,7 @@ export default function Navbar() {
               >
                 {customer ? `Mon compte` : "Connexion"}
                 {customer && (
-                  <span className="text-xs font-medium text-zinc-400 dark:text-white/30">{customer.first_name}</span>
+                  <span className="text-xs font-medium text-zinc-500 dark:text-white/60">{customer.first_name}</span>
                 )}
               </Link>
 
@@ -251,7 +251,7 @@ export default function Navbar() {
                 href={PHONE_HREF}
                 className="flex items-center gap-3 text-sm text-zinc-500 dark:text-white/50 transition hover:text-zinc-900 dark:hover:text-white"
               >
-                <FaPhone className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-white/30" />
+                <FaPhone className="h-3.5 w-3.5 shrink-0 text-zinc-500 dark:text-white/60" />
                 {PHONE}
               </a>
               <Link
@@ -260,7 +260,7 @@ export default function Navbar() {
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 text-sm text-zinc-500 dark:text-white/50 transition hover:text-zinc-900 dark:hover:text-white"
               >
-                <FaMapMarkerAlt className="h-3.5 w-3.5 shrink-0 text-zinc-400 dark:text-white/30" />
+                <FaMapMarkerAlt className="h-3.5 w-3.5 shrink-0 text-zinc-500 dark:text-white/60" />
                 Voir sur Google Maps
               </Link>
             </div>
