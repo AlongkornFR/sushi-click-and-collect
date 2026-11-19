@@ -258,11 +258,23 @@ class CheckoutValidationTests(OrderFixturesMixin, TestCase):
 @patch("orders.views._send_receipt_email")
 class PaymentConfirmationTests(OrderFixturesMixin, TestCase):
 
+    def test_receipt_is_sent_only_after_commit(self, send_email, _award):
+        order = self.make_order()
+        with patch("orders.views.payplug.Payment.retrieve", return_value=fake_payment(order)), \
+                self.captureOnCommitCallbacks(execute=False) as callbacks:
+            self.client.post("/api/payplug/ipn/", {"id": order.payment_id}, format="json")
+        send_email.assert_not_called()          # rien pendant la transaction
+        self.assertEqual(len(callbacks), 1)     # programmé pour après la validation
+
+    # Les emails partent après la transaction (lot M1) : on exécute les
+    # callbacks on_commit comme le ferait la vraie base.
     def ipn(self, order):
-        return self.client.post("/api/payplug/ipn/", {"id": order.payment_id}, format="json")
+        with self.captureOnCommitCallbacks(execute=True):
+            return self.client.post("/api/payplug/ipn/", {"id": order.payment_id}, format="json")
 
     def verify(self, order):
-        return self.client.post(f"/api/orders/{order.id}/verify-payment/")
+        with self.captureOnCommitCallbacks(execute=True):
+            return self.client.post(f"/api/orders/{order.id}/verify-payment/")
 
     def test_ipn_marks_pending_order_paid_and_sends_receipt(self, send_email, award):
         order = self.make_order()
@@ -512,7 +524,8 @@ class OrderAccessTests(OrderFixturesMixin, TestCase):
     @patch("orders.views.award_point_for_order")
     @patch("orders.views._send_receipt_email")
     def test_verify_payment_by_token_marks_paid(self, send_email, _award):
-        with patch("orders.views.payplug.Payment.retrieve", return_value=fake_payment(self.order)):
+        with patch("orders.views.payplug.Payment.retrieve", return_value=fake_payment(self.order)), \
+                self.captureOnCommitCallbacks(execute=True):
             res = self.client.post(f"/api/orders/t/{self.order.public_token}/verify-payment/")
         self.assertEqual(res.data["status"], "paid")
         self.assertEqual(len(res.data["items"]), 1)

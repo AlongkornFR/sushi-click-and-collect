@@ -1,5 +1,6 @@
 # orders/views.py
 import logging
+from functools import partial
 
 import payplug
 from django.conf import settings
@@ -278,7 +279,9 @@ def payplug_ipn(request):
             # on resync au cas où
             order.payment_id = str(payment_id)
             order.save(update_fields=["status", "payment_id"])
-            _send_receipt_email(order)
+            # Email envoyé après la validation de la transaction (lot M1) :
+            # jamais pendant que la commande est verrouillée.
+            transaction.on_commit(partial(_send_receipt_email, order))
             award_point_for_order(order)
             return Response({"ok": True, "paid": True}, status=status.HTTP_200_OK)
 
@@ -323,7 +326,7 @@ def _confirm_payment_if_paid(order):
         if o.status == "pending":
             o.status = "paid"
             o.save(update_fields=["status"])
-            _send_receipt_email(o)
+            transaction.on_commit(partial(_send_receipt_email, o))
             award_point_for_order(o)
     return o
 

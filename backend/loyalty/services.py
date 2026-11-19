@@ -1,3 +1,5 @@
+from functools import partial
+
 from django.conf import settings
 from django.db import transaction
 
@@ -95,7 +97,8 @@ def award_point_for_order(order) -> LoyaltyTransaction | None:
         )
         _log(account, "add_point_online", 1, metadata={"order_id": order.id, "transaction_id": str(txn.transaction_id)})
 
-    _notify_after_award(account, txn)
+    # Lot M1 : notification après validation de la transaction englobante.
+    transaction.on_commit(partial(_notify_after_award, account, txn))
     return txn
 
 
@@ -125,7 +128,8 @@ def admin_add_point(account: LoyaltyAccount, admin_user, store="", reason="", cl
         )
         _log(account, "add_point_in_store", 1, actor=admin_user, metadata={"store": store, "reason": reason}, ip_address=ip_address)
 
-    _notify_after_award(account, txn)
+    # Lot M1 : notification après validation de la transaction englobante.
+    transaction.on_commit(partial(_notify_after_award, account, txn))
     return txn
 
 
@@ -169,7 +173,7 @@ def redeem_reward(account: LoyaltyAccount, admin_user, ip_address=None) -> Loyal
         )
         _log(account, "redeem_reward", delta, actor=admin_user, ip_address=ip_address)
 
-    _notify_reward_redeemed(account)
+    transaction.on_commit(partial(_notify_reward_redeemed, account))
     return txn
 
 
