@@ -2,6 +2,8 @@
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 
+from html import escape
+
 from django.utils import timezone
 
 from .opening_hours import pickup_label
@@ -62,7 +64,7 @@ def _render_html(order, msg):
     items_html = "".join(
         f'<tr>'
         f'<td style="padding:6px 0;color:#d1d5db;font-size:13px">'
-        f'<span style="color:#FFC366;font-weight:600">{item.quantity}×</span> {item.product_name}'
+        f'<span style="color:#FFC366;font-weight:600">{item.quantity}×</span> {escape(item.product_name)}'
         f'</td>'
         f'<td style="padding:6px 0;color:#d1d5db;font-size:13px;text-align:right;font-variant-numeric:tabular-nums">'
         f'{item.line_total_cents()/100:.2f} €'
@@ -111,7 +113,7 @@ def _render_html(order, msg):
                     </td>
                     <td style="text-align:right">
                       <p style="margin:0 0 4px;color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600">Retrait</p>
-                      <p style="margin:0;color:{ACCENT};font-size:16px;font-weight:700">⏱ {pickup_label(order)}</p>
+                      <p style="margin:0;color:{ACCENT};font-size:16px;font-weight:700">⏱ {escape(pickup_label(order))}</p>
                     </td>
                   </tr></table>
                 </td></tr>

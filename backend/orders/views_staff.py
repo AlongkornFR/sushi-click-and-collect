@@ -112,7 +112,7 @@ def staff_order_mark_printed(request, order_id: int):
     try:
         order = Order.objects.get(id=order_id)
     except Order.DoesNotExist:
-        return Response({"detail": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"detail": "Commande introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
     order.printed    = True
     order.printed_at = timezone.now()
@@ -192,14 +192,14 @@ def staff_login(request):
     password = (data.get("password") or "").strip()
 
     if not username or not password:
-        return Response({"detail": "Missing credentials"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": "Indiquez l'identifiant et le mot de passe."}, status=status.HTTP_400_BAD_REQUEST)
 
     user = authenticate(username=username, password=password)
     if not user:
-        return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"detail": "Identifiant ou mot de passe incorrect."}, status=status.HTTP_401_UNAUTHORIZED)
 
     if not (user.is_staff or user.is_superuser):
-        return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
+        return Response({"detail": "Ce compte n'a pas accès à l'espace staff."}, status=status.HTTP_403_FORBIDDEN)
 
     token, _ = Token.objects.get_or_create(user=user)
     return Response({"token": token.key})

@@ -1,4 +1,5 @@
 import json as _json
+import logging
 import urllib.error
 import urllib.request
 
@@ -10,6 +11,8 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from .models import Product, Category, SubCategory
+
+logger = logging.getLogger(__name__)
 from .serializers_staff import (
     StaffProductSerializer,
     StaffCategorySerializer,
@@ -114,7 +117,7 @@ def staff_product_create(request):
         try:
             data["price"] = str(int(data["price_cents"]) / 100)
         except Exception:
-            return Response({"detail": "Invalid price_cents"}, status=400)
+            return Response({"detail": "Prix invalide."}, status=400)
 
     serializer = StaffProductSerializer(data=data)
     if serializer.is_valid():
@@ -129,7 +132,7 @@ def staff_product_update(request, product_id: int):
     try:
         product = Product.objects.get(id=product_id)
     except Product.DoesNotExist:
-        return Response({"detail": "Not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"detail": "Produit introuvable."}, status=status.HTTP_404_NOT_FOUND)
 
     data = request.data.copy()
 
@@ -137,7 +140,7 @@ def staff_product_update(request, product_id: int):
         try:
             data["price"] = str(int(data["price_cents"]) / 100)
         except Exception:
-            return Response({"detail": "Invalid price_cents"}, status=400)
+            return Response({"detail": "Prix invalide."}, status=400)
 
     serializer = StaffProductSerializer(product, data=data, partial=True)
     if serializer.is_valid():
@@ -181,7 +184,7 @@ def staff_product_reorder_bulk(request):
 def staff_product_reorder(request, product_id: int):
     direction = request.data.get("direction")
     if direction not in ("up", "down"):
-        return Response({"detail": "direction must be 'up' or 'down'"}, status=400)
+        return Response({"detail": "Direction invalide (up ou down)."}, status=400)
     _swap_positions(Product, product_id, direction)
     qs = Product.objects.select_related("category", "subcategory").all().order_by("position", "name")
     return Response(StaffProductSerializer(qs, many=True).data)
@@ -192,7 +195,7 @@ def staff_product_reorder(request, product_id: int):
 def staff_category_reorder(request, category_id: int):
     direction = request.data.get("direction")
     if direction not in ("up", "down"):
-        return Response({"detail": "direction must be 'up' or 'down'"}, status=400)
+        return Response({"detail": "Direction invalide (up ou down)."}, status=400)
     _swap_positions(Category, category_id, direction)
     qs = Category.objects.all().order_by("position", "name")
     return Response(StaffCategorySerializer(qs, many=True).data)
@@ -203,7 +206,7 @@ def staff_category_reorder(request, category_id: int):
 def staff_subcategory_reorder(request, subcategory_id: int):
     direction = request.data.get("direction")
     if direction not in ("up", "down"):
-        return Response({"detail": "direction must be 'up' or 'down'"}, status=400)
+        return Response({"detail": "Direction invalide (up ou down)."}, status=400)
     _swap_positions(SubCategory, subcategory_id, direction)
     qs = SubCategory.objects.select_related("category").all().order_by("position", "name")
     return Response(StaffSubCategorySerializer(qs, many=True).data)
@@ -237,13 +240,11 @@ def cloudflare_upload_url(request):
         with urllib.request.urlopen(req) as resp:
             data = _json.loads(resp.read())
     except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        return Response(
-            {"detail": f"Cloudflare HTTP {e.code}", "body": body},
-            status=status.HTTP_502_BAD_GATEWAY,
-        )
-    except Exception as e:
-        return Response({"detail": str(e)}, status=status.HTTP_502_BAD_GATEWAY)
+        logger.error("Cloudflare Images HTTP %s : %s", e.code, e.read().decode("utf-8", errors="replace")[:500])
+        return Response({"detail": "Le service d'images ne répond pas. Réessayez."}, status=status.HTTP_502_BAD_GATEWAY)
+    except Exception:
+        logger.exception("Cloudflare Images injoignable.")
+        return Response({"detail": "Le service d'images ne répond pas. Réessayez."}, status=status.HTTP_502_BAD_GATEWAY)
 
     if not data.get("success"):
         return Response(

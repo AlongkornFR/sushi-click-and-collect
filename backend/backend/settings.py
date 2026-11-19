@@ -22,6 +22,7 @@ load_dotenv(BASE_DIR / ".env")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
+import re
 import sys
 
 from django.core.exceptions import ImproperlyConfigured
@@ -51,7 +52,10 @@ def _required_secret(name, dev_value=""):
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = _required_secret("SECRET_KEY", dev_value="django-insecure-dev-only-not-for-production")
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".ngrok-free.app", ".ngrok-free.dev", ".onrender.com"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".onrender.com"]
+if DEBUG:
+    # Tunnels de développement uniquement (lot M4)
+    ALLOWED_HOSTS += [".ngrok-free.app", ".ngrok-free.dev"]
 
 
 # Application definition
@@ -186,8 +190,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://localhost:3000")
 BACKEND_BASE_URL = os.environ.get("BACKEND_BASE_URL", "http://127.0.0.1:8000")
 
+# Lot M4 : domaine de production confirmé le 19/11/2026.
 CORS_ALLOWED_ORIGINS = [
     FRONTEND_BASE_URL,
+    "https://su-rice.com",
+    "https://www.su-rice.com",
     "http://localhost:3000",
 ]
 
@@ -196,10 +203,25 @@ _extra = os.environ.get("CORS_EXTRA_ORIGINS", "")
 if _extra:
     CORS_ALLOWED_ORIGINS += [o.strip() for o in _extra.split(",") if o.strip()]
 
-# Covers all *.vercel.app preview/staging deployments
+# Aperçus Vercel. Par défaut, tous les *.vercel.app sont acceptés (comme
+# avant). Définir VERCEL_PROJECT_PREFIX (ex. "sushi-click-and-collect")
+# limite aux aperçus de ce projet : https://<prefix>-xxx.vercel.app
+_vercel_prefix = os.environ.get("VERCEL_PROJECT_PREFIX", "").strip()
 CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https://[\w-]+\.vercel\.app$",
+    rf"^https://{re.escape(_vercel_prefix)}[\w-]*\.vercel\.app$" if _vercel_prefix
+    else r"^https://[\w-]+\.vercel\.app$",
 ]
+
+# HTTPS derrière le proxy Render (lot M4). Pas de redirection forcée :
+# Render la fait déjà, et elle casserait ses contrôles de santé en HTTP.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+
+# Adresse de l'admin Django, modifiable sans toucher au code (ADMIN_URL).
+ADMIN_URL = os.environ.get("ADMIN_URL", "admin/").strip("/") + "/"
 PAYPLUG_SECRET_KEY  = os.environ.get("PAYPLUG_SECRET_KEY", "")
 PAYPLUG_API_VERSION = os.environ.get("PAYPLUG_API_VERSION", "2019-08-06")
 

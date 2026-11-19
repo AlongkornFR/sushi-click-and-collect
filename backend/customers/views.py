@@ -5,6 +5,8 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.http import HttpResponse
+import logging
+
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
@@ -14,6 +16,8 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
 from backend.throttles import LoginThrottle, PasswordResetThrottle, RegisterThrottle
 from .emails import send_password_reset_email
+
+logger = logging.getLogger(__name__)
 from .models import Customer
 from .serializers import CustomerProfileSerializer, OrderHistorySerializer, RegisterSerializer
 from orders.models import Order
@@ -166,9 +170,9 @@ def order_receipt(request, pk):
 
     try:
         pdf_bytes = generate_receipt_pdf(order)
-    except Exception as e:
-        import traceback; traceback.print_exc()
-        return Response({"detail": f"Erreur génération PDF: {type(e).__name__}: {e}"}, status=500)
+    except Exception:
+        logger.exception("Génération du reçu PDF impossible (commande #%s).", order.id)
+        return Response({"detail": "Le reçu n'a pas pu être généré. Réessayez plus tard."}, status=500)
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
     resp["Content-Disposition"] = f'attachment; filename="recu-surice-{order.id}.pdf"'
