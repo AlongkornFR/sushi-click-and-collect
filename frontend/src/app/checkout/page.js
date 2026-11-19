@@ -11,6 +11,7 @@ import { formatEUR } from "@/utils/formatting";
 import FormField from "@/components/common/FormField";
 import ProductImage from "@/components/common/ProductImage";
 import CartSyncNotice from "@/components/common/CartSyncNotice";
+import { useOrderingPause } from "@/components/common/OrderingPausedBanner";
 import { FaShieldAlt, FaClock, FaUser } from "react-icons/fa";
 
 function isValidEmail(email) {
@@ -103,6 +104,8 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items, hydrated, subtotal, clear } = useCart();
   const { customer, token, authHeaders } = useAuth();
+  // Lot A3 : commandes en ligne mises en pause par le staff
+  const orderingPause = useOrderingPause();
 
   const [form, setForm]       = useState({ full_name: "", email: "", phone: "", pickup_time: "", notes: "" });
   const [touched, setTouched] = useState({});
@@ -174,6 +177,10 @@ export default function CheckoutPage() {
     setError("");
     setTouched({ full_name: true, email: true, phone: true, pickup_time: true });
     if (loading) return;
+    if (orderingPause.paused) {
+      setError(orderingPause.message);
+      return;
+    }
     if (!canSubmit) {
       setError(`Il manque ${missing.join(", ")}.`);
       focusFirstInvalid();
@@ -467,7 +474,7 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 onClick={handlePay}
-                disabled={loading}
+                disabled={loading || orderingPause.paused}
                 aria-describedby="pay-hint"
                 className="mt-5 w-full cursor-pointer rounded-xl bg-[#FFC366] py-3.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-[.98] disabled:cursor-wait disabled:opacity-70"
               >
@@ -475,7 +482,11 @@ export default function CheckoutPage() {
               </button>
 
               <div id="pay-hint" aria-live="polite">
-                {error ? (
+                {orderingPause.paused ? (
+                  <p role="alert" className="mt-3 rounded-xl border border-red-100 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 px-3 py-2.5 text-xs text-red-600 dark:text-red-400">
+                    {orderingPause.message}
+                  </p>
+                ) : error ? (
                   <p role="alert" className="mt-3 rounded-xl border border-red-100 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 px-3 py-2.5 text-xs text-red-600 dark:text-red-400">
                     {error}
                   </p>

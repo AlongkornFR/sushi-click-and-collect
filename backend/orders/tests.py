@@ -735,3 +735,76 @@ class PendingExpiryTests(OrderFixturesMixin, TestCase):
             client.get("/api/staff/orders/")
             client.get("/api/staff/orders/")
         self.assertEqual(sweep.call_count, 1)
+
+
+@override_settings(PAYPLUG_SECRET_KEY="sk_test_dummy")
+@patch("orders.views.payplug.Payment.create", return_value=fake_payment_created())
+class OrderingPauseTests(OrderFixturesMixin, TestCase):
+    """Lot A3 : pause des commandes en ligne (15 min, 1 h ou sans limite)."""
+
+    def setUp(self):
+        super().setUp()
+        staff = User.objects.create_user("chef-pause", password="motdepasse-solide-1", is_staff=True)
+        self.staff = staff
+        self.staff_client = APIClient()
+        self.staff_client.credentials(HTTP_AUTHORIZATION=f"Token {Token.objects.create(user=staff).key}")
+
+    def pause(self, **body):
+        return self.staff_client.post("/api/staff/ordering-pause/", {"action": "pause", **body}, format="json")
+
+    def checkout(self):
+        return self.client.post("/api/checkout/", self.checkout_payload(), format="json")
+
+    def test_not_paused_by_default(self, _create):
+        state = self.client.get("/api/opening-hours/").data["ordering"]
+        self.assertFalse(state["paused"])
+        self.assertEqual(self.checkout().status_code, 201)
+
+    def test_pause_15_minutes_blocks_checkout_then_expires(self, _create):
+        res = self.pause(minutes=15)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.data["paused"])
+        self.assertIsNotNone(res.data["until"])
+        blocked = self.checkout()
+        self.assertEqual(blocked.status_code, 503)
+        self.assertEqual(blocked.data["field"], "paused")
+        self.assertEqual(Order.objects.count(), 0)
+        # 16 minutes plus tard, la pause est finie d'elle-même
+        from orders.models import OrderingPause
+        OrderingPause.objects.filter(pk=1).update(paused_until=timezone.now() - timedelta(minutes=1))
+        self.assertFalse(self.client.get("/api/opening-hours/").data["ordering"]["paused"])
+        self.assertEqual(self.checkout().status_code, 201)
+
+    def test_pause_one_hour(self, _create):
+        res = self.pause(minutes=60)
+        until = datetime.fromisoformat(res.data["until"])
+        self.assertAlmostEqual((until - timezone.now()).total_seconds(), 3600, delta=5)
+
+    def test_indefinite_pause_until_resumed(self, _create):
+        res = self.pause(indefinite=True)
+        self.assertTrue(res.data["indefinite"])
+        self.assertIsNone(res.data["until"])
+        self.assertEqual(self.checkout().status_code, 503)
+        resumed = self.staff_client.post("/api/staff/ordering-pause/", {"action": "resume"}, format="json")
+        self.assertFalse(resumed.data["paused"])
+        self.assertEqual(self.checkout().status_code, 201)
+
+    def test_public_state_is_visible_to_the_site(self, _create):
+        self.pause(minutes=15)
+        state = self.client.get("/api/opening-hours/").data["ordering"]
+        self.assertTrue(state["paused"])
+        self.assertIn("04 93 68 08 12", state["message"])
+
+    def test_only_allowed_durations(self, _create):
+        self.assertEqual(self.pause(minutes=5).status_code, 400)
+        self.assertEqual(self.pause(minutes="abc").status_code, 400)
+        self.assertEqual(self.staff_client.post("/api/staff/ordering-pause/", {"action": "x"}, format="json").status_code, 400)
+
+    def test_pause_requires_staff(self, _create):
+        res = self.client.post("/api/staff/ordering-pause/", {"action": "pause", "indefinite": True}, format="json")
+        self.assertEqual(res.status_code, 401)
+
+    def test_who_paused_is_recorded(self, _create):
+        self.pause(minutes=15)
+        from orders.models import OrderingPause
+        self.assertEqual(OrderingPause.current().updated_by, self.staff)

@@ -4,6 +4,7 @@ import { AuthProvider } from "@/components/context/AuthContext";
 import Navbar from "@/components/common/NavBar";
 import "./globals.css";
 import Footer from "@/components/common/Footer";
+import OrderingPausedBanner from "@/components/common/OrderingPausedBanner";
 import { Analytics } from "@vercel/analytics/next";
 
 import { INDEXABLE, SITE_URL } from "@/lib/site";
@@ -82,7 +83,10 @@ export default function RootLayout({ children }) {
           <AuthProvider>
             <CartProvider>
               <Navbar />
-              <div className="pt-8">{children}</div>
+              <div className="pt-8">
+                <OrderingPausedBanner />
+                {children}
+              </div>
               <Footer />
             </CartProvider>
           </AuthProvider>
