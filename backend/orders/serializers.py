@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Order, OrderItem
+from .opening_hours import pickup_label
 
 class OrderItemSerializer(serializers.ModelSerializer):
     line_total_cents = serializers.SerializerMethodField()
@@ -14,11 +15,15 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    pickup_label = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = [
-            "id", "status", "total_cents", "pickup_time", "notes",
+            "id", "status", "total_cents", "pickup_time", "pickup_at", "pickup_label", "notes",
             "payment_provider", "payment_id", "payment_url", "created_at",
             "items",
         ]
+
+    def get_pickup_label(self, obj):
+        return pickup_label(obj)

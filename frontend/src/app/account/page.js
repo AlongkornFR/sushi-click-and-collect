@@ -454,7 +454,7 @@ function OrdersTab({ authHeaders }) {
                   </div>
                   <p className="mt-0.5 text-xs text-zinc-400 dark:text-white/30">
                     {new Date(order.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
-                    {order.pickup_time && ` · Retrait ${order.pickup_time}`}
+                    {(order.pickup_label || order.pickup_time) && ` · Retrait ${order.pickup_label || order.pickup_time}`}
                   </p>
                 </div>
                 <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${st.pill}`}>

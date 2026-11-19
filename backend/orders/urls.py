@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import checkout, payplug_ipn, OrderDetailView, verify_payment
+from .views import checkout, payplug_ipn, OrderDetailView, verify_payment, opening_hours
 from .views_staff import (
     staff_login,
     staff_me,
@@ -14,6 +14,7 @@ from .views_staff import (
 urlpatterns = [
     # Public
     path("checkout/",           checkout),
+    path("opening-hours/",      opening_hours),
     path("payplug/ipn/",        payplug_ipn),
     path("orders/<int:pk>/",    OrderDetailView.as_view()),
     path("orders/<int:pk>/verify-payment/", verify_payment),

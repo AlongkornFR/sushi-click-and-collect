@@ -2,6 +2,9 @@
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 
+from django.utils import timezone
+
+from .opening_hours import pickup_label
 from .receipt import generate_receipt_pdf
 
 
@@ -51,7 +54,7 @@ STATUS_MESSAGES = {
 
 # ── Template HTML ───────────────────────────────────────────────────────────
 def _render_html(order, msg):
-    created   = order.created_at.strftime("%d/%m/%Y à %H:%M")
+    created   = timezone.localtime(order.created_at).strftime("%d/%m/%Y à %H:%M")
     total_eur = f"{order.total_cents / 100:.2f} €"
     frontend  = getattr(settings, "FRONTEND_BASE_URL", "https://su-rice.com").rstrip("/")
     account_url = f"{frontend}/account"
@@ -108,7 +111,7 @@ def _render_html(order, msg):
                     </td>
                     <td style="text-align:right">
                       <p style="margin:0 0 4px;color:rgba(255,255,255,0.4);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600">Retrait</p>
-                      <p style="margin:0;color:{ACCENT};font-size:16px;font-weight:700">⏱ {order.pickup_time}</p>
+                      <p style="margin:0;color:{ACCENT};font-size:16px;font-weight:700">⏱ {pickup_label(order)}</p>
                     </td>
                   </tr></table>
                 </td></tr>
@@ -167,7 +170,7 @@ def _render_text(order, msg):
         msg["body"],
         "",
         f"Commande #{order.id}",
-        f"Retrait : {order.pickup_time}",
+        f"Retrait : {pickup_label(order)}",
         "",
         "Détail :",
     ]

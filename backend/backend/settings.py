@@ -134,9 +134,11 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'fr-fr'
 
-TIME_ZONE = 'UTC'
+# Les dates restent stockées en UTC (USE_TZ = True) ; ce réglage ne change
+# que l'heure locale utilisée pour les créneaux, les emails et les reçus.
+TIME_ZONE = 'Europe/Paris'
 
 USE_I18N = True
 

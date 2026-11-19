@@ -19,7 +19,9 @@ class Order(models.Model):
     email = models.EmailField()
     phone = models.CharField(max_length=30)
 
-    pickup_time = models.CharField(max_length=10)  # "18:30" (simple)
+    pickup_time = models.CharField(max_length=10)  # "18:30" : conservé pour les anciennes commandes et l'API
+    # Date et heure de retrait. Nul pour les commandes passées avant l'ajout du champ.
+    pickup_at = models.DateTimeField(null=True, blank=True, db_index=True)
     notes = models.TextField(blank=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")

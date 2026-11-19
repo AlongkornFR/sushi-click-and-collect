@@ -349,7 +349,7 @@ export default function StaffOrdersPage() {
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {o.pickup_time && (
             <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/60">
-              ⏱ {o.pickup_time}
+              ⏱ {o.pickup_label || o.pickup_time}
             </span>
           )}
           {o.printed && (

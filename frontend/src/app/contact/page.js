@@ -26,8 +26,8 @@ const INFO = [
   {
     icon: FaClock,
     label: "Horaires",
-    value: "12h00 – 14h30 · 19h00 – 21h30",
-    sub: "Fermé le lundi",
+    value: "Lun. au jeu. : 12h00 – 14h30 et 19h15 – 21h45",
+    sub: "Ven. : 12h00 – 14h30 et 19h15 – 22h00 · Fermé samedi et dimanche",
   },
   {
     icon: FaEnvelope,

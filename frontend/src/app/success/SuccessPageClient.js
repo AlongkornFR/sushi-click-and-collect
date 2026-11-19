@@ -213,7 +213,7 @@ export default function SuccessPageClient() {
             <FaClock className="shrink-0 text-zinc-300 dark:text-white/20" />
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-white/30">Retrait</p>
-              <p className="text-sm font-semibold text-zinc-900 dark:text-white">{order.pickup_time}</p>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-white">{order.pickup_label || order.pickup_time}</p>
             </div>
           </div>
           <div className="flex items-center gap-2.5 px-5 py-4">

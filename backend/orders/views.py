@@ -11,8 +11,16 @@ from rest_framework import status
 
 from products.models import Product
 from .models import Order, OrderItem
+from .opening_hours import PickupError, parse_pickup, public_schedule
 
 logger = logging.getLogger(__name__)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def opening_hours(request):
+    """Horaires de retrait, lus par le checkout pour construire les créneaux."""
+    return Response(public_schedule())
 
 
 def _to_cents(decimal_price):
@@ -41,6 +49,11 @@ def checkout(request):
 
     if not full_name or not email or not pickup_time:
         return Response({"detail": "Champs client invalides."}, status=400)
+
+    try:
+        pickup_at = parse_pickup(pickup_time)
+    except PickupError as e:
+        return Response({"detail": str(e), "field": "pickup_time"}, status=400)
     if not isinstance(items, list) or len(items) == 0:
         return Response({"detail": "Panier vide."}, status=400)
 
@@ -79,7 +92,8 @@ def checkout(request):
             full_name=full_name,
             email=email,
             phone=phone,
-            pickup_time=pickup_time,
+            pickup_time=f"{pickup_at:%H:%M}",
+            pickup_at=pickup_at,
             notes=notes,
             status="pending",
             total_cents=total_cents,
@@ -130,7 +144,7 @@ def checkout(request):
         },
         "hosted_payment": {"return_url": return_url, "cancel_url": cancel_url},
         "notification_url": notification_url,
-        "metadata": {"order_id": str(order.id), "phone": phone, "pickup_time": pickup_time},
+        "metadata": {"order_id": str(order.id), "phone": phone, "pickup_time": pickup_at.isoformat()},
     }
 
     try:

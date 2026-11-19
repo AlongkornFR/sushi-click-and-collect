@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Customer
 from orders.models import Order
+from orders.opening_hours import pickup_label
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -48,10 +49,14 @@ class OrderItemSummarySerializer(serializers.Serializer):
 
 class OrderHistorySerializer(serializers.ModelSerializer):
     items = serializers.SerializerMethodField()
+    pickup_label = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
-        fields = ["id", "status", "total_cents", "created_at", "pickup_time", "items"]
+        fields = ["id", "status", "total_cents", "created_at", "pickup_time", "pickup_at", "pickup_label", "items"]
+
+    def get_pickup_label(self, obj):
+        return pickup_label(obj)
 
     def get_items(self, obj):
         return [

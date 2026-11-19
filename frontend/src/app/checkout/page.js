@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/context/CartContext";
@@ -21,51 +22,59 @@ function isValidPhone(phone) {
 
 const SHORT_DAYS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
 const SHORT_MONTHS = ["jan.", "fév.", "mar.", "avr.", "mai", "juin", "juil.", "aoû.", "sep.", "oct.", "nov.", "déc."];
-const PREP_MINUTES = 20;
+const DAYS_SHOWN = 7;
 
-function getWorkingDays(count = 7) {
+// Les horaires viennent du backend (GET /api/opening-hours/), seule source de vérité.
+const fetchSchedule = (url) => api.get(url).then(r => r.data);
+
+const pad2 = (n) => String(n).padStart(2, "0");
+
+// Date locale "AAAA-MM-JJ" (pas toISOString, qui donne la date UTC).
+function localDateKey(d) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function toMinutes(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function buildSlotsForDay(date, schedule) {
+  const services = schedule.days[String(date.getDay())] || [];
+  const cutoff = Date.now() + schedule.prep_minutes * 60 * 1000;
+  return services
+    .map(([start, end], index) => {
+      const slots = [];
+      for (let t = toMinutes(start); t <= toMinutes(end); t += schedule.slot_minutes) {
+        const slotDate = new Date(date);
+        slotDate.setHours(Math.floor(t / 60), t % 60, 0, 0);
+        if (slotDate.getTime() < cutoff) continue;
+        const hm = `${pad2(Math.floor(t / 60))}:${pad2(t % 60)}`;
+        slots.push({ value: `${localDateKey(date)} ${hm}`, label: hm.replace(":", "h") });
+      }
+      return { index, start, end, slots };
+    })
+    .filter(service => service.slots.length > 0);
+}
+
+// Jours ouverts avec au moins un créneau encore disponible.
+function getOpenDays(schedule) {
   const days = [];
   const d = new Date();
-  d.setSeconds(0, 0);
-  while (days.length < count) {
-    const dow = d.getDay();
-    if (dow !== 0 && dow !== 6) days.push(new Date(d));
+  d.setHours(0, 0, 0, 0);
+  for (let i = 0; i <= schedule.max_days_ahead && days.length < DAYS_SHOWN; i++) {
+    if (buildSlotsForDay(d, schedule).length > 0) days.push(new Date(d));
     d.setDate(d.getDate() + 1);
   }
   return days;
 }
 
-function buildSlotsForDay(date) {
-  const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
-  const cutoff = new Date(now.getTime() + PREP_MINUTES * 60 * 1000);
-  const slots = [];
-
-  const pushRange = (h1, m1, h2, m2) => {
-    let h = h1, m = m1;
-    while (h < h2 || (h === h2 && m <= m2)) {
-      const slotDate = new Date(date);
-      slotDate.setHours(h, m, 0, 0);
-      if (!isToday || slotDate > cutoff) {
-        slots.push({
-          value: `${date.toISOString().slice(0, 10)} ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
-          label: `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`,
-          hour: h,
-        });
-      }
-      m += 15;
-      if (m >= 60) { m = 0; h += 1; }
-    }
-  };
-
-  pushRange(11, 30, 14, 0);
-  pushRange(18, 0, 22, 0);
-  return slots;
-}
-
-function formatDayLabel(date, index) {
-  if (index === 0) return "Aujourd'hui";
-  if (index === 1) return "Demain";
+function formatDayLabel(date) {
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+  if (localDateKey(date) === localDateKey(today)) return "Aujourd'hui";
+  if (localDateKey(date) === localDateKey(tomorrow)) return "Demain";
   return `${SHORT_DAYS[date.getDay()]} ${date.getDate()} ${SHORT_MONTHS[date.getMonth()]}`;
 }
 
@@ -75,6 +84,11 @@ function formatPickupDisplay(value) {
   const d = new Date(datePart + "T00:00:00");
   const dayStr = `${SHORT_DAYS[d.getDay()]} ${d.getDate()} ${SHORT_MONTHS[d.getMonth()]}`;
   return `${dayStr} à ${timePart.replace(":", "h")}`;
+}
+
+function serviceTitle(service) {
+  const range = `${service.start.replace(":", "h")} à ${service.end.replace(":", "h")}`;
+  return `${service.index === 0 ? "Midi" : "Soir"} : ${range}`;
 }
 
 const inputCls = (hasError) =>
@@ -106,14 +120,15 @@ export default function CheckoutPage() {
     }
   }, [customer]);
 
-  const workingDays = useMemo(() => getWorkingDays(7), []);
-  const [selectedDayIdx, setSelectedDayIdx] = useState(() => {
-    const todaySlots = buildSlotsForDay(new Date());
-    return todaySlots.length > 0 ? 0 : 1;
+  const { data: schedule, error: scheduleError } = useSWR("opening-hours/", fetchSchedule, {
+    revalidateOnFocus: false,
   });
-  const daySlots    = useMemo(() => buildSlotsForDay(workingDays[selectedDayIdx]), [workingDays, selectedDayIdx]);
-  const lunchSlots  = useMemo(() => daySlots.filter(s => s.hour < 15), [daySlots]);
-  const dinnerSlots = useMemo(() => daySlots.filter(s => s.hour >= 15), [daySlots]);
+  const openDays = useMemo(() => (schedule ? getOpenDays(schedule) : []), [schedule]);
+  const [selectedDayIdx, setSelectedDayIdx] = useState(0);
+  const services = useMemo(
+    () => (schedule && openDays[selectedDayIdx] ? buildSlotsForDay(openDays[selectedDayIdx], schedule) : []),
+    [schedule, openDays, selectedDayIdx],
+  );
 
   useEffect(() => {
     if (items.length === 0) router.replace("/cart");
@@ -142,7 +157,7 @@ export default function CheckoutPage() {
     try {
       const payload = {
         customer: { full_name: form.full_name.trim(), email: form.email.trim(), phone: form.phone.trim() },
-        pickup_time: form.pickup_time.slice(-5),
+        pickup_time: form.pickup_time, // "AAAA-MM-JJ HH:MM", validé par le serveur
         notes: form.notes?.trim() || "",
         items: items.map(x => ({ product_id: x.id, quantity: x.quantity })),
       };
@@ -152,6 +167,7 @@ export default function CheckoutPage() {
       window.location.href = paymentUrl;
     } catch (e) {
       console.error(e);
+      if (e.response?.data?.field === "pickup_time") setField("pickup_time", "");
       setError(e.response?.data?.detail || "Impossible de démarrer le paiement. Réessayez.");
     } finally {
       setLoading(false);
@@ -287,14 +303,23 @@ export default function CheckoutPage() {
               Heure de retrait
             </h2>
             <p className="mb-4 text-xs text-zinc-400 dark:text-white/30">
-              Préparation ~ {PREP_MINUTES} min en fonction de l'heure ou vous commander la commande il y a peut être de l'attente
+              Préparation ~ {schedule?.prep_minutes ?? 20} min en fonction de l'heure ou vous commander la commande il y a peut être de l'attente
             </p>
+
+            {scheduleError && (
+              <p className="py-4 text-center text-sm text-red-500 dark:text-red-400">
+                Impossible de charger les créneaux. Réessayez ou appelez-nous au 04 93 68 08 12.
+              </p>
+            )}
+            {!schedule && !scheduleError && (
+              <p className="py-4 text-center text-sm text-zinc-400 dark:text-white/30">Chargement des créneaux…</p>
+            )}
 
             {/* Day selector */}
             <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {workingDays.map((day, i) => (
+              {openDays.map((day, i) => (
                 <button
-                  key={i}
+                  key={localDateKey(day)}
                   type="button"
                   onClick={() => { setSelectedDayIdx(i); setField("pickup_time", ""); }}
                   className={`shrink-0 cursor-pointer rounded-xl px-3.5 py-2 text-center transition active:scale-95 ${
@@ -303,12 +328,7 @@ export default function CheckoutPage() {
                       : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20"
                   }`}
                 >
-                  <p className="text-xs font-semibold">{formatDayLabel(day, i)}</p>
-                  {i >= 2 && (
-                    <p className={`text-[10px] mt-0.5 ${selectedDayIdx === i ? "text-black/60" : "text-zinc-400 dark:text-white/30"}`}>
-                      {day.getDate()} {SHORT_MONTHS[day.getMonth()]}
-                    </p>
-                  )}
+                  <p className="text-xs font-semibold">{formatDayLabel(day)}</p>
                 </button>
               ))}
             </div>
@@ -317,60 +337,34 @@ export default function CheckoutPage() {
               <p className="mb-3 text-xs text-red-500 dark:text-red-400">{validation.pickup_time}</p>
             )}
 
-            {daySlots.length === 0 ? (
+            {schedule && services.length === 0 ? (
               <p className="py-4 text-center text-sm text-zinc-400 dark:text-white/30">
                 Aucun créneau disponible pour ce jour.
               </p>
             ) : (
-              <>
-                {lunchSlots.length > 0 && (
-                  <>
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-300 dark:text-white/20">
-                      Déjeuner — 11h30 à 14h00
-                    </p>
-                    <div className="mb-5 flex flex-wrap gap-2">
-                      {lunchSlots.map(slot => (
-                        <button
-                          key={slot.value}
-                          type="button"
-                          onClick={() => { setField("pickup_time", slot.value); markTouched("pickup_time"); }}
-                          className={`cursor-pointer rounded-xl px-3.5 py-2 text-sm font-medium transition active:scale-95 ${
-                            form.pickup_time === slot.value
-                              ? "bg-[#FFC366] text-black"
-                              : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20 hover:bg-zinc-100 dark:hover:bg-white/10"
-                          }`}
-                        >
-                          {slot.label}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {dinnerSlots.length > 0 && (
-                  <>
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-300 dark:text-white/20">
-                      Soir — 18h00 à 22h00
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {dinnerSlots.map(slot => (
-                        <button
-                          key={slot.value}
-                          type="button"
-                          onClick={() => { setField("pickup_time", slot.value); markTouched("pickup_time"); }}
-                          className={`cursor-pointer rounded-xl px-3.5 py-2 text-sm font-medium transition active:scale-95 ${
-                            form.pickup_time === slot.value
-                              ? "bg-[#FFC366] text-black"
-                              : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20 hover:bg-zinc-100 dark:hover:bg-white/10"
-                          }`}
-                        >
-                          {slot.label}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </>
+              services.map(service => (
+                <div key={service.index} className="mb-5 last:mb-0">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-300 dark:text-white/20">
+                    {serviceTitle(service)}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {service.slots.map(slot => (
+                      <button
+                        key={slot.value}
+                        type="button"
+                        onClick={() => { setField("pickup_time", slot.value); markTouched("pickup_time"); }}
+                        className={`cursor-pointer rounded-xl px-3.5 py-2 text-sm font-medium transition active:scale-95 ${
+                          form.pickup_time === slot.value
+                            ? "bg-[#FFC366] text-black"
+                            : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20 hover:bg-zinc-100 dark:hover:bg-white/10"
+                        }`}
+                      >
+                        {slot.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))
             )}
           </div>
 
