@@ -1,4 +1,6 @@
 # orders/views.py
+import logging
+
 import payplug
 from django.conf import settings
 from django.db import transaction
@@ -9,6 +11,9 @@ from rest_framework import status
 
 from products.models import Product
 from .models import Order, OrderItem
+
+logger = logging.getLogger(__name__)
+
 
 def _to_cents(decimal_price):
     return int(round(float(decimal_price) * 100))
@@ -239,9 +244,15 @@ def payplug_ipn(request):
         if amount is None or int(amount) != int(order.total_cents):
             return Response({"ok": True, "detail": "Amount mismatch"}, status=status.HTTP_200_OK)
 
-        # Idempotent
-        if order.status == "paid":
-            return Response({"ok": True, "already_paid": True}, status=status.HTTP_200_OK)
+        # Idempotent : seule une commande "pending" peut devenir "paid".
+        # Une commande déjà prise en charge (preparing, ready, collected)
+        # ou annulée garde son statut.
+        if order.status != "pending":
+            if order.status == "cancelled" and is_paid:
+                logger.warning("Paiement %s reçu pour la commande annulée #%s : remboursement à prévoir.",
+                               payment_id, order.id)
+            return Response({"ok": True, "already_processed": True, "status": order.status},
+                            status=status.HTTP_200_OK)
 
         # 3) On valide uniquement si Payplug confirme
         if is_paid:
@@ -279,7 +290,9 @@ def verify_payment(request, pk):
     except Order.DoesNotExist:
         return Response({"detail": "Commande introuvable."}, status=404)
 
-    if order.status == "paid":
+    # Seule une commande "pending" peut devenir "paid" : on ne touche jamais
+    # au statut d'une commande déjà payée, en cuisine, récupérée ou annulée.
+    if order.status != "pending":
         return Response(OrderSerializer(order).data)
 
     if not order.payment_id:
@@ -309,7 +322,7 @@ def verify_payment(request, pk):
 
     with transaction.atomic():
         o = Order.objects.select_for_update().get(id=order.id)
-        if o.status != "paid":
+        if o.status == "pending":
             o.status = "paid"
             o.save(update_fields=["status"])
             _send_receipt_email(o)

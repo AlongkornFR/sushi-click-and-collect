@@ -14,6 +14,17 @@ function formatEURFromCents(cents) {
   });
 }
 
+// Statuts qui prouvent que le paiement a été reçu : une commande en cuisine,
+// prête ou récupérée a forcément été payée.
+const PAID_STATUSES = new Set(["paid", "preparing", "ready", "collected"]);
+
+const STATUS_LABELS = {
+  paid:      "Payée",
+  preparing: "En préparation",
+  ready:     "Prête à retirer",
+  collected: "Récupérée",
+};
+
 function Spinner() {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6 px-6">
@@ -78,7 +89,7 @@ export default function SuccessPageClient() {
       try {
         const res = await api.get(`orders/${orderId}/`);
         if (cancelled) return;
-        if (res.data.status === "paid") { finalize(res.data); return; }
+        if (PAID_STATUSES.has(res.data.status) || res.data.status === "cancelled") { finalize(res.data); return; }
         tries += 1;
         if (tries >= MAX_TRIES) { finalize(res.data); return; }
         setTimeout(pollStatus, 1500);
@@ -94,7 +105,7 @@ export default function SuccessPageClient() {
         // Étape 1: force verify côté backend (pull Payplug — shortcut IPN)
         const res = await api.post(`orders/${orderId}/verify-payment/`);
         if (cancelled) return;
-        if (res.data.status === "paid") { finalize(res.data); return; }
+        if (PAID_STATUSES.has(res.data.status) || res.data.status === "cancelled") { finalize(res.data); return; }
         // Étape 2: si pas encore paid, on poll GET classique (IPN peut arriver après)
         setOrder(res.data);
         pollStatus();
@@ -108,7 +119,7 @@ export default function SuccessPageClient() {
   }, [orderId]);
 
   useEffect(() => {
-    if (!order || order.status !== "paid") return;
+    if (!order || !PAID_STATUSES.has(order.status)) return;
     const key = `cart_cleared_for_order_${order.id}`;
     if (typeof window !== "undefined" && localStorage.getItem(key)) return;
     clear();
@@ -132,7 +143,22 @@ export default function SuccessPageClient() {
     );
   }
 
-  const paid = order?.status === "paid";
+  const paid = PAID_STATUSES.has(order?.status);
+
+  if (order?.status === "cancelled") {
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center">
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Commande annulée</h1>
+        <p className="mt-2 max-w-sm text-sm text-zinc-500 dark:text-white/50">
+          La commande #{order.id} a été annulée. Pour toute question, appelez-nous au{" "}
+          <a href="tel:+33493680812" className="font-semibold underline">04 93 68 08 12</a>.
+        </p>
+        <Link href="/menu" className="mt-8 rounded-xl bg-[#FFC366] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-95">
+          Revenir au menu
+        </Link>
+      </div>
+    );
+  }
 
   if (!paid) {
     return (
@@ -178,7 +204,7 @@ export default function SuccessPageClient() {
             <p className="text-lg font-bold text-zinc-900 dark:text-white">#{order.id}</p>
           </div>
           <span className="rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-            Payée
+            {STATUS_LABELS[order.status] ?? "Payée"}
           </span>
         </div>
 
