@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
 from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
@@ -52,6 +53,7 @@ def fake_payment(order, *, is_paid=True, amount=None, currency="EUR"):
 
 class OrderFixturesMixin:
     def setUp(self):
+        cache.clear()  # remet à zéro les compteurs de limitation (lot H2)
         self.client = APIClient()
         self.category = Category.objects.create(name="Sushis", slug="sushis")
         self.sub = SubCategory.objects.create(name="Makis", slug="makis", category=self.category)
@@ -517,3 +519,42 @@ class PublicTokenMigrationTests(TransactionTestCase):
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()
         executor.migrate(executor.loader.graph.leaf_nodes())
+
+
+@override_settings(PAYPLUG_SECRET_KEY="sk_test_dummy")
+class ThrottleTests(OrderFixturesMixin, TestCase):
+    """Lot H2 : limites par adresse IP."""
+
+    def test_staff_login_is_limited_to_10_per_minute(self):
+        codes = [self.client.post("/api/staff/login/", {"username": "x", "password": "y"}, format="json").status_code
+                 for _ in range(11)]
+        self.assertEqual(codes[:10], [401] * 10)
+        self.assertEqual(codes[10], 429)
+
+    def test_customer_login_is_limited(self):
+        codes = [self.client.post("/api/auth/login/", {"email": "a@b.fr", "password": "y"}, format="json").status_code
+                 for _ in range(11)]
+        self.assertEqual(codes[-1], 429)
+
+    def test_limit_is_per_ip(self):
+        for _ in range(10):
+            self.client.post("/api/staff/login/", {"username": "x", "password": "y"}, format="json",
+                             REMOTE_ADDR="10.0.0.1")
+        other = self.client.post("/api/staff/login/", {"username": "x", "password": "y"}, format="json",
+                                 REMOTE_ADDR="10.0.0.2")
+        self.assertEqual(other.status_code, 401)
+
+    def test_spoofed_forwarded_for_does_not_bypass_limit(self):
+        codes = [
+            self.client.post("/api/staff/login/", {"username": "x", "password": "y"}, format="json",
+                             HTTP_X_FORWARDED_FOR=f"1.2.3.{i}, 203.0.113.9").status_code
+            for i in range(11)
+        ]
+        self.assertEqual(codes[-1], 429)
+
+    @patch("orders.views.payplug.Payment.create", return_value=fake_payment_created())
+    def test_checkout_is_limited_to_20_per_minute(self, _create):
+        codes = [self.client.post("/api/checkout/", self.checkout_payload(), format="json").status_code
+                 for _ in range(21)]
+        self.assertEqual(codes[:20], [201] * 20)
+        self.assertEqual(codes[20], 429)

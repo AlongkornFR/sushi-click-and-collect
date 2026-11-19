@@ -4,11 +4,12 @@ import logging
 import payplug
 from django.conf import settings
 from django.db import transaction
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
+from backend.throttles import CheckoutThrottle
 from products.models import Product
 from .models import Order, OrderItem
 from .opening_hours import PickupError, parse_pickup, public_schedule
@@ -42,6 +43,7 @@ def split_name(full_name: str):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([CheckoutThrottle])
 def checkout(request):
     user = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
     serializer = CheckoutSerializer(data=request.data or {}, context={"user": user})

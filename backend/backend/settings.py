@@ -83,7 +83,16 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.TokenAuthentication",
     ],
+    # Derrière le proxy de Render, l'IP du client est la dernière adresse de
+    # X-Forwarded-For. Ajustable sans modifier le code (THROTTLE_NUM_PROXIES).
+    "NUM_PROXIES": int(os.environ.get("THROTTLE_NUM_PROXIES", "1")),
     "DEFAULT_THROTTLE_RATES": {
+        # Lot H2 : limites par adresse IP
+        "login": "10/min",
+        "register": "5/hour",
+        "checkout": "20/min",
+        "contact": "5/hour",
+        "password_reset": "5/hour",
         "loyalty_qr": "30/min",
         "loyalty_scan": "60/min",
         "loyalty_mutate": "30/min",

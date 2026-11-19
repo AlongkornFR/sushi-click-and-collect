@@ -6,10 +6,11 @@ from django.utils.dateparse import parse_datetime
 
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
+from backend.throttles import LoginThrottle
 from .models import Order
 from .serializers_staff import OrderStaffSerializer
 from .emails import send_order_status_email
@@ -138,6 +139,7 @@ def staff_order_delete(request, order_id: int):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([LoginThrottle])
 def staff_login(request):
     data     = request.data or {}
     username = (data.get("username") or "").strip()

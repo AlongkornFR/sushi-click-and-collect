@@ -1,10 +1,11 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.http import HttpResponse
+from backend.throttles import LoginThrottle, RegisterThrottle
 from .models import Customer
 from .serializers import CustomerProfileSerializer, OrderHistorySerializer, RegisterSerializer
 from orders.models import Order
@@ -13,6 +14,7 @@ from orders.receipt import generate_receipt_pdf
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([RegisterThrottle])
 def register(request):
     serializer = RegisterSerializer(data=request.data)
     if not serializer.is_valid():
@@ -33,6 +35,7 @@ def register(request):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([LoginThrottle])
 def login(request):
     email = request.data.get("email", "").lower().strip()
     password = request.data.get("password", "")

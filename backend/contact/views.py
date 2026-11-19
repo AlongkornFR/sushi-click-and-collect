@@ -1,16 +1,18 @@
 import requests as http_requests
 
 from django.conf import settings
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 
+from backend.throttles import ContactThrottle
 from .serializers import ContactSerializer
 
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([ContactThrottle])
 def contact_send(request):
     serializer = ContactSerializer(data=request.data)
     if not serializer.is_valid():
