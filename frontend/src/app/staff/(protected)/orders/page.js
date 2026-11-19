@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStaffAuth } from "../../_components/useStaffAuth";
+import { useNewOrderAlert } from "../../_components/useNewOrderAlert";
 import { printOrder as qzPrint } from "@/lib/printer";
 import PrinterStatus from "@/components/staff/PrinterStatus";
 import { formatEUR } from "@/utils/formatting";
-import { FaPrint, FaPhone, FaSearch } from "react-icons/fa";
+import { FaPrint, FaPhone, FaSearch, FaBell, FaBellSlash } from "react-icons/fa";
 
 /* ── Statuts ── */
 const STATUS_CONFIG = {
@@ -179,6 +180,10 @@ export default function StaffOrdersPage() {
   const [printError, setPrintError]     = useState("");
   // Rappel « rembourser sur Payplug » après annulation d'une commande payée (lot M2)
   const [refundNotice, setRefundNotice] = useState("");
+
+  // Lot A2 : son + bandeau à chaque nouvelle commande payée
+  const sound = useNewOrderAlert(orders, !fetching);
+  const soundWasBlockedRef = useRef(false);
 
   // L'historique complet n'est chargé que dans la vue Historique (lot H7).
   const showHistory = view === "history";
@@ -522,7 +527,32 @@ export default function StaffOrdersPage() {
                 );
               })}
             </div>
-            <PrinterStatus />
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Un seul bouton : son action est décidée au moment de l'appui.
+                  (Deux boutons échangés au même endroit faisaient retomber le
+                  clic d'activation sur « Couper le son ».) */}
+              <button
+                type="button"
+                onPointerDown={() => { soundWasBlockedRef.current = sound.soundBlocked && !sound.muted; }}
+                onClick={() => {
+                  if (soundWasBlockedRef.current) sound.testSound();
+                  else sound.toggleMute();
+                  soundWasBlockedRef.current = false;
+                }}
+                aria-pressed={!sound.muted}
+                className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-4 text-sm font-semibold ${
+                  sound.soundBlocked && !sound.muted
+                    ? "border-amber-400 bg-amber-400 font-bold text-black"
+                    : sound.muted
+                      ? "border-white/15 text-white/60"
+                      : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                }`}
+              >
+                {sound.muted ? <FaBellSlash aria-hidden="true" /> : <FaBell aria-hidden="true" />}
+                {sound.soundBlocked && !sound.muted ? "Activer le son" : sound.muted ? "Son coupé" : "Son activé"}
+              </button>
+              <PrinterStatus />
+            </div>
           </div>
 
           <label className="relative block">
@@ -537,6 +567,36 @@ export default function StaffOrdersPage() {
             />
           </label>
         </div>
+
+        {/* ── Nouvelles commandes (lot A2) ── */}
+        {sound.alerts.length > 0 && (
+          <div role="alert" className="mx-4 mt-4 space-y-2 rounded-2xl border-2 border-blue-400/60 bg-blue-500/15 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-base font-bold text-white">
+                {sound.alerts.length > 1 ? `${sound.alerts.length} nouvelles commandes` : "Nouvelle commande"}
+              </p>
+              {sound.alerts.length > 1 && (
+                <button type="button" onClick={sound.dismissAll} className="min-h-11 cursor-pointer rounded-xl px-3 text-sm font-semibold text-blue-100 underline">
+                  Tout marquer comme vu
+                </button>
+              )}
+            </div>
+            {sound.alerts.map(a => (
+              <div key={a.id} className="flex items-center justify-between gap-3 rounded-xl bg-black/30 px-3 py-2">
+                <p className="text-sm text-white">
+                  <span className="font-bold">#{a.id}</span> · {a.name} · retrait {a.pickup}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => sound.dismiss(a.id)}
+                  className="min-h-11 shrink-0 cursor-pointer rounded-xl bg-white px-4 text-sm font-bold text-black"
+                >
+                  Vu
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Messages ── */}
         {error && (
