@@ -55,9 +55,11 @@ def checkout(request):
         wanted.append((int(pid), qty))
         product_ids.append(int(pid))
 
-    # ✅ Transaction : lock produits -> check stock -> décrément -> créer order/items
+    # Règle métier (validée le 19/11/2026) : un produit "disponible" est
+    # commandable, sans suivi de stock. Le champ Product.stock est conservé
+    # en base et dans l'API, mais n'a plus d'effet sur la commande.
     with transaction.atomic():
-        db_products = Product.objects.select_for_update().filter(id__in=product_ids, is_available=True)
+        db_products = Product.objects.filter(id__in=product_ids, is_available=True)
         db_map = {p.id: p for p in db_products}
 
         line_items = []
@@ -67,17 +69,6 @@ def checkout(request):
             p = db_map.get(pid)
             if not p:
                 return Response({"detail": f"Produit indisponible (id={pid})."}, status=400)
-
-            # ⚠️ adapte le nom du champ stock si besoin
-            if hasattr(p, "stock") and p.stock is not None:
-                if p.stock < qty:
-                    return Response(
-                        {"detail": f"Stock insuffisant pour '{p.name}' (restant: {p.stock})."},
-                        status=400
-                    )
-                # décrément
-                p.stock -= qty
-                p.save(update_fields=["stock"])
 
             unit_cents = _to_cents(p.price)
             total_cents += unit_cents * qty
