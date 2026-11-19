@@ -18,4 +18,5 @@ urlpatterns = [
     path("staff/users/", views_staff.list_users),
     path("staff/users/<int:pk>/", views_staff.get_user),
     path("staff/users/<int:pk>/delete/", views_staff.delete_user),
+    path("staff/users/<int:pk>/active/", views_staff.set_active),
 ]

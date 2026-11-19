@@ -808,3 +808,20 @@ class OrderingPauseTests(OrderFixturesMixin, TestCase):
         self.pause(minutes=15)
         from orders.models import OrderingPause
         self.assertEqual(OrderingPause.current().updated_by, self.staff)
+
+
+class StaffOrderCustomerLinkTests(OrderFixturesMixin, TestCase):
+    """Lot A6 : l'écran staff sait à quel client appartient une commande."""
+
+    def test_customer_id_for_account_orders_only(self):
+        from customers.models import Customer
+        staff = User.objects.create_user("chef-lien", password="motdepasse-solide-1", is_staff=True)
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Token {Token.objects.create(user=staff).key}")
+        user = User.objects.create_user("c@example.com", email="c@example.com", password="x")
+        customer = Customer.objects.create(user=user)
+        with_account = self.make_order(status="paid", user=user)
+        guest = self.make_order(status="paid")
+        data = {o["id"]: o for o in client.get("/api/staff/orders/").data}
+        self.assertEqual(data[with_account.id]["customer_id"], customer.id)
+        self.assertIsNone(data[guest.id]["customer_id"])

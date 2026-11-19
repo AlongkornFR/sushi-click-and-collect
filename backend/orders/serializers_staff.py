@@ -16,6 +16,8 @@ class OrderStaffSerializer(serializers.ModelSerializer):
     items     = OrderItemMiniSerializer(many=True, read_only=True)
     total_eur = serializers.SerializerMethodField()
     pickup_label = serializers.SerializerMethodField()
+    # Lot A6 : lien vers la fiche client (null pour une commande invité)
+    customer_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -28,7 +30,12 @@ class OrderStaffSerializer(serializers.ModelSerializer):
             "printed", "printed_at",
             "ready_at",
             "items",
+            "customer_id",
         )
+
+    def get_customer_id(self, obj):
+        customer = getattr(obj.user, "customer", None) if obj.user_id else None
+        return customer.id if customer else None
 
     def get_pickup_label(self, obj):
         return pickup_label(obj)

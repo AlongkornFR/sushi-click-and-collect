@@ -100,3 +100,87 @@ class PasswordResetTests(TestCase):
     def test_requests_are_rate_limited(self):
         codes = [self.request_reset().status_code for _ in range(6)]
         self.assertEqual(codes[-1], 429)
+
+
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
+
+from orders.models import Order, OrderItem
+
+
+class StaffClientPageTests(TestCase):
+    """Lot A6 : fiche client, désactivation, liste rapide."""
+
+    def setUp(self):
+        cache.clear()
+        staff = User.objects.create_user("chef", password="motdepasse-solide-1", is_staff=True)
+        self.staff_client = APIClient()
+        self.staff_client.credentials(HTTP_AUTHORIZATION=f"Token {Token.objects.create(user=staff).key}")
+        self.user = User.objects.create_user("marie@example.com", email="marie@example.com",
+                                             password=OLD_PASSWORD, first_name="Marie")
+        self.customer = Customer.objects.create(user=self.user, phone="0612345678")
+
+    def order(self, status="collected", total=2000):
+        o = Order.objects.create(user=self.user, full_name="Marie", email="marie@example.com", phone="06",
+                                 pickup_time="12:30", status=status, total_cents=total)
+        OrderItem.objects.create(order=o, product_id=1, product_name="Maki saumon", unit_price_cents=650, quantity=2)
+        return o
+
+    def test_detail_shows_orders_total_and_no_card_yet(self):
+        self.order(total=2000)
+        self.order(status="cancelled", total=5000)
+        data = self.staff_client.get(f"/api/staff/users/{self.customer.id}/").data
+        self.assertEqual(len(data["orders"]), 2)
+        self.assertEqual(data["orders"][0]["items"], ["2× Maki saumon"])
+        self.assertEqual(data["total_spent_cents"], 2000)      # l'annulée ne compte pas
+        self.assertIsNone(data["loyalty"])
+        from loyalty.models import LoyaltyAccount
+        self.assertFalse(LoyaltyAccount.objects.exists())        # consulter ne crée pas de carte
+
+    def test_detail_shows_loyalty_card(self):
+        from loyalty.models import LoyaltyAccount
+        LoyaltyAccount.objects.create(customer=self.customer, points=4)
+        data = self.staff_client.get(f"/api/staff/users/{self.customer.id}/").data
+        self.assertEqual(data["loyalty"]["points"], 4)
+        self.assertEqual(data["loyalty"]["max_points"], 10)
+
+    def test_deactivate_blocks_login_and_logs_out(self):
+        Token.objects.create(user=self.user)
+        res = self.staff_client.post(f"/api/staff/users/{self.customer.id}/active/", {"is_active": False}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.data["is_active"])
+        self.assertFalse(Token.objects.filter(user=self.user).exists())
+        login = APIClient().post("/api/auth/login/", {"email": "marie@example.com", "password": OLD_PASSWORD}, format="json")
+        self.assertNotEqual(login.status_code, 200)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())   # rien n'est effacé
+
+    def test_reactivate(self):
+        self.user.is_active = False
+        self.user.save()
+        self.staff_client.post(f"/api/staff/users/{self.customer.id}/active/", {"is_active": True}, format="json")
+        login = APIClient().post("/api/auth/login/", {"email": "marie@example.com", "password": OLD_PASSWORD}, format="json")
+        self.assertEqual(login.status_code, 200)
+
+    def test_is_active_must_be_boolean(self):
+        res = self.staff_client.post(f"/api/staff/users/{self.customer.id}/active/", {"is_active": "non"}, format="json")
+        self.assertEqual(res.status_code, 400)
+
+    def test_staff_account_cannot_be_deactivated_or_deleted(self):
+        boss = User.objects.create_user("boss@example.com", email="boss@example.com", password="x", is_staff=True)
+        boss_customer = Customer.objects.create(user=boss)
+        self.assertEqual(self.staff_client.post(f"/api/staff/users/{boss_customer.id}/active/",
+                                                {"is_active": False}, format="json").status_code, 400)
+        self.assertEqual(self.staff_client.delete(f"/api/staff/users/{boss_customer.id}/delete/").status_code, 400)
+
+    def test_list_counts_orders_in_constant_queries(self):
+        for i in range(5):
+            u = User.objects.create_user(f"c{i}@example.com", email=f"c{i}@example.com", password="x")
+            Customer.objects.create(user=u)
+        self.order()
+        with CaptureQueriesContext(connection) as ctx:
+            data = self.staff_client.get("/api/staff/users/").data
+        self.assertEqual(next(c for c in data if c["id"] == self.customer.id)["order_count"], 1)
+        self.assertLess(len(ctx.captured_queries), 6)
+
+    def test_routes_require_staff(self):
+        self.assertEqual(APIClient().get(f"/api/staff/users/{self.customer.id}/").status_code, 401)

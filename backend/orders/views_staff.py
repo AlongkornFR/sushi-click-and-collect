@@ -71,7 +71,7 @@ def staff_orders_list(request):
     # (au plus une fois par minute, Payplug vérifié avant).
     expire_stale_pending_orders_throttled()
 
-    qs = Order.objects.prefetch_related("items").order_by("-created_at")
+    qs = Order.objects.select_related("user__customer").prefetch_related("items").order_by("-created_at")
 
     scope_all = request.query_params.get("scope") == "all"
     if not scope_all:
