@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useStaffAuth } from "./useStaffAuth";
+import OrderingPauseBar from "./OrderingPauseBar";
 
 const NAV = [
   { href: "/staff/orders",   label: "Commandes",          superOnly: false },
@@ -97,6 +98,9 @@ export default function StaffShell({ children, requireAuth = true }) {
 
         </div>
       </header>
+
+      {/* Pause des commandes en ligne, visible sur tout l'espace staff (lot A3) */}
+      <OrderingPauseBar />
 
       {/* ── Content ── */}
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">

@@ -16,6 +16,7 @@ from products.views import VISIBLE
 from .models import Order, OrderItem
 from .opening_hours import PickupError, parse_pickup, public_schedule
 from .serializers import CheckoutSerializer, first_error_message
+from .services import PAUSE_MESSAGE, ordering_pause_state
 
 PAYMENT_UNAVAILABLE = (
     "Le paiement en ligne n'a pas pu démarrer. Réessayez dans un instant "
@@ -28,8 +29,9 @@ logger = logging.getLogger(__name__)
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def opening_hours(request):
-    """Horaires de retrait, lus par le checkout pour construire les créneaux."""
-    return Response(public_schedule())
+    """Horaires de retrait, lus par le checkout pour construire les créneaux,
+    et état de la pause des commandes (lot A3)."""
+    return Response({**public_schedule(), "ordering": ordering_pause_state()})
 
 
 def _to_cents(decimal_price):
@@ -64,6 +66,10 @@ def checkout(request):
         pickup_at = parse_pickup(data["pickup_time"])
     except PickupError as e:
         return Response({"detail": str(e), "field": "pickup_time"}, status=400)
+
+    # Lot A3 : commandes en ligne mises en pause par le staff.
+    if ordering_pause_state()["paused"]:
+        return Response({"detail": PAUSE_MESSAGE, "field": "paused"}, status=503)
 
     # Vérifié avant de créer la commande : pas de commande orpheline si la
     # configuration de paiement manque.

@@ -18,7 +18,14 @@ from backend.throttles import LoginThrottle
 from .models import Order
 from .serializers_staff import OrderStaffSerializer
 from .emails import send_order_status_email
-from .services import expire_stale_pending_orders_throttled, on_paid_order_cancelled
+from .services import (
+    PAUSE_DURATIONS_MINUTES,
+    expire_stale_pending_orders_throttled,
+    on_paid_order_cancelled,
+    ordering_pause_state,
+    pause_ordering,
+    resume_ordering,
+)
 
 ALLOWED_STATUSES = {"pending", "paid", "preparing", "ready", "collected", "cancelled"}
 
@@ -216,3 +223,31 @@ def staff_me(request):
         "is_staff":     u.is_staff,
         "is_superuser": u.is_superuser,
     })
+
+
+# ── Pause des commandes en ligne (lot A3) ─────────────────────────────────────
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAdminUser])
+def staff_ordering_pause(request):
+    """GET : état. POST {"action": "pause", "minutes": 15 | 60} ou
+    {"action": "pause", "indefinite": true} ou {"action": "resume"}."""
+    if request.method == "GET":
+        return Response(ordering_pause_state())
+
+    data = request.data or {}
+    action = data.get("action")
+    if action == "resume":
+        return Response(resume_ordering(actor=request.user))
+    if action == "pause":
+        if data.get("indefinite") is True:
+            return Response(pause_ordering(minutes=None, actor=request.user))
+        try:
+            minutes = int(data.get("minutes"))
+        except (TypeError, ValueError):
+            minutes = None
+        if minutes in PAUSE_DURATIONS_MINUTES:
+            return Response(pause_ordering(minutes=minutes, actor=request.user))
+        return Response({"detail": "Durée de pause invalide (15 ou 60 minutes, ou sans limite)."},
+                        status=status.HTTP_400_BAD_REQUEST)
+    return Response({"detail": "Action inconnue (pause ou resume)."}, status=status.HTTP_400_BAD_REQUEST)

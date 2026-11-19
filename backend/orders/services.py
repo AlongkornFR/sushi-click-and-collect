@@ -81,3 +81,52 @@ def expire_stale_pending_orders_throttled():
     if not cache.add(SWEEP_LOCK_KEY, True, timeout=SWEEP_EVERY_SECONDS):
         return [], []
     return expire_stale_pending_orders()
+
+
+# ── Pause des commandes en ligne (lot A3) ───────────────────────────────────
+
+PAUSE_DURATIONS_MINUTES = (15, 60)
+PAUSE_MESSAGE = (
+    "Les commandes en ligne sont momentanément suspendues. "
+    "Réessayez un peu plus tard ou appelez-nous au 04 93 68 08 12."
+)
+
+
+def ordering_pause_state(now=None):
+    """État public de la pause : {paused, indefinite, until}."""
+    from .models import OrderingPause
+
+    pause = OrderingPause.current()
+    active = pause.is_active(now)
+    return {
+        "paused": active,
+        "indefinite": active and pause.indefinite,
+        "until": pause.paused_until.isoformat() if active and not pause.indefinite and pause.paused_until else None,
+        "message": PAUSE_MESSAGE if active else "",
+    }
+
+
+def pause_ordering(minutes=None, actor=None):
+    """Met les commandes en pause : `minutes` = 15 ou 60, None = sans limite."""
+    from .models import OrderingPause
+
+    pause = OrderingPause.current()
+    if minutes is None:
+        pause.indefinite, pause.paused_until = True, None
+    else:
+        pause.indefinite, pause.paused_until = False, timezone.now() + timedelta(minutes=minutes)
+    pause.updated_by = actor
+    pause.save()
+    logger.info("Commandes en ligne en pause (%s) par %s.",
+                "sans limite" if minutes is None else f"{minutes} min", getattr(actor, "username", "?"))
+    return ordering_pause_state()
+
+
+def resume_ordering(actor=None):
+    from .models import OrderingPause
+
+    pause = OrderingPause.current()
+    pause.indefinite, pause.paused_until, pause.updated_by = False, None, actor
+    pause.save()
+    logger.info("Commandes en ligne reprises par %s.", getattr(actor, "username", "?"))
+    return ordering_pause_state()

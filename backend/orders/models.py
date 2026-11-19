@@ -60,3 +60,29 @@ class OrderItem(models.Model):
         return self.unit_price_cents * self.quantity
 
 
+
+
+class OrderingPause(models.Model):
+    """Pause des commandes en ligne (lot A3). Une seule ligne (pk=1).
+
+    Le staff met en pause pour 15 min, 1 h ou sans limite ; pendant la pause,
+    le checkout refuse les nouvelles commandes et le site affiche un message.
+    """
+    paused_until = models.DateTimeField(null=True, blank=True)
+    indefinite = models.BooleanField(default=False)
+    updated_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "pause des commandes"
+        verbose_name_plural = "pause des commandes"
+
+    @classmethod
+    def current(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def is_active(self, now=None):
+        from django.utils import timezone
+        now = now or timezone.now()
+        return self.indefinite or (self.paused_until is not None and self.paused_until > now)
