@@ -96,10 +96,14 @@ const Footer = () => {
           <div className="flex items-start gap-3 text-gray-200">
             <div className="text-md leading-relaxed">
               <p>
-                <strong>Du lundi au vendredi :</strong>
+                <strong>Du lundi au jeudi :</strong>
               </p>
+              <p>12h00 - 14h30 et 19h15 - 21h45</p>
 
-              <p>12h - 14h30 et 19h - 21h30</p>
+              <p className="mt-2">
+                <strong>Le vendredi :</strong>
+              </p>
+              <p>12h00 - 14h30 et 19h15 - 22h00</p>
 
               <p className="mt-2">
                 <strong>Fermé samedi et dimanche</strong>
