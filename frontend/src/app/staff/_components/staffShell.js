@@ -6,12 +6,14 @@ import { useEffect } from "react";
 import { useStaffAuth } from "./useStaffAuth";
 import OrderingPauseBar from "./OrderingPauseBar";
 
+// Un seul rôle staff : tous les comptes staff voient tous les onglets
+// (décision du 19/11/2026).
 const NAV = [
-  { href: "/staff/orders",   label: "Commandes",          superOnly: false },
-  { href: "/staff/products", label: "Produits",            superOnly: false },
-  { href: "/staff/categories", label: "Catégories",        superOnly: false },
-  { href: "/staff/loyalty",  label: "Fidélité",             superOnly: false },
-  { href: "/staff/users",    label: "Clients",             superOnly: true  },
+  { href: "/staff/orders",     label: "Commandes" },
+  { href: "/staff/products",   label: "Produits" },
+  { href: "/staff/categories", label: "Catégories" },
+  { href: "/staff/loyalty",    label: "Fidélité" },
+  { href: "/staff/users",      label: "Clients" },
 ];
 
 export default function StaffShell({ children, requireAuth = true }) {
@@ -47,7 +49,7 @@ export default function StaffShell({ children, requireAuth = true }) {
 
           {/* Brand */}
           <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-white">Su-Rice</span>
+            <span className="whitespace-nowrap text-sm font-bold text-white">Su-Rice</span>
             <span className="h-4 w-px bg-white/10" />
             <span className="text-xs font-medium text-[#FFC366]">
               {isSuperuser ? "Super Admin" : "Staff"}
@@ -55,12 +57,12 @@ export default function StaffShell({ children, requireAuth = true }) {
           </div>
 
           {/* Nav links */}
-          <nav className="flex items-center gap-1">
-            {NAV.filter(({ superOnly }) => !superOnly || isSuperuser).map(({ href, label }) => (
+          <nav className="flex min-w-0 items-center gap-1 overflow-x-auto">
+            {NAV.map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                   pathname === href
                     ? "bg-[#FFC366] text-black"
                     : "text-white/50 hover:bg-white/10 hover:text-white"
@@ -71,10 +73,11 @@ export default function StaffShell({ children, requireAuth = true }) {
             ))}
           </nav>
 
-          {/* User + logout */}
+          {/* Utilisateur + déconnexion. Le nom d'utilisateur ne s'affiche que
+              sur grand écran : sur tablette en portrait, la place va aux onglets. */}
           <div className="flex items-center gap-3">
             {me && (
-              <div className="hidden items-center gap-2 sm:flex">
+              <div className="hidden items-center gap-2 lg:flex">
                 <span className="text-sm text-white/50">{me.username}</span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
