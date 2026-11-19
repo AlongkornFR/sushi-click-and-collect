@@ -58,7 +58,7 @@ export function LoyaltyCard({ authHeaders }) {
   if (loading) {
     return (
       <div className="rounded-2xl border border-zinc-200 dark:border-white/10 p-6 text-center">
-        <p className="text-sm text-zinc-400 dark:text-white/30">Chargement de votre carte…</p>
+        <p className="text-sm text-zinc-500 dark:text-white/60">Chargement de votre carte…</p>
       </div>
     );
   }
@@ -107,7 +107,7 @@ export function LoyaltyCard({ authHeaders }) {
         </div>
 
         {account.reward_available && (
-          <div className="mt-4 rounded-xl bg-[#FFC366]/15 px-4 py-2.5 text-sm font-medium text-[#FFC366] ring-1 ring-[#FFC366]/30">
+          <div className="mt-4 rounded-xl bg-[#FFC366]/15 px-4 py-2.5 text-sm font-medium text-amber-700 dark:text-[#FFC366] ring-1 ring-[#FFC366]/30">
             🎁 Récompense disponible — présentez votre QR code en boutique !
           </div>
         )}

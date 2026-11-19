@@ -37,7 +37,7 @@ export default function AccountPage() {
   if (loading || !customer) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-zinc-400 dark:text-white/30">Chargement…</p>
+        <p className="text-sm text-zinc-500 dark:text-white/60">Chargement…</p>
       </div>
     );
   }
@@ -55,7 +55,7 @@ export default function AccountPage() {
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
               {customer.first_name} {customer.last_name}
             </h1>
-            <p className="mt-0.5 text-sm text-zinc-500 dark:text-white/40">
+            <p className="mt-0.5 text-sm text-zinc-500 dark:text-white/60">
               {customer.email}
             </p>
           </div>
@@ -77,7 +77,7 @@ export default function AccountPage() {
             className={`flex-1 cursor-pointer rounded-lg py-2 text-sm font-medium transition ${
               tab === t.id
                 ? "bg-white dark:bg-white/10 text-zinc-900 dark:text-white shadow-sm"
-                : "text-zinc-500 dark:text-white/40 hover:text-zinc-800 dark:hover:text-white/70"
+                : "text-zinc-500 dark:text-white/60 hover:text-zinc-800 dark:hover:text-white/70"
             }`}
           >
             {t.label}
@@ -196,14 +196,14 @@ function ProfileTab({ customer, token, setCustomer, authHeaders, logout, router,
             ✉️
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-medium text-zinc-400 dark:text-white/30 uppercase tracking-wider mb-0.5">Adresse e-mail</p>
+            <p className="text-xs font-medium text-zinc-500 dark:text-white/60 uppercase tracking-wider mb-0.5">Adresse e-mail</p>
             <p className="text-sm font-semibold text-zinc-900 dark:text-white truncate">{customer.email}</p>
           </div>
         </div>
 
         {/* Membre depuis */}
         <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 p-5">
-          <p className="text-xs font-medium text-zinc-400 dark:text-white/30 uppercase tracking-wider mb-1">Membre depuis</p>
+          <p className="text-xs font-medium text-zinc-500 dark:text-white/60 uppercase tracking-wider mb-1">Membre depuis</p>
           <p className="text-sm font-semibold text-zinc-900 dark:text-white capitalize">
             {new Date(customer.date_joined).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
           </p>
@@ -211,9 +211,9 @@ function ProfileTab({ customer, token, setCustomer, authHeaders, logout, router,
 
         {/* Téléphone */}
         <div className="rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 p-5">
-          <p className="text-xs font-medium text-zinc-400 dark:text-white/30 uppercase tracking-wider mb-1">Téléphone</p>
+          <p className="text-xs font-medium text-zinc-500 dark:text-white/60 uppercase tracking-wider mb-1">Téléphone</p>
           <p className="text-sm font-semibold text-zinc-900 dark:text-white">
-            {customer.phone || <span className="text-zinc-400 dark:text-white/30 font-normal">Non renseigné</span>}
+            {customer.phone || <span className="text-zinc-500 dark:text-white/60 font-normal">Non renseigné</span>}
           </p>
         </div>
       </div>
@@ -224,17 +224,17 @@ function ProfileTab({ customer, token, setCustomer, authHeaders, logout, router,
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-white/40 uppercase tracking-wider">Prénom</label>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-white/60 uppercase tracking-wider">Prénom</label>
               <input type="text" required value={form.first_name} onChange={(e) => setForm((p) => ({ ...p, first_name: e.target.value }))} className={inputClass} />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-white/40 uppercase tracking-wider">Nom</label>
+              <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-white/60 uppercase tracking-wider">Nom</label>
               <input type="text" required value={form.last_name} onChange={(e) => setForm((p) => ({ ...p, last_name: e.target.value }))} className={inputClass} />
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-white/40 uppercase tracking-wider">Téléphone</label>
+            <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-white/60 uppercase tracking-wider">Téléphone</label>
             <input type="tel" value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} className={inputClass} placeholder="+33 6 00 00 00 00" />
           </div>
 
@@ -279,7 +279,7 @@ function ProfileTab({ customer, token, setCustomer, authHeaders, logout, router,
       {/* Delete account */}
       <div className="rounded-2xl border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-900/10 p-5">
         <p className="mb-1 text-sm font-semibold text-red-600 dark:text-red-400">Zone dangereuse</p>
-        <p className="mb-4 text-xs text-zinc-500 dark:text-white/40">La suppression est irréversible.</p>
+        <p className="mb-4 text-xs text-zinc-500 dark:text-white/60">La suppression est irréversible.</p>
         <form onSubmit={handleDelete} className="space-y-3">
           <input type="password" required placeholder="Confirmez avec votre mot de passe" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className={inputClass} />
           {delError && <p className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2.5 text-sm text-red-600 dark:text-red-400">{delError}</p>}
@@ -395,13 +395,13 @@ function OrdersTab({ authHeaders }) {
     }
   };
 
-  if (loading) return <p className="py-8 text-center text-sm text-zinc-400 dark:text-white/30">Chargement…</p>;
+  if (loading) return <p className="py-8 text-center text-sm text-zinc-500 dark:text-white/60">Chargement…</p>;
   if (error && !orders.length) return <p className="py-8 text-center text-sm text-red-500">{error}</p>;
   if (!orders.length) return (
     <div className="rounded-2xl border border-dashed border-zinc-200 dark:border-white/10 py-16 text-center">
       <div className="mb-3 text-4xl">🍱</div>
       <p className="text-sm font-medium text-zinc-600 dark:text-white/60">Aucune commande pour l&apos;instant</p>
-      <p className="mt-1 text-xs text-zinc-400 dark:text-white/30">Vos commandes apparaîtront ici.</p>
+      <p className="mt-1 text-xs text-zinc-500 dark:text-white/60">Vos commandes apparaîtront ici.</p>
     </div>
   );
 
@@ -409,13 +409,13 @@ function OrdersTab({ authHeaders }) {
     <div className="space-y-4">
       {/* Live indicator */}
       <div className="flex items-center justify-between px-1">
-        <p className="text-xs text-zinc-400 dark:text-white/30">
+        <p className="text-xs text-zinc-500 dark:text-white/60">
           {orders.length} commande{orders.length > 1 ? "s" : ""}
         </p>
         <button
           onClick={() => fetchOrders({ silent: true })}
           disabled={refreshing}
-          className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-white/40 hover:text-zinc-800 dark:hover:text-white/70 transition disabled:opacity-50"
+          className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-white/60 hover:text-zinc-800 dark:hover:text-white/70 transition disabled:opacity-50"
         >
           <span className={`inline-block h-1.5 w-1.5 rounded-full ${refreshing ? "animate-pulse bg-[#FFC366]" : "bg-green-500"}`} />
           {refreshing ? "Sync…" : "À jour"}
@@ -452,7 +452,7 @@ function OrdersTab({ authHeaders }) {
                       </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-xs text-zinc-400 dark:text-white/30">
+                  <p className="mt-0.5 text-xs text-zinc-500 dark:text-white/60">
                     {new Date(order.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
                     {(order.pickup_label || order.pickup_time) && ` · Retrait ${order.pickup_label || order.pickup_time}`}
                   </p>
@@ -474,7 +474,7 @@ function OrdersTab({ authHeaders }) {
                         <div className={`flex h-full w-full items-center gap-1.5`}>
                           <div className={`h-1.5 flex-1 rounded-full transition-colors ${reached ? "bg-[#FFC366]" : "bg-zinc-200 dark:bg-white/10"} ${current ? "animate-pulse" : ""}`} />
                         </div>
-                        <p className={`mt-1.5 text-[10px] font-medium truncate ${reached ? "text-zinc-700 dark:text-white/80" : "text-zinc-400 dark:text-white/30"}`}>
+                        <p className={`mt-1.5 text-[10px] font-medium truncate ${reached ? "text-zinc-700 dark:text-white/80" : "text-zinc-500 dark:text-white/60"}`}>
                           {meta.label}
                         </p>
                       </div>
@@ -516,7 +516,7 @@ function OrdersTab({ authHeaders }) {
                     {order.items.map((item, i) => (
                       <div key={i} className="flex items-center justify-between text-sm">
                         <span className="text-zinc-700 dark:text-white/70">
-                          <span className="inline-block w-7 text-zinc-400 dark:text-white/30 font-medium">{item.quantity}×</span>
+                          <span className="inline-block w-7 text-zinc-500 dark:text-white/60 font-medium">{item.quantity}×</span>
                           {item.name}
                         </span>
                         <span className="text-zinc-600 dark:text-white/60 tabular-nums">
@@ -528,7 +528,7 @@ function OrdersTab({ authHeaders }) {
                   <div className="mt-3 flex justify-between border-t border-zinc-100 dark:border-white/5 pt-3">
                     <button
                       onClick={() => toggle(order.id)}
-                      className="text-xs text-zinc-400 dark:text-white/30 hover:text-zinc-700 dark:hover:text-white/60 cursor-pointer"
+                      className="text-xs text-zinc-500 dark:text-white/60 hover:text-zinc-700 dark:hover:text-white/60 cursor-pointer"
                     >
                       Masquer ↑
                     </button>
@@ -667,7 +667,7 @@ function SecurityTab({ logout, router, authHeaders, fetchMe }) {
       {/* Delete account */}
       <section>
         <h2 className="mb-1 text-base font-semibold text-red-600 dark:text-red-400">Zone dangereuse</h2>
-        <p className="mb-4 text-sm text-zinc-500 dark:text-white/40">La suppression est irréversible.</p>
+        <p className="mb-4 text-sm text-zinc-500 dark:text-white/60">La suppression est irréversible.</p>
         <form onSubmit={handleDelete} className="space-y-3">
           <input type="password" required placeholder="Confirmez avec votre mot de passe" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className={inputClass} />
           {delError && <p className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2.5 text-sm text-red-600 dark:text-red-400">{delError}</p>}
@@ -689,14 +689,14 @@ function ExtrasTab({ authHeaders }) {
 
       {/* Préférences — à implémenter */}
       <div className="rounded-2xl border border-dashed border-zinc-200 dark:border-white/10 p-6 text-center">
-        <p className="text-sm font-medium text-zinc-400 dark:text-white/30">Préférences alimentaires</p>
-        <p className="mt-1 text-xs text-zinc-300 dark:text-white/20">À venir</p>
+        <p className="text-sm font-medium text-zinc-500 dark:text-white/60">Préférences alimentaires</p>
+        <p className="mt-1 text-xs text-zinc-500 dark:text-white/50">À venir</p>
       </div>
 
       {/* Notifications — à implémenter */}
       <div className="rounded-2xl border border-dashed border-zinc-200 dark:border-white/10 p-6 text-center">
-        <p className="text-sm font-medium text-zinc-400 dark:text-white/30">Notifications</p>
-        <p className="mt-1 text-xs text-zinc-300 dark:text-white/20">À venir</p>
+        <p className="text-sm font-medium text-zinc-500 dark:text-white/60">Notifications</p>
+        <p className="mt-1 text-xs text-zinc-500 dark:text-white/50">À venir</p>
       </div>
     </div>
   );

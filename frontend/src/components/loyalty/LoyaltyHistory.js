@@ -31,12 +31,12 @@ export function LoyaltyHistory({ authHeaders }) {
     return () => { active = false; };
   }, [authHeaders]);
 
-  if (loading) return <p className="py-4 text-center text-xs text-zinc-400 dark:text-white/30">Chargement…</p>;
+  if (loading) return <p className="py-4 text-center text-xs text-zinc-500 dark:text-white/60">Chargement…</p>;
   if (error) return <p className="py-4 text-center text-xs text-red-500">{error}</p>;
   if (!items.length) {
     return (
       <div className="rounded-2xl border border-dashed border-zinc-200 dark:border-white/10 py-10 text-center">
-        <p className="text-sm text-zinc-400 dark:text-white/30">Aucun mouvement pour l&apos;instant.</p>
+        <p className="text-sm text-zinc-500 dark:text-white/60">Aucun mouvement pour l&apos;instant.</p>
       </div>
     );
   }
@@ -51,13 +51,13 @@ export function LoyaltyHistory({ authHeaders }) {
               <span className="text-lg">{meta.icon}</span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-zinc-900 dark:text-white">{meta.label}</p>
-                <p className="text-xs text-zinc-400 dark:text-white/30">
+                <p className="text-xs text-zinc-500 dark:text-white/60">
                   {new Date(t.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
                   {t.order_total_cents != null && ` · ${(t.order_total_cents / 100).toFixed(2)} €`}
                 </p>
               </div>
             </div>
-            <span className={`shrink-0 text-sm font-semibold tabular-nums ${t.delta > 0 ? "text-green-600 dark:text-green-400" : "text-zinc-500 dark:text-white/40"}`}>
+            <span className={`shrink-0 text-sm font-semibold tabular-nums ${t.delta > 0 ? "text-green-600 dark:text-green-400" : "text-zinc-500 dark:text-white/60"}`}>
               {t.delta > 0 ? `+${t.delta}` : t.delta}
             </span>
           </div>

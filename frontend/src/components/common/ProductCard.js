@@ -1,7 +1,7 @@
 "use client";
 
 import { formatEUR } from "@/utils/formatting";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "@/services/api";
 import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
@@ -23,6 +23,19 @@ export default function ProductCard({ product }) {
 
   const [quickAdded, setQuickAdded] = useState(false);
 
+  // Lot M6 : à l'ouverture, le focus va au bouton Fermer ; à la fermeture,
+  // il revient sur l'élément qui a ouvert la fiche.
+  const closeButtonRef = useRef(null);
+  const openerRef = useRef(null);
+  useEffect(() => {
+    if (open) {
+      closeButtonRef.current?.focus();
+      return;
+    }
+    openerRef.current?.focus?.();
+    openerRef.current = null;
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e) => { if (e.key === "Escape") closeOverlay(); };
@@ -35,6 +48,7 @@ export default function ProductCard({ product }) {
   }, [open]);
 
   async function openOverlay() {
+    openerRef.current = document.activeElement;
     setOpen(true);
     setAdded(false);
     if (fullProduct) return;
@@ -100,7 +114,13 @@ export default function ProductCard({ product }) {
         <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-100 dark:bg-[#1D1D1D]">
           <img
             src={product.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
-            onError={(e) => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE; }}
+            loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              if (e.currentTarget.dataset.fallback) return;
+              e.currentTarget.dataset.fallback = "1";
+              e.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
+            }}
             alt={product.name}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
@@ -146,7 +166,12 @@ export default function ProductCard({ product }) {
 
       {/* ── Modal (portal → hors de tout parent overflow/stacking) ── */}
       {open && createPortal(
-        <div className="fixed inset-0 z-[120]">
+        <div
+          className="fixed inset-0 z-[120]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`product-title-${product.id}`}
+        >
           {/* Backdrop */}
           <button
             type="button"
@@ -170,7 +195,13 @@ export default function ProductCard({ product }) {
                 <div className="relative h-[220px] shrink-0 bg-zinc-100 dark:bg-zinc-900 sm:h-65 lg:h-full lg:w-[46%]">
                   <img
                     src={displayedProduct.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
-                    onError={(e) => { e.currentTarget.src = DEFAULT_PRODUCT_IMAGE; }}
+                    loading="lazy"
+            decoding="async"
+            onError={(e) => {
+              if (e.currentTarget.dataset.fallback) return;
+              e.currentTarget.dataset.fallback = "1";
+              e.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
+            }}
                     alt={displayedProduct.name}
                     className="h-full w-full object-cover"
                   />
@@ -187,6 +218,7 @@ export default function ProductCard({ product }) {
                     onClick={closeOverlay}
                     className="absolute right-4 top-4 z-10 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-white transition hover:bg-zinc-200 dark:hover:bg-white/20 active:scale-95"
                     aria-label="Fermer"
+                    ref={closeButtonRef}
                   >
                     <FaXmark className="text-sm" />
                   </button>
@@ -199,7 +231,7 @@ export default function ProductCard({ product }) {
                       </span>
                     )}
 
-                    <h2 className="mt-3 text-2xl font-bold leading-tight text-zinc-900 dark:text-white sm:text-3xl">
+                    <h2 id={`product-title-${product.id}`} className="mt-3 text-2xl font-bold leading-tight text-zinc-900 dark:text-white sm:text-3xl">
                       {productName}
                     </h2>
 

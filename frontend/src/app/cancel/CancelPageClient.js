@@ -13,7 +13,7 @@ export default function CancelPageClient() {
         <span className="text-3xl text-red-400">✕</span>
       </div>
       <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Paiement annulé</h1>
-      <p className="mt-3 text-zinc-500 dark:text-white/40">
+      <p className="mt-3 text-zinc-500 dark:text-white/60">
         Aucun souci. Votre commande {orderId ? `#${orderId}` : ""} n&apos;a pas été payée.
       </p>
 

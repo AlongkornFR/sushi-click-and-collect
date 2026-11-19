@@ -1,4 +1,3 @@
-import { Geist, Geist_Mono } from "next/font/google";
 import { CartProvider } from "@/components/context/CartContext";
 import { ThemeProvider } from "@/components/context/ThemeContext";
 import { AuthProvider } from "@/components/context/AuthContext";
@@ -7,16 +6,6 @@ import "./globals.css";
 import Footer from "@/components/common/Footer";
 import { Analytics } from "@vercel/analytics/next";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata = {
   title: "Su-Rice",
   description: "Restaurant Su-Rice",
@@ -24,7 +13,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="fr" className="dark">
+    <html lang="fr" className="dark" suppressHydrationWarning>
       <head>
         {/* Prevent theme flash: set class before React hydrates */}
         <script
@@ -34,7 +23,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50 dark:bg-black text-zinc-900 dark:text-white`}
+        className={`font-sans antialiased bg-zinc-50 dark:bg-black text-zinc-900 dark:text-white`}
       >
         <ThemeProvider>
           <AuthProvider>

@@ -17,7 +17,7 @@ export default function FormField({ id, label, error, children }) {
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-white/40">
+      <label htmlFor={id} className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-zinc-500 dark:text-white/60">
         {label}
       </label>
       {field}

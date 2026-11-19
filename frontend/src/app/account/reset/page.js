@@ -42,7 +42,7 @@ function ResetPasswordForm() {
     return (
       <p role="alert" className="text-sm text-zinc-600 dark:text-white/60">
         Ce lien est incomplet.{" "}
-        <Link href="/account/forgot" className="font-medium text-[#FFC366] hover:underline">Faire une nouvelle demande</Link>
+        <Link href="/account/forgot" className="font-medium text-amber-700 dark:text-[#FFC366] hover:underline">Faire une nouvelle demande</Link>
       </p>
     );
   }

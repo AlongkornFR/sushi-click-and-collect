@@ -6,12 +6,16 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Lot M13 : le site s'affichait déjà en Arial (Geist était chargée puis
+     écrasée). On garde le rendu actuel et on ne télécharge plus Geist. */
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
+/* Lot M6 : focus clavier toujours visible (les champs avaient outline-none). */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
 }
 
 /* ── Hero entrance animations ── */
@@ -92,4 +96,16 @@ body {
 }
 .modal-enter {
   animation: modalIn 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Lot M6 : respect du réglage « réduire les animations ». Le contenu des
+   sections .reveal reste visible, sans mouvement. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal { opacity: 1; transform: none; }
 }

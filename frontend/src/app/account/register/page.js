@@ -66,7 +66,7 @@ export default function RegisterPage() {
         <h1 className="mb-1 text-2xl font-bold text-zinc-900 dark:text-white">Créer un compte</h1>
         <p className="mb-8 text-sm text-zinc-500 dark:text-white/50">
           Déjà inscrit ?{" "}
-          <Link href="/account/login" className="font-medium text-[#FFC366] hover:underline">
+          <Link href="/account/login" className="font-medium text-amber-700 dark:text-[#FFC366] hover:underline">
             Se connecter
           </Link>
         </p>
@@ -96,7 +96,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-white/70">
-              Téléphone <span className="text-zinc-400 dark:text-white/30">(optionnel)</span>
+              Téléphone <span className="text-zinc-500 dark:text-white/60">(optionnel)</span>
             </label>
             <input type="tel" value={form.phone} onChange={set("phone")} className={inputClass} placeholder="+33 6 00 00 00 00" />
           </div>

@@ -144,9 +144,10 @@ export default function MenuPage() {
                 <button
                   key={id}
                   data-pill-id={id}
+                  aria-pressed={activeSubId === id}
                   type="button"
                   onClick={() => handlePillClick(id)}
-                  className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition active:scale-95 ${
+                  className={`min-h-10 shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition active:scale-95 ${
                     activeSubId === id
                       ? "bg-[#FFC366] text-black"
                       : "border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-[#1D1D1D] text-zinc-600 dark:text-white/60 hover:bg-zinc-200 dark:hover:bg-white/10"
@@ -229,7 +230,7 @@ export default function MenuPage() {
                             key={subcategoryName}
                             type="button"
                             onClick={() => scrollToSection(subcategoryId)}
-                            className="block w-full cursor-pointer rounded-lg px-2 py-1.5 text-left text-sm text-zinc-400 dark:text-white/40 transition hover:bg-zinc-200 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white"
+                            className="block w-full cursor-pointer rounded-lg px-2 py-1.5 text-left text-sm text-zinc-500 dark:text-white/60 transition hover:bg-zinc-200 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white"
                           >
                             {subcategoryName}
                           </button>
@@ -249,7 +250,7 @@ export default function MenuPage() {
           {/* Header desktop */}
           <div className="mb-10 hidden lg:block">
             <h1 className="text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">Notre Menu</h1>
-            <p className="mt-2 text-base text-zinc-400 dark:text-white/40">Commandez en ligne · Récupérez sur place</p>
+            <p className="mt-2 text-base text-zinc-500 dark:text-white/60">Commandez en ligne · Récupérez sur place</p>
             <div className="mt-5 h-px bg-zinc-200 dark:bg-white/10" />
           </div>
 
@@ -283,11 +284,11 @@ export default function MenuPage() {
                             {/* Subcategory header */}
                             {subcategoryName && (
                             <div className="mb-6 flex items-center gap-3">
-                              <h3 className="text-base font-semibold uppercase tracking-widest text-zinc-400 dark:text-white/30">
+                              <h3 className="text-base font-semibold uppercase tracking-widest text-zinc-500 dark:text-white/60">
                                 {subcategoryName}
                               </h3>
                               <div className="h-px flex-1 bg-zinc-200 dark:bg-white/10" />
-                              <span className="text-xs text-zinc-300 dark:text-white/20">
+                              <span className="text-xs text-zinc-500 dark:text-white/50">
                                 {subcategoryProducts.length} produit{subcategoryProducts.length > 1 ? "s" : ""}
                               </span>
                             </div>
@@ -330,8 +331,8 @@ export default function MenuPage() {
           {!loading && !loadError && categoryNames.length === 0 && (
             <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-300 dark:border-white/10 py-24 text-center">
               <span className="text-5xl">🍣</span>
-              <p className="mt-4 text-base font-medium text-zinc-400 dark:text-white/50">Aucun produit disponible pour le moment.</p>
-              <p className="mt-1 text-sm text-zinc-300 dark:text-white/30">Revenez bientôt !</p>
+              <p className="mt-4 text-base font-medium text-zinc-500 dark:text-white/60">Aucun produit disponible pour le moment.</p>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-white/60">Revenez bientôt !</p>
             </div>
           )}
         </main>

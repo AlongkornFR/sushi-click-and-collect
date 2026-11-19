@@ -149,6 +149,8 @@ export default function HomePage() {
               <img
                 src="https://www.su-rice.com/media/images/upload/ill-home3.jpg"
                 alt="SU-RICE cuisine"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-auto aspect-square object-cover hover:scale-105 transition-transform duration-700"
               />
             </div>
@@ -161,9 +163,9 @@ export default function HomePage() {
         <div className={`flex items-end justify-between gap-6 flex-wrap mb-10 reveal ${sellersVisible ? "visible" : ""}`}>
           <div>
             <h2 className="text-2xl md:text-3xl font-bold text-zinc-900 dark:text-white">Les incontournables</h2>
-            <p className="text-zinc-400 dark:text-white/40 mt-2">Une sélection de produits appréciés pour commencer.</p>
+            <p className="text-zinc-500 dark:text-white/60 mt-2">Une sélection de produits appréciés pour commencer.</p>
           </div>
-          <Link href="/menu" className="text-sm font-medium text-zinc-400 dark:text-white/50 hover:text-zinc-900 dark:hover:text-white transition">
+          <Link href="/menu" className="text-sm font-medium text-zinc-500 dark:text-white/60 hover:text-zinc-900 dark:hover:text-white transition">
             Voir tout le menu →
           </Link>
         </div>

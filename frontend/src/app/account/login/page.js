@@ -37,7 +37,7 @@ export default function LoginPage() {
         <h1 className="mb-1 text-2xl font-bold text-zinc-900 dark:text-white">Connexion</h1>
         <p className="mb-8 text-sm text-zinc-500 dark:text-white/50">
           Pas encore de compte ?{" "}
-          <Link href="/account/register" className="font-medium text-[#FFC366] hover:underline">
+          <Link href="/account/register" className="font-medium text-amber-700 dark:text-[#FFC366] hover:underline">
             S&apos;inscrire
           </Link>
         </p>

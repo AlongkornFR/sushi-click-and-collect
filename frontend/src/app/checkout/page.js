@@ -93,7 +93,7 @@ function serviceTitle(service) {
 }
 
 const inputCls = (hasError) =>
-  `w-full rounded-xl border bg-zinc-50 dark:bg-white/5 px-4 py-3 text-sm text-zinc-900 dark:text-white outline-none transition placeholder:text-zinc-400 dark:placeholder:text-white/30 focus:bg-white dark:focus:bg-white/10 ${
+  `w-full rounded-xl border bg-zinc-50 dark:bg-white/5 px-4 py-3 text-sm text-zinc-900 dark:text-white outline-none transition placeholder:text-zinc-500 dark:placeholder:text-white/40 focus:bg-white dark:focus:bg-white/10 ${
     hasError
       ? "border-red-300 dark:border-red-500/50 focus:border-red-400"
       : "border-zinc-200 dark:border-white/10 focus:border-zinc-400 dark:focus:border-white/30"
@@ -209,9 +209,9 @@ export default function CheckoutPage() {
       <div className="mb-8 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Finaliser</h1>
-          <p className="mt-1 text-sm text-zinc-400 dark:text-white/40">Paiement sécurisé · Click &amp; Collect</p>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-white/60">Paiement sécurisé · Click &amp; Collect</p>
         </div>
-        <Link href="/cart" className="text-sm text-zinc-400 dark:text-white/40 transition hover:text-zinc-700 dark:hover:text-white">
+        <Link href="/cart" className="text-sm text-zinc-500 dark:text-white/60 transition hover:text-zinc-700 dark:hover:text-white">
           ← Panier
         </Link>
       </div>
@@ -230,12 +230,12 @@ export default function CheckoutPage() {
               /* ── Logged in: show account summary ── */
               <div>
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-white/60">
                     Vos informations
                   </h2>
                   <Link
                     href="/account"
-                    className="flex items-center gap-1.5 text-xs text-zinc-400 dark:text-white/30 transition hover:text-zinc-700 dark:hover:text-white"
+                    className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-white/60 transition hover:text-zinc-700 dark:hover:text-white"
                   >
                     <FaUser className="h-2.5 w-2.5" />
                     Modifier
@@ -265,18 +265,18 @@ export default function CheckoutPage() {
             ) : (
               /* ── Not logged in: show form + login nudge ── */
               <div>
-                <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-white/60">
                   Vos informations
                 </h2>
 
                 {/* Login nudge */}
                 <div className="mb-5 flex items-center justify-between rounded-xl border border-zinc-100 dark:border-white/10 bg-zinc-50 dark:bg-white/5 px-4 py-3">
-                  <p className="text-xs text-zinc-500 dark:text-white/40">
+                  <p className="text-xs text-zinc-500 dark:text-white/60">
                     Vous avez un compte ? Gagnez du temps.
                   </p>
                   <Link
                     href="/account/login"
-                    className="text-xs font-semibold text-[#FFC366] transition hover:text-[#ffb347]"
+                    className="text-xs font-semibold text-amber-700 dark:text-[#FFC366] transition hover:text-[#ffb347]"
                   >
                     Se connecter →
                   </Link>
@@ -331,10 +331,10 @@ export default function CheckoutPage() {
 
           {/* Pickup time card */}
           <div id="pickup-section" className="scroll-mt-28 rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6">
-            <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
+            <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-white/60">
               Heure de retrait
             </h2>
-            <p className="mb-4 text-xs text-zinc-400 dark:text-white/30">
+            <p className="mb-4 text-xs text-zinc-500 dark:text-white/60">
               Comptez au moins {schedule?.prep_minutes ?? 20} minutes de préparation. Aux heures d&apos;affluence, l&apos;attente peut être plus longue.
             </p>
 
@@ -344,7 +344,7 @@ export default function CheckoutPage() {
               </p>
             )}
             {!schedule && !scheduleError && (
-              <p className="py-4 text-center text-sm text-zinc-400 dark:text-white/30">Chargement des créneaux…</p>
+              <p className="py-4 text-center text-sm text-zinc-500 dark:text-white/60">Chargement des créneaux…</p>
             )}
 
             {/* Day selector */}
@@ -353,8 +353,9 @@ export default function CheckoutPage() {
                 <button
                   key={localDateKey(day)}
                   type="button"
+                  aria-pressed={selectedDayIdx === i}
                   onClick={() => { setSelectedDayIdx(i); setField("pickup_time", ""); }}
-                  className={`shrink-0 cursor-pointer rounded-xl px-3.5 py-2 text-center transition active:scale-95 ${
+                  className={`min-h-11 shrink-0 cursor-pointer rounded-xl px-3.5 py-2 text-center transition active:scale-95 ${
                     selectedDayIdx === i
                       ? "bg-[#FFC366] text-black"
                       : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20"
@@ -370,13 +371,13 @@ export default function CheckoutPage() {
             )}
 
             {schedule && services.length === 0 ? (
-              <p className="py-4 text-center text-sm text-zinc-400 dark:text-white/30">
+              <p className="py-4 text-center text-sm text-zinc-500 dark:text-white/60">
                 Aucun créneau disponible pour ce jour.
               </p>
             ) : (
               services.map(service => (
                 <div key={service.index} className="mb-5 last:mb-0">
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-300 dark:text-white/20">
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-zinc-500 dark:text-white/50">
                     {serviceTitle(service)}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -384,8 +385,9 @@ export default function CheckoutPage() {
                       <button
                         key={slot.value}
                         type="button"
+                        aria-pressed={form.pickup_time === slot.value}
                         onClick={() => { setField("pickup_time", slot.value); markTouched("pickup_time"); }}
-                        className={`cursor-pointer rounded-xl px-3.5 py-2 text-sm font-medium transition active:scale-95 ${
+                        className={`min-h-11 cursor-pointer rounded-xl px-3.5 py-2 text-sm font-medium transition active:scale-95 ${
                           form.pickup_time === slot.value
                             ? "bg-[#FFC366] text-black"
                             : "border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 text-zinc-600 dark:text-white/60 hover:border-zinc-300 dark:hover:border-white/20 hover:bg-zinc-100 dark:hover:bg-white/10"
@@ -402,16 +404,16 @@ export default function CheckoutPage() {
 
           {/* Notes card */}
           <div className="rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6">
-            <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
+            <h2 className="mb-1 text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-white/60">
               Note (optionnel)
             </h2>
-            <p className="mb-4 text-xs text-zinc-400 dark:text-white/30">Allergie, demande spéciale…</p>
+            <p className="mb-4 text-xs text-zinc-500 dark:text-white/60">Allergie, demande spéciale…</p>
             <textarea
               value={form.notes}
               onChange={e => setField("notes", e.target.value)}
               placeholder="Ex : sans wasabi, baguettes x2…"
               rows={3}
-              className="w-full resize-none rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 px-4 py-3 text-sm text-zinc-900 dark:text-white outline-none transition placeholder:text-zinc-400 dark:placeholder:text-white/30 focus:border-zinc-400 dark:focus:border-white/30 focus:bg-white dark:focus:bg-white/10"
+              className="w-full resize-none rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5 px-4 py-3 text-sm text-zinc-900 dark:text-white outline-none transition placeholder:text-zinc-500 dark:placeholder:text-white/40 focus:border-zinc-400 dark:focus:border-white/30 focus:bg-white dark:focus:bg-white/10"
             />
           </div>
         </div>
@@ -421,7 +423,7 @@ export default function CheckoutPage() {
           <div className="sticky top-24 space-y-4">
 
             <div className="rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6">
-              <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-zinc-400 dark:text-white/40">
+              <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-zinc-500 dark:text-white/60">
                 Votre commande
               </h2>
               <div className="my-4 h-px bg-zinc-100 dark:bg-white/10" />
@@ -435,9 +437,9 @@ export default function CheckoutPage() {
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-semibold text-zinc-800 dark:text-white">{it.name}</p>
-                      <p className="text-xs text-zinc-400 dark:text-white/40">{it.quantity} × {formatEUR(it.price)}</p>
+                      <p className="text-xs text-zinc-500 dark:text-white/60">{it.quantity} × {formatEUR(it.price)}</p>
                     </div>
-                    <p className="shrink-0 text-sm font-semibold text-[#FFC366]">
+                    <p className="shrink-0 text-sm font-semibold text-amber-700 dark:text-[#FFC366]">
                       {formatEUR(Number(it.price) * it.quantity)}
                     </p>
                   </div>
@@ -455,7 +457,7 @@ export default function CheckoutPage() {
 
               {form.pickup_time && (
                 <div className="mt-4 flex items-center gap-2 rounded-xl bg-zinc-50 dark:bg-white/5 px-3 py-2.5">
-                  <FaClock className="shrink-0 text-zinc-400 dark:text-white/30 text-xs" />
+                  <FaClock className="shrink-0 text-zinc-500 dark:text-white/60 text-xs" />
                   <p className="text-xs text-zinc-600 dark:text-white/60">
                     Retrait <span className="font-bold text-zinc-900 dark:text-white">{formatPickupDisplay(form.pickup_time)}</span>
                   </p>
@@ -485,8 +487,8 @@ export default function CheckoutPage() {
               </div>
 
               <div className="mt-4 space-y-1.5 border-t border-zinc-100 dark:border-white/10 pt-4">
-                <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-white/30">
-                  <FaShieldAlt className="shrink-0 text-zinc-300 dark:text-white/20" />
+                <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-white/60">
+                  <FaShieldAlt className="shrink-0 text-zinc-500 dark:text-white/50" />
                   Paiement sécurisé Payplug — vos données sont protégées
                 </div>
               </div>
