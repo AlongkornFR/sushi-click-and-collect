@@ -174,6 +174,84 @@ class CheckoutTests(OrderFixturesMixin, TestCase):
 
 
 @override_settings(PAYPLUG_SECRET_KEY="sk_test_dummy")
+@patch("orders.views.payplug.Payment.create", return_value=fake_payment_created())
+class CheckoutValidationTests(OrderFixturesMixin, TestCase):
+    """Lot H1 : une saisie inattendue donne un 400 lisible, jamais un 500."""
+
+    def post(self, payload):
+        return self.client.post("/api/checkout/", payload, format="json")
+
+    def test_non_numeric_quantity_is_400(self, _create):
+        res = self.post(self.checkout_payload(items=[{"product_id": self.product.id, "quantity": "deux"}]))
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.data["detail"], "Quantité invalide.")
+
+    def test_non_numeric_product_id_is_400(self, _create):
+        res = self.post(self.checkout_payload(items=[{"product_id": "abc", "quantity": 1}]))
+        self.assertEqual(res.status_code, 400)
+
+    def test_quantity_above_limit_is_400(self, _create):
+        res = self.post(self.checkout_payload(items=[{"product_id": self.product.id, "quantity": 51}]))
+        self.assertEqual(res.status_code, 400)
+
+    def test_duplicate_lines_are_merged(self, _create):
+        items = [{"product_id": self.product.id, "quantity": 1}, {"product_id": self.product.id, "quantity": 2}]
+        res = self.post(self.checkout_payload(items=items))
+        self.assertEqual(res.status_code, 201, res.content)
+        order = Order.objects.get(id=res.data["order_id"])
+        self.assertEqual(order.items.get().quantity, 3)
+        self.assertEqual(order.total_cents, 3 * 650)
+
+    def test_invalid_email_is_400(self, _create):
+        payload = self.checkout_payload()
+        payload["customer"]["email"] = "pas-un-email"
+        res = self.post(payload)
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.data["detail"], "Adresse email invalide.")
+
+    def test_guest_without_phone_is_400(self, _create):
+        payload = self.checkout_payload()
+        payload["customer"]["phone"] = ""
+        self.assertEqual(self.post(payload).status_code, 400)
+
+    def test_logged_in_customer_without_phone_is_accepted(self, _create):
+        user = User.objects.create_user("client@example.com", password="motdepasse-solide-1")
+        self.client.force_authenticate(user)
+        payload = self.checkout_payload()
+        payload["customer"]["phone"] = ""
+        self.assertEqual(self.post(payload).status_code, 201)
+
+    def test_note_too_long_is_400(self, _create):
+        self.assertEqual(self.post(self.checkout_payload(notes="x" * 501)).status_code, 400)
+
+    def test_overlong_pickup_value_is_400_not_500(self, _create):
+        res = self.post(self.checkout_payload(pickup_time="x" * 40))
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.data["field"], "pickup_time")
+
+    def test_unavailable_product_message_is_readable(self, _create):
+        self.product.is_available = False
+        self.product.save()
+        res = self.post(self.checkout_payload())
+        self.assertEqual(res.data["unavailable_product_id"], self.product.id)
+        self.assertNotIn("id=", res.data["detail"])
+
+    def test_payplug_failure_cancels_order_and_hides_details(self, create):
+        create.side_effect = RuntimeError("secret internal detail")
+        res = self.post(self.checkout_payload())
+        self.assertEqual(res.status_code, 502)
+        self.assertNotIn("secret internal detail", res.data["detail"])
+        self.assertEqual(Order.objects.get().status, "cancelled")
+
+    @override_settings(PAYPLUG_SECRET_KEY="")
+    def test_missing_payplug_key_creates_no_order(self, _create):
+        res = self.post(self.checkout_payload())
+        self.assertEqual(res.status_code, 503)
+        self.assertNotIn("PAYPLUG", res.data["detail"])
+        self.assertEqual(Order.objects.count(), 0)
+
+
+@override_settings(PAYPLUG_SECRET_KEY="sk_test_dummy")
 @patch("orders.views.award_point_for_order")
 @patch("orders.views._send_receipt_email")
 class PaymentConfirmationTests(OrderFixturesMixin, TestCase):

@@ -12,6 +12,12 @@ from rest_framework import status
 from products.models import Product
 from .models import Order, OrderItem
 from .opening_hours import PickupError, parse_pickup, public_schedule
+from .serializers import CheckoutSerializer, first_error_message
+
+PAYMENT_UNAVAILABLE = (
+    "Le paiement en ligne n'a pas pu démarrer. Réessayez dans un instant "
+    "ou appelez-nous au 04 93 68 08 12."
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,36 +43,32 @@ def split_name(full_name: str):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def checkout(request):
-    data = request.data or {}
-    customer = data.get("customer") or {}
-    items = data.get("items") or []
+    user = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+    serializer = CheckoutSerializer(data=request.data or {}, context={"user": user})
+    if not serializer.is_valid():
+        errors = serializer.errors
+        field = "pickup_time" if "pickup_time" in errors else None
+        return Response({"detail": first_error_message(errors), "field": field, "errors": errors}, status=400)
 
-    full_name = (customer.get("full_name") or "").strip()
-    email = (customer.get("email") or "").strip()
-    phone = (customer.get("phone") or "").strip()
-    pickup_time = (data.get("pickup_time") or "").strip()
-    notes = (data.get("notes") or "").strip()
-
-    if not full_name or not email or not pickup_time:
-        return Response({"detail": "Champs client invalides."}, status=400)
+    data = serializer.validated_data
+    full_name = data["customer"]["full_name"]
+    email = data["customer"]["email"]
+    phone = data["customer"].get("phone", "")
+    notes = data.get("notes", "").strip()
 
     try:
-        pickup_at = parse_pickup(pickup_time)
+        pickup_at = parse_pickup(data["pickup_time"])
     except PickupError as e:
         return Response({"detail": str(e), "field": "pickup_time"}, status=400)
-    if not isinstance(items, list) or len(items) == 0:
-        return Response({"detail": "Panier vide."}, status=400)
 
-    # Validation items
-    wanted = []
-    product_ids = []
-    for it in items:
-        pid = it.get("product_id")
-        qty = int(it.get("quantity") or 0)
-        if not pid or qty <= 0:
-            return Response({"detail": "Item invalide."}, status=400)
-        wanted.append((int(pid), qty))
-        product_ids.append(int(pid))
+    # Vérifié avant de créer la commande : pas de commande orpheline si la
+    # configuration de paiement manque.
+    if not settings.PAYPLUG_SECRET_KEY:
+        logger.error("PAYPLUG_SECRET_KEY absente : checkout impossible.")
+        return Response({"detail": PAYMENT_UNAVAILABLE}, status=503)
+
+    wanted = [(it["product_id"], it["quantity"]) for it in data["items"]]
+    product_ids = [pid for pid, _ in wanted]
 
     # Règle métier (validée le 19/11/2026) : un produit "disponible" est
     # commandable, sans suivi de stock. Le champ Product.stock est conservé
@@ -81,14 +83,18 @@ def checkout(request):
         for pid, qty in wanted:
             p = db_map.get(pid)
             if not p:
-                return Response({"detail": f"Produit indisponible (id={pid})."}, status=400)
+                return Response(
+                    {"detail": "Un article de votre panier n'est plus disponible. Retirez-le puis réessayez.",
+                     "field": "items", "unavailable_product_id": pid},
+                    status=400,
+                )
 
             unit_cents = _to_cents(p.price)
             total_cents += unit_cents * qty
             line_items.append((p, qty, unit_cents))
 
         order = Order.objects.create(
-            user=request.user if getattr(request, "user", None) and request.user.is_authenticated else None,
+            user=user,
             full_name=full_name,
             email=email,
             phone=phone,
@@ -108,10 +114,7 @@ def checkout(request):
                 quantity=qty,
             )
 
-    # ✅ Paiement Payplug APRÈS commit (comme tu fais déjà)
-    if not settings.PAYPLUG_SECRET_KEY:
-        return Response({"detail": "PAYPLUG_SECRET_KEY missing."}, status=500)
-
+    # Paiement Payplug après la création de la commande
     payplug.set_secret_key(settings.PAYPLUG_SECRET_KEY)
     payplug.set_api_version(settings.PAYPLUG_API_VERSION)
 
@@ -150,8 +153,12 @@ def checkout(request):
 
     try:
         payment = payplug.Payment.create(**payment_data)
-    except Exception as e:
-        return Response({"detail": f"Payplug error: {str(e)}"}, status=400)
+    except Exception:
+        # La commande ne peut pas être payée : on l'annule pour qu'elle
+        # n'encombre pas l'écran staff. Le détail reste dans les logs.
+        logger.exception("Création du paiement Payplug impossible pour la commande #%s.", order.id)
+        Order.objects.filter(pk=order.pk, status="pending").update(status="cancelled")
+        return Response({"detail": PAYMENT_UNAVAILABLE}, status=502)
 
     with transaction.atomic():
         order.payment_id = str(getattr(payment, "id", "")) or order.payment_id
