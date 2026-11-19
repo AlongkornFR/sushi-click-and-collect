@@ -15,6 +15,7 @@ from rest_framework.decorators import api_view, permission_classes, throttle_cla
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
+from backend.authentication import touch_token
 from backend.throttles import LoginThrottle
 from .models import Order
 from .serializers_staff import OrderStaffSerializer
@@ -214,7 +215,17 @@ def staff_login(request):
         return Response({"detail": "Ce compte n'a pas accès à l'espace staff."}, status=status.HTTP_403_FORBIDDEN)
 
     token, _ = Token.objects.get_or_create(user=user)
+    touch_token(token)  # repart de zéro : un ancien jeton ne doit pas expirer juste après la connexion
     return Response({"token": token.key})
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def staff_logout(request):
+    """Lot A8 : la déconnexion supprime le jeton côté serveur."""
+    if request.auth is not None:
+        request.auth.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @api_view(["GET"])

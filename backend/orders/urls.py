@@ -7,6 +7,7 @@ from .views import (
 )
 from .views_staff import (
     staff_login,
+    staff_logout,
     staff_me,
     staff_orders_list,
     staff_orders_pending_print,
@@ -33,6 +34,7 @@ urlpatterns = [
     # Staff — auth
     path("staff/login/",        staff_login),
     path("staff/me/",           staff_me),
+    path("staff/logout/",       staff_logout),
 
     # Staff — orders
     path("staff/orders/",                              staff_orders_list),

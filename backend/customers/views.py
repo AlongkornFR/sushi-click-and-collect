@@ -14,6 +14,7 @@ from django.core.exceptions import ValidationError
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
+from backend.authentication import touch_token
 from backend.throttles import LoginThrottle, PasswordResetThrottle, RegisterThrottle
 from .emails import send_password_reset_email
 
@@ -61,7 +62,17 @@ def login(request):
         return Response({"detail": "Compte désactivé."}, status=403)
 
     token, _ = Token.objects.get_or_create(user=user)
+    touch_token(token)  # lot A8 : le délai d'inactivité repart de la connexion
     return Response({"token": token.key, "customer_id": user.customer.id})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def logout(request):
+    """Lot A8 : la déconnexion supprime le jeton côté serveur."""
+    if request.auth is not None:
+        request.auth.delete()
+    return Response(status=204)
 
 
 @api_view(["GET", "PATCH"])

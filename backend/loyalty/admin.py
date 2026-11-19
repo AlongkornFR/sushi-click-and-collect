@@ -7,7 +7,9 @@ from .models import AuditLog, LoyaltyAccount, LoyaltyTransaction, QRToken
 class LoyaltyAccountAdmin(admin.ModelAdmin):
     list_display = ("public_id", "customer", "points", "reward_available", "updated_at")
     search_fields = ("public_id", "customer__user__email", "customer__user__first_name", "customer__user__last_name")
-    readonly_fields = ("public_id", "created_at", "updated_at")
+    # Lot A8 : les points ne se modifient pas ici (cela contournait le journal
+    # d'audit). Passer par l'onglet Fidélité de l'espace staff.
+    readonly_fields = ("public_id", "points", "created_at", "updated_at")
 
 
 @admin.register(QRToken)

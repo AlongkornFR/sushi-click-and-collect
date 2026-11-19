@@ -42,6 +42,10 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
+    // Lot A8 : le jeton est aussi supprimé côté serveur (sans attendre).
+    if (token) {
+      api.post("/auth/logout/", null, { headers: { Authorization: `Token ${token}` } }).catch(() => {});
+    }
     localStorage.removeItem("customer_token");
     setToken(null);
     setCustomer(null);

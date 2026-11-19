@@ -43,8 +43,8 @@ export default function StaffLoginPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1D1D1D] text-2xl shadow-lg border border-white/10">
             🍣
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Espace Admin</h1>
-          <p className="mt-1 text-sm text-white/40">Connectez-vous pour accéder au dashboard</p>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Espace staff Su-Rice</h1>
+          <p className="mt-1 text-sm text-white/60">Commandes, carte et fidélité</p>
         </div>
 
         {/* Card */}
@@ -52,34 +52,37 @@ export default function StaffLoginPage() {
           <form onSubmit={onSubmit} className="grid gap-5">
 
             <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-white/40">
+              <label htmlFor="staff-username" className="mb-1.5 block text-sm font-semibold text-white/80">
                 Identifiant
               </label>
               <input
+                id="staff-username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-white/30 focus:bg-white/10"
+                className="min-h-11 w-full rounded-xl border border-white/15 bg-white/5 px-4 text-base text-white outline-none transition focus:border-white/40"
                 autoComplete="username"
+                autoCapitalize="none"
                 required
               />
             </div>
 
             <div>
-              <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-white/40">
+              <label htmlFor="staff-password" className="mb-1.5 block text-sm font-semibold text-white/80">
                 Mot de passe
               </label>
               <input
+                id="staff-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-white/30 focus:bg-white/10"
+                className="min-h-11 w-full rounded-xl border border-white/15 bg-white/5 px-4 text-base text-white outline-none transition focus:border-white/40"
                 autoComplete="current-password"
                 required
               />
             </div>
 
             {error && (
-              <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                 {error}
               </div>
             )}
@@ -87,7 +90,7 @@ export default function StaffLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full cursor-pointer rounded-xl bg-[#FFC366] py-3 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-12 w-full cursor-pointer rounded-xl bg-[#FFC366] text-base font-bold text-black transition hover:bg-[#ffb347] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Connexion…" : "Se connecter"}
             </button>
