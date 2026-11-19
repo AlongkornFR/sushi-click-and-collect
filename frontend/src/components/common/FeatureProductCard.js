@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatEUR } from "@/utils/formatting";
 import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
 
 export default function FeaturedProductCard({ product }) {
@@ -33,7 +34,7 @@ export default function FeaturedProductCard({ product }) {
 
         {product.price && (
           <p className="mt-1 text-sm font-medium text-white/60">
-            {product.price} €
+            {formatEUR(product.price)}
           </p>
         )}
 

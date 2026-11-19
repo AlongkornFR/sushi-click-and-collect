@@ -54,9 +54,11 @@ export default function MenuPage() {
   const groupedData = useMemo(() => {
     const groups = {};
     products.forEach((product) => {
-      if (!product.category?.name || !product.subcategory?.name) return;
+      // Lot M7 : un produit sans sous-catégorie reste visible, rangé
+      // directement sous sa catégorie (sous-section sans titre).
+      if (!product.category?.name) return;
       const cat = product.category.name;
-      const sub = product.subcategory.name;
+      const sub = product.subcategory?.name || "";
       if (!groups[cat]) groups[cat] = {};
       if (!groups[cat][sub]) groups[cat][sub] = [];
       groups[cat][sub].push(product);
@@ -76,7 +78,7 @@ export default function MenuPage() {
           id: `category-${slugify(cat)}`,
         });
       } else {
-        subs.forEach((sub) => {
+        subs.filter(Boolean).forEach((sub) => {
           result.push({
             label: sub,
             id: `subcategory-${slugify(cat)}-${slugify(sub)}`,
@@ -220,7 +222,7 @@ export default function MenuPage() {
 
                   {!singleSub && openCategories[categoryName] && (
                     <div className="mb-1 ml-3 mt-0.5 space-y-0.5 border-l-2 border-zinc-200 dark:border-white/10 pl-3">
-                      {subcategories.map((subcategoryName) => {
+                      {subcategories.filter(Boolean).map((subcategoryName) => {
                         const subcategoryId = `subcategory-${slugify(categoryName)}-${slugify(subcategoryName)}`;
                         return (
                           <button
@@ -279,6 +281,7 @@ export default function MenuPage() {
                         return (
                           <section key={subcategoryName} id={subcategoryId} className="scroll-mt-52 lg:scroll-mt-36">
                             {/* Subcategory header */}
+                            {subcategoryName && (
                             <div className="mb-6 flex items-center gap-3">
                               <h3 className="text-base font-semibold uppercase tracking-widest text-zinc-400 dark:text-white/30">
                                 {subcategoryName}
@@ -288,6 +291,7 @@ export default function MenuPage() {
                                 {subcategoryProducts.length} produit{subcategoryProducts.length > 1 ? "s" : ""}
                               </span>
                             </div>
+                            )}
 
                             <div className="grid grid-cols-2 gap-x-4 gap-y-8 xl:grid-cols-3">
                               {subcategoryProducts.map((product) => (

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatEUR } from "@/utils/formatting";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "@/services/api";
@@ -136,7 +137,10 @@ export default function ProductCard({ product }) {
           className="w-full cursor-pointer pt-3 text-left"
         >
           <p className="line-clamp-2 text-sm leading-snug text-zinc-900 dark:text-white">{product.name}</p>
-          <p className="mt-1 text-sm font-semibold text-[#FFC366]">{product.price} €</p>
+          {product.description?.trim() && (
+            <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500 dark:text-white/50">{product.description}</p>
+          )}
+          <p className="mt-1 text-sm font-semibold text-amber-700 dark:text-[#FFC366]">{formatEUR(product.price)}</p>
         </button>
       </div>
 
@@ -200,7 +204,7 @@ export default function ProductCard({ product }) {
                     </h2>
 
                     <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-white">
-                      {productPrice} <span className="text-base font-normal text-zinc-400 dark:text-zinc-400">€</span>
+                      {formatEUR(productPrice)}
                     </p>
                   </div>
 

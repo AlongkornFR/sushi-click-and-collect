@@ -84,7 +84,7 @@ function SwipeToDelete({ onDelete, children }) {
 }
 
 export default function CartPage() {
-  const { items, hydrated, subtotal, increment, decrement, removeItem, restoreItem, clear } = useCart();
+  const { items, hydrated, subtotal, count, increment, decrement, removeItem, restoreItem, clear } = useCart();
 
   // Dernier article supprimé, pour le bouton « Annuler » (lot H5).
   const [lastRemoved, setLastRemoved] = useState(null);
@@ -149,7 +149,7 @@ export default function CartPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">Panier</h1>
           <p className="mt-1 text-sm text-zinc-400 dark:text-white/40">
-            {items.length} article{items.length > 1 ? "s" : ""} · Retrait sur place
+            {count} article{count > 1 ? "s" : ""} · Retrait sur place
           </p>
         </div>
         <button

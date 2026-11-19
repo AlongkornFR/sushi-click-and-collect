@@ -12,6 +12,7 @@ from rest_framework import status
 
 from backend.throttles import CheckoutThrottle
 from products.models import Product
+from products.views import VISIBLE
 from .models import Order, OrderItem
 from .opening_hours import PickupError, parse_pickup, public_schedule
 from .serializers import CheckoutSerializer, first_error_message
@@ -77,7 +78,9 @@ def checkout(request):
     # commandable, sans suivi de stock. Le champ Product.stock est conservé
     # en base et dans l'API, mais n'a plus d'effet sur la commande.
     with transaction.atomic():
-        db_products = Product.objects.filter(id__in=product_ids, is_available=True)
+        # Même règle que la carte publique (lot M7) : produit disponible dans
+        # une catégorie et une sous-catégorie actives.
+        db_products = Product.objects.filter(VISIBLE, id__in=product_ids)
         db_map = {p.id: p for p in db_products}
 
         line_items = []
