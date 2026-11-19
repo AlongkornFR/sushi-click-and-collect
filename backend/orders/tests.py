@@ -668,3 +668,70 @@ class StaffStatusTransitionTests(OrderFixturesMixin, TestCase):
         res = self.staff_client.delete(f"/api/staff/orders/{order.id}/delete/")
         self.assertEqual(res.status_code, 400)
         self.assertTrue(Order.objects.filter(id=order.id).exists())
+
+
+@override_settings(PAYPLUG_SECRET_KEY="sk_test_dummy")
+@patch("orders.views.award_point_for_order")
+@patch("orders.views._send_receipt_email")
+class PendingExpiryTests(OrderFixturesMixin, TestCase):
+    """Lot M3 : une commande non payée depuis plus de 60 min est annulée."""
+
+    def stale(self, minutes=61, **kw):
+        order = self.make_order(status="pending", **kw)
+        Order.objects.filter(pk=order.pk).update(created_at=timezone.now() - timedelta(minutes=minutes))
+        return order
+
+    def run_expiry(self):
+        from orders.services import expire_stale_pending_orders
+        with self.captureOnCommitCallbacks(execute=True):
+            return expire_stale_pending_orders()
+
+    def test_unpaid_stale_order_is_cancelled_without_email(self, send_email, _award):
+        order = self.stale()
+        with patch("orders.views.payplug.Payment.retrieve", return_value=fake_payment(order, is_paid=False)), \
+                patch("orders.services.payplug.Payment.retrieve", return_value=fake_payment(order, is_paid=False)):
+            cancelled, paid = self.run_expiry()
+        order.refresh_from_db()
+        self.assertEqual(order.status, "cancelled")
+        self.assertEqual(cancelled, [order.id])
+        send_email.assert_not_called()
+
+    def test_order_paid_at_the_last_minute_becomes_paid(self, send_email, _award):
+        order = self.stale()
+        with patch("orders.views.payplug.Payment.retrieve", return_value=fake_payment(order)), \
+                patch("orders.services.payplug.Payment.retrieve", return_value=fake_payment(order)):
+            cancelled, paid = self.run_expiry()
+        order.refresh_from_db()
+        self.assertEqual(order.status, "paid")
+        self.assertEqual(paid, [order.id])
+        send_email.assert_called_once()
+
+    def test_recent_pending_order_is_kept(self, _send_email, _award):
+        order = self.stale(minutes=30)
+        self.run_expiry()
+        order.refresh_from_db()
+        self.assertEqual(order.status, "pending")
+
+    def test_payplug_unreachable_postpones_expiry(self, _send_email, _award):
+        order = self.stale()
+        with patch("orders.services.payplug.Payment.retrieve", side_effect=RuntimeError("timeout")):
+            self.run_expiry()
+        order.refresh_from_db()
+        self.assertEqual(order.status, "pending")
+
+    def test_order_without_payment_is_cancelled(self, _send_email, _award):
+        order = self.stale(payment_id="")
+        self.run_expiry()
+        order.refresh_from_db()
+        self.assertEqual(order.status, "cancelled")
+
+    def test_staff_screen_triggers_sweep_at_most_once_a_minute(self, _send_email, _award):
+        staff = User.objects.create_user("chef3", password="motdepasse-solide-1", is_staff=True)
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Token {Token.objects.create(user=staff).key}")
+        with patch("orders.views_staff.expire_stale_pending_orders_throttled",
+                   wraps=__import__("orders.services", fromlist=["x"]).expire_stale_pending_orders_throttled), \
+                patch("orders.services.expire_stale_pending_orders", return_value=([], [])) as sweep:
+            client.get("/api/staff/orders/")
+            client.get("/api/staff/orders/")
+        self.assertEqual(sweep.call_count, 1)

@@ -18,7 +18,7 @@ from backend.throttles import LoginThrottle
 from .models import Order
 from .serializers_staff import OrderStaffSerializer
 from .emails import send_order_status_email
-from .services import on_paid_order_cancelled
+from .services import expire_stale_pending_orders_throttled, on_paid_order_cancelled
 
 ALLOWED_STATUSES = {"pending", "paid", "preparing", "ready", "collected", "cancelled"}
 
@@ -60,6 +60,10 @@ HISTORY_LIMIT = 500
 def staff_orders_list(request):
     """Par défaut : commandes des dernières 24 h + toutes les commandes en
     cours. ?scope=all renvoie l'historique (les 500 plus récentes)."""
+    # Lot M3 : annule les commandes non payées depuis plus de 60 min
+    # (au plus une fois par minute, Payplug vérifié avant).
+    expire_stale_pending_orders_throttled()
+
     qs = Order.objects.prefetch_related("items").order_by("-created_at")
 
     scope_all = request.query_params.get("scope") == "all"
