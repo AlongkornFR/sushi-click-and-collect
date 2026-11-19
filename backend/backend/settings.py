@@ -226,6 +226,9 @@ if GMAIL_USER and GMAIL_APP_PASSWORD:
     EMAIL_HOST_PASSWORD = GMAIL_APP_PASSWORD.replace(" ", "")
     DEFAULT_FROM_EMAIL  = f"{EMAIL_FROM_NAME} <{GMAIL_USER}>"
 
+# Lien « mot de passe oublié » valable 1 heure (lot H8)
+PASSWORD_RESET_TIMEOUT = 60 * 60
+
 # Loyalty program
 # ─────────────────────────────────────────────────────────────────
 LOYALTY_POINT_THRESHOLD_CENTS = 1600  # purchases >= €16 earn 1 point

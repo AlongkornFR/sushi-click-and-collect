@@ -5,7 +5,15 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.http import HttpResponse
-from backend.throttles import LoginThrottle, RegisterThrottle
+from django.conf import settings
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+
+from backend.throttles import LoginThrottle, PasswordResetThrottle, RegisterThrottle
+from .emails import send_password_reset_email
 from .models import Customer
 from .serializers import CustomerProfileSerializer, OrderHistorySerializer, RegisterSerializer
 from orders.models import Order
@@ -165,3 +173,60 @@ def order_receipt(request, pk):
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
     resp["Content-Disposition"] = f'attachment; filename="recu-surice-{order.id}.pdf"'
     return resp
+
+
+# ── Mot de passe oublié (lot H8) ─────────────────────────────────────────────
+# Jeton intégré à Django : il expire après PASSWORD_RESET_TIMEOUT et devient
+# invalide dès que le mot de passe change (donc utilisable une seule fois).
+
+RESET_REQUEST_MESSAGE = (
+    "Si un compte existe avec cette adresse, vous allez recevoir un email "
+    "pour choisir un nouveau mot de passe."
+)
+RESET_INVALID_LINK = "Ce lien n'est plus valable. Faites une nouvelle demande."
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([PasswordResetThrottle])
+def password_reset_request(request):
+    email = (request.data.get("email") or "").lower().strip()
+    if not email:
+        return Response({"detail": "Indiquez votre adresse email."}, status=400)
+
+    # Même réponse que le compte existe ou non : on ne révèle pas qui est inscrit.
+    user = User.objects.filter(email__iexact=email, is_active=True).first()
+    if user and hasattr(user, "customer"):
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        frontend = settings.FRONTEND_BASE_URL.rstrip("/")
+        send_password_reset_email(user, f"{frontend}/account/reset?uid={uid}&token={token}")
+
+    return Response({"detail": RESET_REQUEST_MESSAGE})
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([PasswordResetThrottle])
+def password_reset_confirm(request):
+    uid = request.data.get("uid") or ""
+    token = request.data.get("token") or ""
+    new_password = request.data.get("new_password") or ""
+
+    try:
+        user = User.objects.get(pk=force_str(urlsafe_base64_decode(uid)), is_active=True)
+    except (User.DoesNotExist, ValueError, TypeError, OverflowError):
+        user = None
+    if user is None or not hasattr(user, "customer") or not default_token_generator.check_token(user, token):
+        return Response({"detail": RESET_INVALID_LINK}, status=400)
+
+    try:
+        validate_password(new_password, user=user)
+    except ValidationError as e:
+        return Response({"detail": " ".join(e.messages)}, status=400)
+
+    user.set_password(new_password)
+    user.save()
+    # Déconnecte les autres appareils : l'ancien token d'API ne marche plus.
+    Token.objects.filter(user=user).delete()
+    return Response({"detail": "Mot de passe modifié. Vous pouvez vous connecter."})
