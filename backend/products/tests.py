@@ -37,3 +37,102 @@ class PublicMenuTests(TestCase):
         self.p.is_available = False
         self.p.save()
         self.assertEqual(self.names(), {"Soupe"})
+
+
+from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
+
+
+class StaffCatalogBase(TestCase):
+    """Données communes : un staff connecté, deux catégories, un produit."""
+
+    def setUp(self):
+        staff = User.objects.create_user("chef", password="motdepasse-solide-1", is_staff=True)
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {Token.objects.create(user=staff).key}")
+        self.cat = Category.objects.create(name="Sushis", slug="sushis")
+        self.other_cat = Category.objects.create(name="Plats", slug="plats")
+        self.sub = SubCategory.objects.create(name="Makis", slug="makis", category=self.cat)
+        self.p = Product.objects.create(name="Maki", price=Decimal("5"), category=self.cat, subcategory=self.sub)
+
+    def public_names(self):
+        return {p["name"] for p in APIClient().get("/api/products/").data}
+
+
+class StaffCatalogTests(StaffCatalogBase):
+    """Lot A4 : gestion de la carte depuis l'espace staff."""
+
+    def test_rename_category(self):
+        res = self.client.patch(f"/api/staff/categories/{self.cat.id}/", {"name": "  Sushis maison "}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.cat.refresh_from_db()
+        self.assertEqual(self.cat.name, "Sushis maison")
+        self.assertEqual(self.cat.slug, "sushis")          # l'adresse ne change pas
+
+    def test_empty_name_is_refused(self):
+        res = self.client.patch(f"/api/staff/categories/{self.cat.id}/", {"name": "  "}, format="json")
+        self.assertEqual(res.status_code, 400)
+
+    def test_hide_and_show_category(self):
+        self.client.patch(f"/api/staff/categories/{self.cat.id}/", {"is_active": False}, format="json")
+        self.assertEqual(self.public_names(), set())
+        self.client.patch(f"/api/staff/categories/{self.cat.id}/", {"is_active": True}, format="json")
+        self.assertEqual(self.public_names(), {"Maki"})
+
+    def test_hide_subcategory(self):
+        res = self.client.patch(f"/api/staff/subcategories/{self.sub.id}/", {"is_active": False}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.data["is_active"])
+        self.assertEqual(self.public_names(), set())
+
+    def test_only_name_and_visibility_can_be_changed(self):
+        self.client.patch(f"/api/staff/subcategories/{self.sub.id}/",
+                          {"slug": "pirate", "category_id": self.other_cat.id}, format="json")
+        self.sub.refresh_from_db()
+        self.assertEqual(self.sub.slug, "makis")
+        self.assertEqual(self.sub.category, self.cat)
+
+    def test_product_can_be_created_without_subcategory(self):
+        res = self.client.post("/api/staff/products/create/",
+                               {"name": "Soupe miso", "price": "3.50", "category_id": self.cat.id}, format="json")
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertIsNone(Product.objects.get(name="Soupe miso").subcategory)
+
+    def test_quick_availability_toggle(self):
+        res = self.client.patch(f"/api/staff/products/{self.p.id}/", {"is_available": False}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.p.refresh_from_db()
+        self.assertFalse(self.p.is_available)
+        self.assertEqual(self.p.subcategory, self.sub)    # le reste n'a pas bougé
+
+    def test_list_products_without_subcategory(self):
+        loose = Product.objects.create(name="Soupe", price=Decimal("3"), category=self.cat)
+        res = self.client.get(f"/api/staff/products/?category_id={self.cat.id}&subcategory_id=none")
+        self.assertEqual([p["id"] for p in res.data], [loose.id])
+
+    def test_staff_routes_require_staff(self):
+        res = APIClient().patch(f"/api/staff/categories/{self.cat.id}/", {"is_active": False}, format="json")
+        self.assertEqual(res.status_code, 401)
+
+
+class NewItemsGoLastTests(StaffCatalogBase):
+    """Lot A4 : un élément créé arrive à la fin de son groupe."""
+
+    def test_new_category_goes_last(self):
+        Category.objects.filter(pk=self.cat.pk).update(position=0)
+        Category.objects.filter(pk=self.other_cat.pk).update(position=1)
+        self.client.post("/api/staff/categories/create/", {"name": "Desserts", "slug": "desserts"}, format="json")
+        names = [c["name"] for c in self.client.get("/api/staff/categories/").data]
+        self.assertEqual(names[-1], "Desserts")
+
+    def test_new_subcategory_goes_last_in_its_category(self):
+        self.client.post("/api/staff/subcategories/create/",
+                         {"name": "California", "slug": "california", "category_id": self.cat.id}, format="json")
+        subs = SubCategory.objects.filter(category=self.cat).order_by("position", "name")
+        self.assertEqual(subs.last().name, "California")
+
+    def test_new_product_goes_last_in_its_group(self):
+        self.client.post("/api/staff/products/create/", {"name": "Aaa maki", "price": "4", "category_id": self.cat.id,
+                         "subcategory_id": self.sub.id}, format="json")
+        group = Product.objects.filter(subcategory=self.sub).order_by("position", "name")
+        self.assertEqual(group.last().name, "Aaa maki")

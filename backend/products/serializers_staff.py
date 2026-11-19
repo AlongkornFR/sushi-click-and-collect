@@ -5,7 +5,7 @@ from .models import Product, Category, SubCategory
 class StaffCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ("id", "name", "slug", "position")
+        fields = ("id", "name", "slug", "position", "is_active")
 
 
 class StaffSubCategorySerializer(serializers.ModelSerializer):
@@ -18,7 +18,7 @@ class StaffSubCategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SubCategory
-        fields = ("id", "name", "slug", "category", "category_id", "position")
+        fields = ("id", "name", "slug", "category", "category_id", "position", "is_active")
 
 
 class StaffProductSerializer(serializers.ModelSerializer):
@@ -32,12 +32,15 @@ class StaffProductSerializer(serializers.ModelSerializer):
     )
 
     subcategory = StaffSubCategorySerializer(read_only=True)
+    # Lot A4 : la sous-catégorie est facultative ; un produit sans
+    # sous-catégorie s'affiche directement sous sa catégorie.
     subcategory_id = serializers.PrimaryKeyRelatedField(
-    source="subcategory",
-    queryset=SubCategory.objects.all(),
-    write_only=True,
-    required=True,
-)
+        source="subcategory",
+        queryset=SubCategory.objects.all(),
+        write_only=True,
+        required=False,
+        allow_null=True,
+    )
 
     price_cents = serializers.SerializerMethodField()
 
