@@ -359,6 +359,41 @@ class StaffOrdersTests(OrderFixturesMixin, TestCase):
         preparing = self.make_order(status="preparing")
         self.assertTrue({paid.id, preparing.id} <= self.pending_print_ids())
 
+    # Lot H7 : écran staff limité aux dernières 24 h + commandes en cours.
+    def age(self, order, **delta):
+        Order.objects.filter(pk=order.pk).update(created_at=timezone.now() - timedelta(**delta))
+
+    def list_ids(self, **params):
+        res = self.staff_client.get("/api/staff/orders/", params)
+        self.assertEqual(res.status_code, 200)
+        return {o["id"] for o in res.data}
+
+    def test_default_list_hides_old_finished_orders(self):
+        old_done = self.make_order(status="collected")
+        self.age(old_done, days=3)
+        recent_done = self.make_order(status="collected")
+        ids = self.list_ids()
+        self.assertNotIn(old_done.id, ids)
+        self.assertIn(recent_done.id, ids)
+
+    def test_default_list_keeps_old_active_orders(self):
+        old_paid = self.make_order(status="paid")
+        self.age(old_paid, days=3)
+        self.assertIn(old_paid.id, self.list_ids())
+
+    def test_history_scope_returns_old_orders(self):
+        old_done = self.make_order(status="collected")
+        self.age(old_done, days=30)
+        self.assertIn(old_done.id, self.list_ids(scope="all"))
+
+    @patch("orders.views_staff.send_order_status_email")
+    def test_ready_order_is_never_auto_collected(self, send_email):
+        ready = self.make_order(status="ready", ready_at=timezone.now() - timedelta(hours=5))
+        self.list_ids()
+        ready.refresh_from_db()
+        self.assertEqual(ready.status, "ready")
+        send_email.assert_not_called()
+
     def test_pending_print_excludes_printed_and_finished_orders(self):
         printed = self.make_order(status="paid", printed=True)
         collected = self.make_order(status="collected")

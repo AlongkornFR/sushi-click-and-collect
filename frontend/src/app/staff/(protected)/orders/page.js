@@ -145,6 +145,8 @@ export default function StaffOrdersPage() {
 
   const [orders, setOrders]             = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
+  // Par défaut : dernières 24 h + commandes en cours (lot H7).
+  const [showHistory, setShowHistory]   = useState(false);
   const [error, setError]               = useState("");
   const [fetching, setFetching]         = useState(true);
   const [updating, setUpdating]         = useState(null);
@@ -167,7 +169,6 @@ export default function StaffOrdersPage() {
   const autoPrintedRef = useRef(new Set());
 
   // Auto-collect: 2h côté serveur — frontend affiche juste countdown
-  const AUTO_COLLECT_DELAY_MS = 2 * 60 * 60 * 1000;
 
   // ── Fetch commandes ────────────────────────────────────────────────────────
 
@@ -177,6 +178,7 @@ export default function StaffOrdersPage() {
     try {
       const url = new URL(`${API}/staff/orders/`);
       if (statusFilter) url.searchParams.set("status", statusFilter);
+      if (showHistory) url.searchParams.set("scope", "all");
       const res = await authFetch(url.toString(), { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status} – ${await res.text()}`);
       const data = await res.json();
@@ -262,7 +264,7 @@ export default function StaffOrdersPage() {
     const id = setInterval(() => fetchOrders(true), 3000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, statusFilter]);
+  }, [token, statusFilter, showHistory]);
 
   // ── Tick 1s pour rafraîchir les countdowns ─────────────────────────────
   const [, setTick] = useState(0);
@@ -358,13 +360,15 @@ export default function StaffOrdersPage() {
             </span>
           )}
           {o.status === "ready" && o.ready_at && (() => {
-            const remaining = new Date(o.ready_at).getTime() + AUTO_COLLECT_DELAY_MS - Date.now();
-            const soon = remaining < 10 * 60 * 1000;
+            // Temps écoulé depuis que la commande est prête (plus de passage
+            // automatique en « récupérée »).
+            const waiting = Date.now() - new Date(o.ready_at).getTime();
+            const long = waiting > 30 * 60 * 1000;
             return (
               <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                soon ? "bg-red-500/15 text-red-400" : "bg-emerald-500/10 text-emerald-400"
+                long ? "bg-red-500/15 text-red-400" : "bg-emerald-500/10 text-emerald-400"
               }`}>
-                ⏳ {formatCountdown(remaining)}
+                Prête depuis {formatCountdown(waiting)}
               </span>
             );
           })()}
@@ -548,6 +552,17 @@ export default function StaffOrdersPage() {
                 {STATUS_CONFIG[s]?.label ?? s}
               </button>
             ))}
+            <span className="mx-1 w-px shrink-0 bg-white/10" aria-hidden="true" />
+            <button
+              type="button"
+              aria-pressed={showHistory}
+              onClick={() => setShowHistory(v => !v)}
+              className={`shrink-0 cursor-pointer rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                showHistory ? "bg-white text-black" : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white"
+              }`}
+            >
+              {showHistory ? "Historique complet" : "24 dernières heures"}
+            </button>
           </div>
         </div>
 

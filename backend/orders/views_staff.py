@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import authenticate
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -18,17 +19,16 @@ from .emails import send_order_status_email
 ALLOWED_STATUSES = {"pending", "paid", "preparing", "ready", "collected", "cancelled"}
 # Seules les commandes payées et encore en cours partent en cuisine.
 PRINTABLE_STATUSES = ("paid", "preparing", "ready")
-AUTO_COLLECT_AFTER = timedelta(hours=2)
+# Commandes encore à traiter : toujours affichées, quel que soit leur âge.
+ACTIVE_STATUSES = ("paid", "preparing", "ready")
+# Fenêtre par défaut de l'écran staff (lot H7).
+DEFAULT_WINDOW = timedelta(hours=24)
+# Plafond de l'historique complet, pour garder une réponse raisonnable.
+HISTORY_LIMIT = 500
 
-
-def _auto_collect_ready_orders():
-    """Sweep: toute commande ready depuis >= 2h → collected + email."""
-    threshold = timezone.now() - AUTO_COLLECT_AFTER
-    to_collect = list(Order.objects.filter(status="ready", ready_at__lte=threshold))
-    for o in to_collect:
-        o.status = "collected"
-        o.save(update_fields=["status"])
-        send_order_status_email(o, status="collected")
+# Le passage automatique en "collected" après 2 h a été supprimé (décision
+# du 19/11/2026) : un client peut venir plus tard, c'est le staff qui
+# marque la commande comme récupérée.
 
 
 # ── Liste des commandes ────────────────────────────────────────────────────────
@@ -36,9 +36,14 @@ def _auto_collect_ready_orders():
 @api_view(["GET"])
 @permission_classes([IsAdminUser])
 def staff_orders_list(request):
-    _auto_collect_ready_orders()
-
+    """Par défaut : commandes des dernières 24 h + toutes les commandes en
+    cours. ?scope=all renvoie l'historique (les 500 plus récentes)."""
     qs = Order.objects.prefetch_related("items").order_by("-created_at")
+
+    scope_all = request.query_params.get("scope") == "all"
+    if not scope_all:
+        recent = timezone.now() - DEFAULT_WINDOW
+        qs = qs.filter(Q(created_at__gte=recent) | Q(status__in=ACTIVE_STATUSES))
 
     status_q = request.query_params.get("status")
     if status_q:
@@ -50,6 +55,8 @@ def staff_orders_list(request):
         if dt:
             qs = qs.filter(created_at__gte=dt)
 
+    if scope_all:
+        qs = qs[:HISTORY_LIMIT]
     return Response(OrderStaffSerializer(qs, many=True).data)
 
 
