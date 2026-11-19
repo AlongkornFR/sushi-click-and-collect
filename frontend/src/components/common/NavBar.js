@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FaBars, FaXmark } from "react-icons/fa6";
 import { FaShoppingBag, FaPhone, FaMapMarkerAlt, FaSun, FaMoon, FaUser } from "react-icons/fa";
+import LocationPopover from "@/components/common/LocationPopover";
 import Logo from "../../../public/Surice_logo.webp";
 
 const MAPS_URL =
@@ -73,15 +74,7 @@ export default function Navbar() {
 
               <div className="h-5 w-px bg-zinc-200 dark:bg-white/10" />
 
-              <Link
-                href={MAPS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Voir sur Google Maps"
-                className="text-zinc-500 dark:text-white/60 transition-colors hover:text-zinc-700 dark:hover:text-white"
-              >
-                <FaMapMarkerAlt className="h-4 w-4" />
-              </Link>
+              <LocationPopover />
 
               <a
                 href={PHONE_HREF}
@@ -148,6 +141,9 @@ export default function Navbar() {
             </Link>
 
             <div className="flex items-center gap-1">
+              {/* Adresse : un appui ouvre la bulle, un appui sur l'adresse lance l'itinéraire */}
+              <LocationPopover align="right" iconClassName="text-base" />
+
               {/* Theme toggle mobile */}
               <button
                 type="button"

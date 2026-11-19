@@ -9,7 +9,6 @@ import TrustCard from "@/components/common/TrustCard";
 import FeatureCard from "@/components/common/FeatureCard";
 import FeaturedProductCard from "@/components/common/FeatureProductCard";
 import { useInView } from "@/hooks/useInView";
-import PracticalInfo from "@/components/common/PracticalInfo";
 
 export default function HomePage() {
   const [products, setProducts] = useState([]);
@@ -107,9 +106,6 @@ export default function HomePage() {
           <div className="w-px h-10 bg-gradient-to-b from-white/40 to-transparent animate-bounce" />
         </div>
       </section>
-
-      {/* ── INFOS PRATIQUES (lot M12) ── */}
-      <PracticalInfo />
 
       {/* ── TRUST CARDS ── */}
       <section ref={trustRef} className="border-y border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-[#1D1D1D]">
