@@ -13,6 +13,10 @@ def on_paid_order_cancelled(order, actor=None):
     logger.warning("Commande payée #%s annulée par %s : remboursement Payplug à faire (paiement %s).",
                    order.id, getattr(actor, "username", "?"), order.payment_id or "inconnu")
 
+    # Lot M11 : le point de fidélité gagné par cette commande est retiré.
+    from loyalty.services import revoke_point_for_order  # import local : évite un import circulaire
+    revoke_point_for_order(order, actor=actor)
+
 
 # ── Expiration des commandes non payées (lot M3) ────────────────────────────
 # Décision du 19/11/2026 : une commande restée « pending » plus de 60 minutes
