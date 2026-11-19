@@ -46,20 +46,30 @@ export function useStaffAuth() {
 
   async function login(username, password) {
     setError("");
-    const res = await fetch(`${API}/staff/login/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-
-    if (!res.ok) {
-      const txt = await res.text();
-      setError(txt || "Login failed");
+    let res;
+    try {
+      res = await fetch(`${API}/staff/login/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+    } catch {
+      setError("Connexion impossible : vérifiez la connexion internet de la tablette.");
       return null;
     }
-    const data = await res.json();
+
+    // Lot A8 : message lisible (avant, le JSON brut s'affichait).
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (res.status === 429) {
+        setError("Trop de tentatives. Patientez une minute avant de réessayer.");
+      } else {
+        setError(data.detail || "La connexion a échoué. Réessayez.");
+      }
+      return null;
+    }
     if (!data.token) {
-      setError("No token returned");
+      setError("La connexion a échoué. Réessayez.");
       return null;
     }
 
@@ -70,6 +80,12 @@ export function useStaffAuth() {
   }
 
   function logout() {
+    // Lot A8 : le jeton est aussi supprimé côté serveur (sinon il restait
+    // valable après la déconnexion). Sans attendre la réponse.
+    const current = localStorage.getItem("staff_token");
+    if (current) {
+      fetch(`${API}/staff/logout/`, { method: "POST", headers: { Authorization: `Token ${current}` } }).catch(() => {});
+    }
     localStorage.removeItem("staff_token");
     setToken("");
     setMe(null);

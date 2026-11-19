@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from backend.throttles import ContactThrottle
+from .models import ContactMessage
 from .serializers import ContactSerializer
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,13 @@ def contact_send(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     data = serializer.validated_data
+
+    # Lot A8 : enregistré d'abord, pour ne jamais perdre un message même si
+    # l'envoi de l'email échoue.
+    saved = ContactMessage.objects.create(
+        first_name=data["first_name"], last_name=data["last_name"], email=data["email"],
+        phone=data.get("phone", ""), message=data["message"],
+    )
 
     api_key    = getattr(settings, "RESEND_API_KEY", "")
     from_email = getattr(settings, "RESEND_FROM_EMAIL", "onboarding@resend.dev")
@@ -88,4 +96,5 @@ def contact_send(request):
         logger.exception("Envoi du formulaire de contact impossible.")
         return Response({"detail": CONTACT_FAILED}, status=status.HTTP_502_BAD_GATEWAY)
 
+    ContactMessage.objects.filter(pk=saved.pk).update(email_sent=True)
     return Response({"detail": "Message envoyé avec succès."}, status=status.HTTP_200_OK)

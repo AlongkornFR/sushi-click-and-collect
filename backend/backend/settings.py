@@ -111,7 +111,8 @@ TEMPLATES = [
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.TokenAuthentication",
+        # Lot A8 : jetons qui expirent après une période sans utilisation
+        "backend.authentication.ExpiringTokenAuthentication",
     ],
     # Derrière le proxy de Render, l'IP du client est la dernière adresse de
     # X-Forwarded-For. Ajustable sans modifier le code (THROTTLE_NUM_PROXIES).
@@ -250,6 +251,10 @@ if GMAIL_USER and GMAIL_APP_PASSWORD:
     EMAIL_HOST_USER     = GMAIL_USER
     EMAIL_HOST_PASSWORD = GMAIL_APP_PASSWORD.replace(" ", "")
     DEFAULT_FROM_EMAIL  = f"{EMAIL_FROM_NAME} <{GMAIL_USER}>"
+
+# Lot A8 : durée sans utilisation après laquelle un jeton de connexion expire
+TOKEN_IDLE_DAYS_STAFF = int(os.environ.get("TOKEN_IDLE_DAYS_STAFF", "7"))
+TOKEN_IDLE_DAYS_CUSTOMER = int(os.environ.get("TOKEN_IDLE_DAYS_CUSTOMER", "30"))
 
 # Lien « mot de passe oublié » valable 1 heure (lot H8)
 PASSWORD_RESET_TIMEOUT = 60 * 60

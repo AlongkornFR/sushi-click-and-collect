@@ -5,6 +5,7 @@ urlpatterns = [
     # Customer auth & profile
     path("auth/register/", views.register),
     path("auth/login/", views.login),
+    path("auth/logout/", views.logout),
     path("auth/me/", views.me),
     path("auth/change-password/", views.change_password),
     path("auth/password-reset/", views.password_reset_request),
