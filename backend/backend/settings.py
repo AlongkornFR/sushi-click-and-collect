@@ -260,11 +260,15 @@ LOYALTY_MAX_POINTS = 10
 # LOYALTY_ENCRYPTION_KEY (Fernet.generate_key()) in production — the
 # fallback derived from SECRET_KEY is dev-only convenience so the app
 # runs out of the box, but it changes if SECRET_KEY changes.
-# Lot H3 : obligatoire en production, comme SECRET_KEY.
+# Si LOYALTY_ENCRYPTION_KEY n'est pas définie, la clé est dérivée de
+# SECRET_KEY, comme avant le lot H3 : les QR codes déjà émis restent
+# valables. SECRET_KEY, elle, reste obligatoire en production : la clé ne
+# peut donc plus être dérivée d'une valeur publique.
+# Ne pas définir LOYALTY_ENCRYPTION_KEY avec une autre valeur que celle
+# déjà utilisée : les QR codes existants deviendraient illisibles.
 import base64
 import hashlib
 
-LOYALTY_ENCRYPTION_KEY = _required_secret(
-    "LOYALTY_ENCRYPTION_KEY",
-    dev_value=base64.urlsafe_b64encode(hashlib.sha256(SECRET_KEY.encode()).digest()).decode(),
-)
+LOYALTY_ENCRYPTION_KEY = os.environ.get("LOYALTY_ENCRYPTION_KEY", "") or base64.urlsafe_b64encode(
+    hashlib.sha256(SECRET_KEY.encode()).digest()
+).decode()
