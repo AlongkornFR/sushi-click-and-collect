@@ -1,10 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useEffect } from "react";
-import useSWR from "swr";
-import { api } from "@/services/api";
-
-const fetcher = (url) => api.get(url).then(r => Array.isArray(r.data) ? r.data : []);
+import { useCatalog } from "@/hooks/useCatalog";
 import ProductCard from "@/components/common/ProductCard";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 
@@ -52,11 +49,7 @@ export default function MenuPage() {
   const [activeSubId, setActiveSubId]       = useState(null);
   const pillsRef = useRef(null);
 
-  const { data: products = [], isLoading: loading } = useSWR("products/", fetcher, {
-    dedupingInterval: 5 * 60 * 1000,
-    revalidateOnFocus: false,
-    onError: (err) => console.error("Erreur lors du chargement des produits :", err),
-  });
+  const { products, isLoading: loading, error: loadError, reload } = useCatalog();
 
   const groupedData = useMemo(() => {
     const groups = {};
@@ -311,8 +304,26 @@ export default function MenuPage() {
             </div>
           )}
 
+          {/* ── Erreur de chargement (lot H5) : distincte d'un menu vide ── */}
+          {!loading && loadError && categoryNames.length === 0 && (
+            <div role="alert" className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-300 dark:border-white/10 px-6 py-20 text-center">
+              <p className="text-base font-medium text-zinc-700 dark:text-white/80">Le menu n&apos;a pas pu être chargé.</p>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-white/50">
+                Vérifiez votre connexion, ou commandez par téléphone au{" "}
+                <a href="tel:+33493680812" className="font-semibold underline">04 93 68 08 12</a>.
+              </p>
+              <button
+                type="button"
+                onClick={reload}
+                className="mt-6 cursor-pointer rounded-xl bg-[#FFC366] px-6 py-3 text-sm font-semibold text-black transition hover:bg-[#ffb347]"
+              >
+                Réessayer
+              </button>
+            </div>
+          )}
+
           {/* ── Empty state ── */}
-          {!loading && categoryNames.length === 0 && (
+          {!loading && !loadError && categoryNames.length === 0 && (
             <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-zinc-300 dark:border-white/10 py-24 text-center">
               <span className="text-5xl">🍣</span>
               <p className="mt-4 text-base font-medium text-zinc-400 dark:text-white/50">Aucun produit disponible pour le moment.</p>

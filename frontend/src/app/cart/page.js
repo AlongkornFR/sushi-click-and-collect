@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/components/context/CartContext";
 import { formatEUR } from "@/utils/formatting";
 import ProductImage from "@/components/common/ProductImage";
+import CartSyncNotice from "@/components/common/CartSyncNotice";
 import { FaXmark } from "react-icons/fa6";
 import { FaShieldAlt, FaMapMarkerAlt, FaMinus, FaPlus, FaShoppingBag, FaTrash } from "react-icons/fa";
 
@@ -13,21 +14,32 @@ const SWIPE_THRESHOLD = 72;
 function SwipeToDelete({ onDelete, children }) {
   const [offsetX, setOffsetX]   = useState(0);
   const [animating, setAnimating] = useState(false);
-  const startXRef = useRef(null);
+  const startRef = useRef(null);
+  // "swipe" ou "scroll", décidé au premier mouvement net (lot H5) : un
+  // défilement vertical ne doit jamais supprimer un article.
+  const modeRef = useRef(null);
 
   function handleTouchStart(e) {
-    startXRef.current = e.touches[0].clientX;
+    startRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    modeRef.current = null;
     setAnimating(false);
   }
 
   function handleTouchMove(e) {
-    if (startXRef.current === null) return;
-    setOffsetX(e.touches[0].clientX - startXRef.current);
+    if (!startRef.current) return;
+    const dx = e.touches[0].clientX - startRef.current.x;
+    const dy = e.touches[0].clientY - startRef.current.y;
+    if (!modeRef.current) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) modeRef.current = "scroll";
+      else if (Math.abs(dx) > 10) modeRef.current = "swipe";
+    }
+    if (modeRef.current === "swipe") setOffsetX(dx);
   }
 
   function handleTouchEnd() {
-    startXRef.current = null;
+    startRef.current = null;
     setAnimating(true);
+    if (modeRef.current !== "swipe") { setOffsetX(0); return; }
     if (Math.abs(offsetX) > SWIPE_THRESHOLD) {
       setOffsetX(offsetX > 0 ? 600 : -600);
       setTimeout(onDelete, 280);
@@ -72,11 +84,44 @@ function SwipeToDelete({ onDelete, children }) {
 }
 
 export default function CartPage() {
-  const { items, subtotal, increment, decrement, removeItem, clear } = useCart();
+  const { items, hydrated, subtotal, increment, decrement, removeItem, restoreItem, clear } = useCart();
+
+  // Dernier article supprimé, pour le bouton « Annuler » (lot H5).
+  const [lastRemoved, setLastRemoved] = useState(null);
+  useEffect(() => {
+    if (!lastRemoved) return;
+    const t = setTimeout(() => setLastRemoved(null), 6000);
+    return () => clearTimeout(t);
+  }, [lastRemoved]);
+
+  function handleRemove(item, index) {
+    removeItem(item.id);
+    setLastRemoved({ item, index });
+  }
+
+  const undoToast = lastRemoved && (
+    <div role="status" className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-2xl bg-zinc-900 px-4 py-3 text-sm text-white shadow-lg dark:bg-white dark:text-black">
+      <span className="min-w-0 truncate">{lastRemoved.item.name} retiré du panier</span>
+      <button
+        type="button"
+        onClick={() => { restoreItem(lastRemoved.item, lastRemoved.index); setLastRemoved(null); }}
+        className="shrink-0 cursor-pointer rounded-lg px-3 py-2 font-semibold text-[#FFC366] dark:text-amber-700"
+      >
+        Annuler
+      </button>
+    </div>
+  );
+
+  // Panier pas encore relu depuis le navigateur : rien à afficher.
+  if (!hydrated) {
+    return <div className="min-h-[80vh]" aria-busy="true" />;
+  }
 
   /* ── Empty state ── */
   if (items.length === 0) {
     return (
+      <>
+      {undoToast}
       <div className="flex min-h-[80vh] flex-col items-center justify-center px-6 py-16 text-center">
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-zinc-100 dark:bg-[#1D1D1D]">
           <FaShoppingBag className="text-3xl text-zinc-300 dark:text-white/20" />
@@ -92,6 +137,7 @@ export default function CartPage() {
           Voir le menu
         </Link>
       </div>
+      </>
     );
   }
 
@@ -119,10 +165,11 @@ export default function CartPage() {
 
         {/* ── Items ── */}
         <div className="space-y-3 lg:col-span-2">
-          {items.map((it) => {
+          <CartSyncNotice />
+          {items.map((it, index) => {
             const lineTotal = Number(it.price) * it.quantity;
             return (
-              <SwipeToDelete key={it.id} onDelete={() => removeItem(it.id)}>
+              <SwipeToDelete key={it.id} onDelete={() => handleRemove(it, index)}>
                 <div className="flex gap-4 rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-4">
 
                   {/* Image */}
@@ -141,7 +188,7 @@ export default function CartPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => removeItem(it.id)}
+                        onClick={() => handleRemove(it, index)}
                         className="shrink-0 cursor-pointer rounded-lg p-1.5 text-zinc-300 dark:text-white/30 transition hover:bg-zinc-100 dark:hover:bg-white/10 hover:text-zinc-600 dark:hover:text-white/70"
                         aria-label={`Supprimer ${it.name}`}
                       >
@@ -223,6 +270,7 @@ export default function CartPage() {
         </div>
 
       </div>
+      {undoToast}
     </div>
   );
 }

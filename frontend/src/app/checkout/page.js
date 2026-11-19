@@ -10,6 +10,7 @@ import { api } from "@/services/api";
 import { formatEUR } from "@/utils/formatting";
 import FormField from "@/components/common/FormField";
 import ProductImage from "@/components/common/ProductImage";
+import CartSyncNotice from "@/components/common/CartSyncNotice";
 import { FaShieldAlt, FaClock, FaUser } from "react-icons/fa";
 
 function isValidEmail(email) {
@@ -100,7 +101,7 @@ const inputCls = (hasError) =>
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, clear } = useCart();
+  const { items, hydrated, subtotal, clear } = useCart();
   const { customer, token, authHeaders } = useAuth();
 
   const [form, setForm]       = useState({ full_name: "", email: "", phone: "", pickup_time: "", notes: "" });
@@ -130,9 +131,10 @@ export default function CheckoutPage() {
     [schedule, openDays, selectedDayIdx],
   );
 
+  // Lot H5 : on attend que le panier soit relu avant de conclure qu'il est vide.
   useEffect(() => {
-    if (items.length === 0) router.replace("/cart");
-  }, [items.length, router]);
+    if (hydrated && items.length === 0) router.replace("/cart");
+  }, [hydrated, items.length, router]);
 
   const validation = useMemo(() => {
     const e = {};
@@ -198,7 +200,7 @@ export default function CheckoutPage() {
     }
   }
 
-  if (items.length === 0) return null;
+  if (!hydrated || items.length === 0) return <div className="min-h-[100vh]" aria-busy="true" />;
 
   return (
     <div className="mx-auto min-h-[100vh] max-w-6xl px-4 py-10 md:px-6 md:py-14">
@@ -213,6 +215,8 @@ export default function CheckoutPage() {
           ← Panier
         </Link>
       </div>
+
+      <CartSyncNotice />
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
 

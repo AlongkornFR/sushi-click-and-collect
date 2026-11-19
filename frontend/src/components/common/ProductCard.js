@@ -117,7 +117,7 @@ export default function ProductCard({ product }) {
             className={`absolute bottom-2 right-2 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full shadow-md transition-all duration-300 group-hover:opacity-100 ${
               quickAdded
                 ? "bg-emerald-500 text-white opacity-100"
-                : "bg-white text-black opacity-0"
+                : "bg-white text-black opacity-0 [@media(hover:none)]:opacity-100"
             }`}
             aria-label={`Ajouter ${product.name} au panier`}
           >
