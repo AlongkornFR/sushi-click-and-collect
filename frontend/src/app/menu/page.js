@@ -247,9 +247,9 @@ export default function MenuPage() {
         {/* ── Contenu principal ── */}
         <main className="lg:col-span-9">
 
-          {/* Header desktop */}
-          <div className="mb-10 hidden lg:block">
-            <h1 className="text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">Notre Menu</h1>
+          {/* En-tête (visible aussi sur mobile : seul h1 de la page, lot M8) */}
+          <div className="mb-6 lg:mb-10">
+            <h1 className="text-3xl lg:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">Notre Menu</h1>
             <p className="mt-2 text-base text-zinc-500 dark:text-white/60">Commandez en ligne · Récupérez sur place</p>
             <div className="mt-5 h-px bg-zinc-200 dark:bg-white/10" />
           </div>
