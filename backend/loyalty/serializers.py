@@ -25,9 +25,10 @@ class LoyaltyAccountSerializer(serializers.ModelSerializer):
 class LoyaltyAccountStaffSerializer(LoyaltyAccountSerializer):
     email = serializers.EmailField(source="customer.user.email", read_only=True)
     phone = serializers.CharField(source="customer.phone", read_only=True)
+    customer_id = serializers.IntegerField(source="customer.id", read_only=True)  # lien vers la fiche (A6)
 
     class Meta(LoyaltyAccountSerializer.Meta):
-        fields = LoyaltyAccountSerializer.Meta.fields + ["email", "phone"]
+        fields = LoyaltyAccountSerializer.Meta.fields + ["email", "phone", "customer_id"]
 
 
 class LoyaltyTransactionSerializer(serializers.ModelSerializer):

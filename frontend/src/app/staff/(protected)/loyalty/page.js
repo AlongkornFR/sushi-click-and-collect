@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useStaffAuth } from "../../_components/useStaffAuth";
 import { QrScanner } from "../../_components/QrScanner";
 
@@ -18,7 +19,7 @@ function newRequestId() {
 }
 
 export default function LoyaltyPage() {
-  const { authFetch, API } = useStaffAuth();
+  const { authFetch, API, token } = useStaffAuth();
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -55,6 +56,15 @@ export default function LoyaltyPage() {
       setLoadingAccount(false);
     }
   }
+
+  // Lot A6 : ouverture directe depuis la fiche client (?account=<id public>).
+  // On attend le jeton : une requête sans jeton déconnecterait le staff.
+  useEffect(() => {
+    if (!token) return;
+    const publicId = new URLSearchParams(window.location.search).get("account");
+    if (publicId) loadAccount(publicId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -251,6 +261,14 @@ export default function LoyaltyPage() {
                     <p className="text-lg font-bold text-white">{account.first_name} {account.last_name}</p>
                     <p className="text-xs text-white/40">{account.email}</p>
                     <p className="mt-0.5 text-xs text-white/30 tabular-nums">{account.customer_number}</p>
+                    {account.customer_id && (
+                      <Link
+                        href={`/staff/users/${account.customer_id}`}
+                        className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-[#FFC366] underline-offset-2 hover:underline"
+                      >
+                        Voir la fiche client
+                      </Link>
+                    )}
                   </div>
                   {account.reward_available && (
                     <span className="rounded-full bg-[#FFC366]/15 px-3 py-1 text-xs font-semibold text-[#FFC366] ring-1 ring-[#FFC366]/30">

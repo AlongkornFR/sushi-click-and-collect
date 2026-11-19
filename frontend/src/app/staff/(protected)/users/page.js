@@ -1,149 +1,99 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useStaffAuth } from "../../_components/useStaffAuth";
+import { FaSearch, FaChevronRight } from "react-icons/fa";
 
+/**
+ * Lot A6 : liste des clients. Chaque ligne ouvre la fiche client
+ * (coordonnées, commandes, carte de fidélité, désactivation).
+ */
 export default function UsersPage() {
-  return <UsersContent />;
-}
-
-function UsersContent() {
-  const { token } = useStaffAuth();
-  const [users,   setUsers]   = useState([]);
-  const [query,   setQuery]   = useState("");
+  const { API, token, authFetch } = useStaffAuth();
+  const [users, setUsers] = useState([]);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState("");
-  const [deleting, setDeleting] = useState(null);
-
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  const [error, setError] = useState("");
 
   const fetchUsers = useCallback(async (q = "") => {
     setLoading(true);
     setError("");
     try {
       const params = q ? `?q=${encodeURIComponent(q)}` : "";
-      const res = await fetch(`${apiUrl}/staff/users/${params}`, {
-        headers: { Authorization: `Token ${token}` },
-      });
+      const res = await authFetch(`${API}/staff/users/${params}`, { cache: "no-store" });
       if (!res.ok) throw new Error();
       setUsers(await res.json());
     } catch {
-      setError("Impossible de charger les utilisateurs.");
+      setError("La liste des clients n'a pas pu être chargée. Réessayez.");
     } finally {
       setLoading(false);
     }
-  }, [token, apiUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [API, token]);
 
   useEffect(() => { if (token) fetchUsers(); }, [fetchUsers, token]);
 
-  function handleSearch(e) {
-    e.preventDefault();
-    fetchUsers(query);
-  }
-
-  async function handleDelete(user) {
-    if (!window.confirm(`Supprimer le compte de ${user.email} ? Cette action est irréversible.`)) return;
-    setDeleting(user.id);
-    try {
-      const res = await fetch(`${apiUrl}/staff/users/${user.id}/delete/`, {
-        method: "DELETE",
-        headers: { Authorization: `Token ${token}` },
-      });
-      if (!res.ok) throw new Error();
-      setUsers((prev) => prev.filter((u) => u.id !== user.id));
-    } catch {
-      alert("Erreur lors de la suppression.");
-    } finally {
-      setDeleting(null);
-    }
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-2">
         <h1 className="text-xl font-bold text-white">Clients</h1>
-        <span className="text-sm text-white/40">{users.length} compte{users.length !== 1 ? "s" : ""}</span>
+        <p className="text-sm text-white/60">{users.length} compte{users.length > 1 ? "s" : ""}</p>
       </div>
 
-      {/* Search */}
-      <form onSubmit={handleSearch} className="flex gap-2">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher par nom, email ou téléphone…"
-          className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-[#FFC366]/50 focus:ring-2 focus:ring-[#FFC366]/20"
-        />
-        <button
-          type="submit"
-          className="cursor-pointer rounded-xl bg-[#FFC366] px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-95"
-        >
+      <form
+        onSubmit={(e) => { e.preventDefault(); fetchUsers(query.trim()); }}
+        className="flex gap-2"
+      >
+        <label className="relative block flex-1">
+          <span className="sr-only">Rechercher un client</span>
+          <FaSearch className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/50" aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Nom, email ou téléphone"
+            className="min-h-11 w-full rounded-xl border border-white/10 bg-white/5 pl-11 pr-4 text-base text-white placeholder:text-white/40 outline-none focus:border-white/30"
+          />
+        </label>
+        <button type="submit" className="min-h-11 cursor-pointer rounded-xl bg-[#FFC366] px-4 text-sm font-bold text-black">
           Rechercher
         </button>
-        {query && (
-          <button
-            type="button"
-            onClick={() => { setQuery(""); fetchUsers(""); }}
-            className="cursor-pointer rounded-xl border border-white/10 px-4 py-2.5 text-sm text-white/50 transition hover:border-white/20 hover:text-white"
-          >
-            Réinitialiser
-          </button>
-        )}
       </form>
 
-      {/* Content */}
-      {loading && <p className="py-8 text-center text-sm text-white/30">Chargement…</p>}
-      {error   && <p className="py-8 text-center text-sm text-red-400">{error}</p>}
+      {error && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</div>}
 
-      {!loading && !error && users.length === 0 && (
-        <p className="py-8 text-center text-sm text-white/30">Aucun client trouvé.</p>
-      )}
-
-      {!loading && !error && users.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-white/10">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/10 bg-white/5">
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white/40">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white/40">Nom</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white/40">Email</th>
-                <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white/40 md:table-cell">Téléphone</th>
-                <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white/40 lg:table-cell">Commandes</th>
-                <th className="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white/40 lg:table-cell">Inscription</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {users.map((user) => (
-                <tr key={user.id} className="transition hover:bg-white/5">
-                  <td className="px-4 py-3 font-mono text-xs text-white/40">#{user.id}</td>
-                  <td className="px-4 py-3 font-medium text-white">
-                    {user.first_name} {user.last_name}
-                    {!user.is_active && (
-                      <span className="ml-2 rounded-full bg-red-900/30 px-2 py-0.5 text-[10px] font-semibold text-red-400">Désactivé</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-white/70">{user.email}</td>
-                  <td className="hidden px-4 py-3 text-white/50 md:table-cell">{user.phone || "—"}</td>
-                  <td className="hidden px-4 py-3 text-white/50 lg:table-cell">{user.order_count}</td>
-                  <td className="hidden px-4 py-3 text-white/40 lg:table-cell">
-                    {new Date(user.date_joined).toLocaleDateString("fr-FR")}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleDelete(user)}
-                      disabled={deleting === user.id}
-                      className="cursor-pointer rounded-lg border border-red-800/50 bg-red-900/20 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-900/40 active:scale-95 disabled:opacity-40"
-                    >
-                      {deleting === user.id ? "…" : "Supprimer"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#1D1D1D]">
+        {loading ? (
+          <p className="py-16 text-center text-sm text-white/60">Chargement…</p>
+        ) : users.length === 0 ? (
+          <p className="py-16 text-center text-sm text-white/60">Aucun client trouvé.</p>
+        ) : (
+          <ul className="divide-y divide-white/10">
+            {users.map((u) => (
+              <li key={u.id}>
+                <Link href={`/staff/users/${u.id}`} className="flex min-h-14 items-center gap-3 px-4 py-3 hover:bg-white/5">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-center gap-2 text-base font-semibold text-white">
+                      {u.first_name} {u.last_name}
+                      {!u.is_active && (
+                        <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-semibold text-red-200">Désactivé</span>
+                      )}
+                    </p>
+                    <p className="truncate text-sm text-white/60">
+                      {u.email}{u.phone ? ` · ${u.phone}` : ""}
+                    </p>
+                  </div>
+                  <p className="shrink-0 text-sm text-white/60">
+                    {u.order_count} commande{u.order_count > 1 ? "s" : ""}
+                  </p>
+                  <FaChevronRight className="shrink-0 text-white/40" aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

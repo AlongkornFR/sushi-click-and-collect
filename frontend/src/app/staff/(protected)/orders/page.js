@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useStaffAuth } from "../../_components/useStaffAuth";
 import { useNewOrderAlert } from "../../_components/useNewOrderAlert";
 import { printOrder as qzPrint } from "@/lib/printer";
@@ -368,7 +369,14 @@ export default function StaffOrdersPage() {
               <span className="text-base font-bold text-white">#{o.id}</span>
               <StatusBadge status={o.status} />
             </div>
-            <p className="truncate text-sm font-semibold text-white/90">{o.full_name}</p>
+            {/* Lot A6 : nom cliquable vers la fiche client (commandes avec compte) */}
+            {o.customer_id ? (
+              <Link href={`/staff/users/${o.customer_id}`} className="block truncate text-sm font-semibold text-white/90 underline decoration-white/30 underline-offset-2 hover:decoration-white">
+                {o.full_name}
+              </Link>
+            ) : (
+              <p className="truncate text-sm font-semibold text-white/90">{o.full_name}</p>
+            )}
             {o.phone && (
               <a
                 href={`tel:${o.phone.replace(/\s/g, "")}`}

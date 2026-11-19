@@ -82,4 +82,59 @@ class StaffCustomerSerializer(serializers.ModelSerializer):
         fields = ["id", "email", "first_name", "last_name", "phone", "is_active", "date_joined", "order_count"]
 
     def get_order_count(self, obj):
+        # Annoté par la liste (une seule requête) ; sinon calculé (fiche).
+        annotated = getattr(obj, "order_count_annot", None)
+        if annotated is not None:
+            return annotated
         return Order.objects.filter(user=obj.user).count()
+
+
+# Statuts qui comptent dans le total dépensé (commandes payées, non annulées)
+SPENT_STATUSES = ("paid", "preparing", "ready", "collected")
+
+
+class StaffCustomerDetailSerializer(StaffCustomerSerializer):
+    """Lot A6 : fiche client complète pour l'espace staff."""
+    orders = serializers.SerializerMethodField()
+    loyalty = serializers.SerializerMethodField()
+    total_spent_cents = serializers.SerializerMethodField()
+
+    class Meta(StaffCustomerSerializer.Meta):
+        fields = StaffCustomerSerializer.Meta.fields + ["orders", "loyalty", "total_spent_cents"]
+
+    def _orders(self, obj):
+        if not hasattr(self, "_orders_cache"):
+            self._orders_cache = list(
+                Order.objects.filter(user=obj.user).prefetch_related("items").order_by("-created_at")[:50]
+            )
+        return self._orders_cache
+
+    def get_orders(self, obj):
+        return [
+            {
+                "id": o.id,
+                "status": o.status,
+                "total_cents": o.total_cents,
+                "created_at": o.created_at,
+                "pickup_label": pickup_label(o),
+                "items": [f"{it.quantity}× {it.product_name}" for it in o.items.all()],
+            }
+            for o in self._orders(obj)
+        ]
+
+    def get_total_spent_cents(self, obj):
+        return sum(
+            Order.objects.filter(user=obj.user, status__in=SPENT_STATUSES).values_list("total_cents", flat=True)
+        )
+
+    def get_loyalty(self, obj):
+        # Lecture seule : on ne crée pas de carte en consultant la fiche.
+        account = getattr(obj, "loyaltyaccount", None)
+        if account is None:
+            return None
+        return {
+            "public_id": str(account.public_id),
+            "points": account.points,
+            "max_points": account.MAX_POINTS,
+            "reward_available": account.reward_available,
+        }
