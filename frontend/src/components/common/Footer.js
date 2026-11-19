@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FaFacebookF, FaInstagram } from "react-icons/fa";
 
@@ -17,47 +18,33 @@ const Footer = () => {
         {/* Colonne 1 */}
         <div>
           <h3 className="text-3xl font-bold mb-6">Su-Rice</h3>
+          {/* Liens absolus (lot H6) : les liens relatifs cassaient depuis
+              les pages imbriquées (/account/login → /account/cgv). */}
           <ul className="space-y-3 text-lg font-medium text-gray-100">
             <li>
-              <a href="menu" className="hover:text-gray-400 transition">
-                Nos Shops
-              </a>
+              <Link href="/menu" className="hover:text-gray-400 transition">
+                Notre carte
+              </Link>
             </li>
             <li>
-              <a href="#allergens" className="hover:text-gray-400 transition">
-                Allergènes
-              </a>
+              <Link href="/contact" className="hover:text-gray-400 transition">
+                Contact
+              </Link>
             </li>
             <li>
-              <a href="#products" className="hover:text-gray-400 transition">
-                Origine de nos produits
-              </a>
-            </li>
-            <li>
-              <a href="#ingredients" className="hover:text-gray-400 transition">
-                Glossaire des ingrédients
-              </a>
-            </li>
-            <li>
-              <a href="cgv" className="text-white font-semibold hover:text-gray-400 transition">
+              <Link href="/cgv" className="text-white font-semibold hover:text-gray-400 transition">
                 CGV
-              </a>
+              </Link>
             </li>
             <li>
-              <a
-                href="mentions-legales"
-                className="text-white font-semibold hover:text-gray-400 transition"
-              >
+              <Link href="/mentions-legales" className="text-white font-semibold hover:text-gray-400 transition">
                 Mentions légales
-              </a>
+              </Link>
             </li>
             <li>
-              <a
-                href="politique-de-confidentialite"
-                className="text-white font-semibold hover:text-gray-400 transition"
-              >
+              <Link href="/politique-de-confidentialite" className="text-white font-semibold hover:text-gray-400 transition">
                 Politique de confidentialité
-              </a>
+              </Link>
             </li>
           </ul>
         </div>

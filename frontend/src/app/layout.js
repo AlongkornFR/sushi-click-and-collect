@@ -24,7 +24,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="fr" className="dark">
       <head>
         {/* Prevent theme flash: set class before React hydrates */}
         <script

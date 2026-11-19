@@ -70,22 +70,26 @@ export default function ProductCard({ product }) {
   }
 
   const displayedProduct   = fullProduct || product;
-  const categoryLabel      = displayedProduct.category?.name    || "Catégorie";
+  // Lot H6 : plus de texte de remplissage visible par le client. Un bloc
+  // sans contenu est masqué.
+  const categoryLabel      = displayedProduct.category?.name    || "";
   const subcategoryLabel   = displayedProduct.subcategory?.name || "";
-  const productName        = displayedProduct.name              || "Nom du produit";
+  const productName        = displayedProduct.name              || "";
   const productPrice       = displayedProduct.price             || "0.00";
-  const productDescription = displayedProduct.description       || "Aucune description disponible.";
+  const productDescription = displayedProduct.description?.trim() || "";
 
   const ingredientsText =
     displayedProduct.ingredients ||
     displayedProduct.flavors     ||
     displayedProduct.saveurs     ||
-    "Informations sur les ingrédients et saveurs bientôt disponibles.";
+    "";
 
+  // Mesure provisoire en attendant la liste du restaurant (CC-05) : elle ne
+  // remplace pas l'affichage obligatoire des allergènes par produit.
   const allergensText =
     displayedProduct.allergens  ||
     displayedProduct.allergenes ||
-    "Informations sur les allergènes bientôt disponibles.";
+    "La liste des allergènes de ce plat est disponible sur demande : appelez-nous au 04 93 68 08 12 avant de commander.";
 
   return (
     <>
@@ -185,9 +189,11 @@ export default function ProductCard({ product }) {
 
                   {/* Header */}
                   <div className="shrink-0 px-6 pb-0 pt-6 pr-14 sm:px-8 sm:pt-8">
-                    <span className="inline-block rounded-full bg-zinc-100 dark:bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
-                      {categoryLabel}{subcategoryLabel ? ` · ${subcategoryLabel}` : ""}
-                    </span>
+                    {categoryLabel && (
+                      <span className="inline-block rounded-full bg-zinc-100 dark:bg-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                        {categoryLabel}{subcategoryLabel ? ` · ${subcategoryLabel}` : ""}
+                      </span>
+                    )}
 
                     <h2 className="mt-3 text-2xl font-bold leading-tight text-zinc-900 dark:text-white sm:text-3xl">
                       {productName}
@@ -202,16 +208,21 @@ export default function ProductCard({ product }) {
                   <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 sm:px-8">
 
                     {/* Description */}
-                    <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-300 sm:text-[15px]">
-                      {productDescription}
-                    </p>
-
-                    <div className="mt-6 h-px bg-zinc-200 dark:bg-white/10" />
+                    {productDescription && (
+                      <>
+                        <p className="text-sm leading-7 text-zinc-600 dark:text-zinc-300 sm:text-[15px]">
+                          {productDescription}
+                        </p>
+                        <div className="mt-6 h-px bg-zinc-200 dark:bg-white/10" />
+                      </>
+                    )}
 
                     {/* Ingredients accordion */}
+                    {ingredientsText && (<>
                     <button
                       type="button"
                       onClick={() => setIngredientsOpen((p) => !p)}
+                      aria-expanded={ingredientsOpen}
                       className="flex w-full cursor-pointer items-center justify-between py-4 text-left"
                     >
                       <span className="text-sm font-semibold text-zinc-900 dark:text-white">Ingrédients et saveurs</span>
@@ -225,11 +236,13 @@ export default function ProductCard({ product }) {
                     )}
 
                     <div className="h-px bg-zinc-200 dark:bg-white/10" />
+                    </>)}
 
                     {/* Allergens accordion */}
                     <button
                       type="button"
                       onClick={() => setAllergensOpen((p) => !p)}
+                      aria-expanded={allergensOpen}
                       className="flex w-full cursor-pointer items-center justify-between py-4 text-left"
                     >
                       <span className="text-sm font-semibold text-zinc-900 dark:text-white">Allergènes</span>
