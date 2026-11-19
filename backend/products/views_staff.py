@@ -20,6 +20,13 @@ from .serializers_staff import (
 )
 
 
+def _next_position(queryset):
+    """Lot A4 : un nouvel élément se place à la fin de son groupe (sinon, à
+    position égale, l'ordre alphabétique le mettait parfois en tête)."""
+    last = queryset.order_by("-position").values_list("position", flat=True).first()
+    return 0 if last is None else last + 1
+
+
 def _swap_positions(Model, obj_id, direction):
     try:
         obj = Model.objects.get(id=obj_id)
@@ -54,7 +61,7 @@ def staff_categories_list(request):
 def staff_category_create(request):
     serializer = StaffCategorySerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save()
+        serializer.save(position=_next_position(Category.objects.all()))
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -77,7 +84,8 @@ def staff_subcategories_list(request):
 def staff_subcategory_create(request):
     serializer = StaffSubCategorySerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save()
+        category = serializer.validated_data["category"]
+        serializer.save(position=_next_position(SubCategory.objects.filter(category=category)))
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -94,7 +102,10 @@ def staff_products_list(request):
     if category_id:
         qs = qs.filter(category_id=category_id)
 
-    if subcategory_id:
+    if subcategory_id == "none":
+        # Produits rangés directement sous leur catégorie (lot A4)
+        qs = qs.filter(subcategory__isnull=True)
+    elif subcategory_id:
         qs = qs.filter(subcategory_id=subcategory_id)
 
     if q:
@@ -121,7 +132,11 @@ def staff_product_create(request):
 
     serializer = StaffProductSerializer(data=data)
     if serializer.is_valid():
-        product = serializer.save()
+        siblings = Product.objects.filter(
+            category=serializer.validated_data.get("category"),
+            subcategory=serializer.validated_data.get("subcategory"),
+        )
+        product = serializer.save(position=_next_position(siblings))
         return Response(StaffProductSerializer(product).data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -256,3 +271,39 @@ def cloudflare_upload_url(request):
         "upload_url": data["result"]["uploadURL"],
         "id":         data["result"]["id"],
     })
+
+# ── Modification des catégories et sous-catégories (lot A4) ────────────────
+# Renommer et masquer / afficher. Pas de suppression : une catégorie masquée
+# disparaît du site sans perdre ses produits.
+
+def _patch(serializer_cls, instance, request):
+    allowed = {k: v for k, v in (request.data or {}).items() if k in ("name", "is_active")}
+    if "name" in allowed:
+        allowed["name"] = str(allowed["name"]).strip()
+        if not allowed["name"]:
+            return Response({"detail": "Le nom ne peut pas être vide."}, status=status.HTTP_400_BAD_REQUEST)
+    serializer = serializer_cls(instance, data=allowed, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAdminUser])
+def staff_category_update(request, category_id: int):
+    try:
+        category = Category.objects.get(id=category_id)
+    except Category.DoesNotExist:
+        return Response({"detail": "Catégorie introuvable."}, status=status.HTTP_404_NOT_FOUND)
+    return _patch(StaffCategorySerializer, category, request)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAdminUser])
+def staff_subcategory_update(request, subcategory_id: int):
+    try:
+        sub = SubCategory.objects.select_related("category").get(id=subcategory_id)
+    except SubCategory.DoesNotExist:
+        return Response({"detail": "Sous-catégorie introuvable."}, status=status.HTTP_404_NOT_FOUND)
+    return _patch(StaffSubCategorySerializer, sub, request)
