@@ -825,3 +825,137 @@ class StaffOrderCustomerLinkTests(OrderFixturesMixin, TestCase):
         data = {o["id"]: o for o in client.get("/api/staff/orders/").data}
         self.assertEqual(data[with_account.id]["customer_id"], customer.id)
         self.assertIsNone(data[guest.id]["customer_id"])
+
+
+class StatsTests(OrderFixturesMixin, TestCase):
+    """Lot A7 : chiffre d'affaires HT / TTC, TVA par taux, produits les plus commandés."""
+
+    def setUp(self):
+        super().setUp()
+        staff = User.objects.create_user("chef-stats", password="motdepasse-solide-1", is_staff=True)
+        self.staff_client = APIClient()
+        self.staff_client.credentials(HTTP_AUTHORIZATION=f"Token {Token.objects.create(user=staff).key}")
+
+    def order_with(self, lines, status="collected", days_ago=0):
+        o = Order.objects.create(full_name="X", email="x@example.com", phone="06", pickup_time="12:30",
+                                 status=status, total_cents=sum(p * q for _, p, q, _ in lines))
+        for name, price, qty, rate in lines:
+            OrderItem.objects.create(order=o, product_id=hash(name) % 1000, product_name=name,
+                                     unit_price_cents=price, quantity=qty, vat_rate=Decimal(rate))
+        if days_ago:
+            Order.objects.filter(pk=o.pk).update(created_at=timezone.now() - timedelta(days=days_ago))
+        return o
+
+    def stats(self, **params):
+        return self.staff_client.get("/api/staff/stats/", params).data
+
+    def test_ht_and_vat_by_rate(self):
+        self.order_with([("Plateau", 1100, 1, "10.0"), ("Bière", 600, 1, "20.0")])
+        data = self.stats(period="today")
+        self.assertEqual(data["revenue_ttc_cents"], 1700)
+        self.assertEqual(data["revenue_ht_cents"], 1000 + 500)       # 11,00/1,10 + 6,00/1,20
+        self.assertEqual(data["vat_cents"], 200)
+        rates = {r["rate"]: r for r in data["vat_breakdown"]}
+        self.assertEqual(rates["10"]["vat_cents"], 100)
+        self.assertEqual(rates["20"]["vat_cents"], 100)
+
+    def test_ht_is_computed_on_rate_total_not_per_line(self):
+        # 3 lignes à 3,15 € TTC (10 %) : par ligne 2,86 x 3 = 8,58 ; sur le total 9,45/1,1 = 8,59
+        self.order_with([("A", 315, 1, "10.0"), ("B", 315, 1, "10.0"), ("C", 315, 1, "10.0")])
+        self.assertEqual(self.stats(period="today")["revenue_ht_cents"], 859)
+
+    def test_reduced_rate_5_5(self):
+        self.order_with([("Soupe", 1055, 1, "5.5")])
+        self.assertEqual(self.stats(period="today")["revenue_ht_cents"], 1000)
+
+    def test_only_paid_non_cancelled_orders_count(self):
+        self.order_with([("A", 1000, 1, "10.0")], status="paid")
+        self.order_with([("B", 9999, 1, "10.0")], status="pending")
+        self.order_with([("C", 9999, 1, "10.0")], status="cancelled")
+        data = self.stats(period="today")
+        self.assertEqual(data["order_count"], 1)
+        self.assertEqual(data["revenue_ttc_cents"], 1000)
+
+    def test_periods(self):
+        self.order_with([("A", 1000, 1, "10.0")])
+        self.order_with([("B", 2000, 1, "10.0")], days_ago=3)
+        self.order_with([("C", 4000, 1, "10.0")], days_ago=40)
+        self.assertEqual(self.stats(period="today")["revenue_ttc_cents"], 1000)
+        self.assertEqual(self.stats(period="7d")["revenue_ttc_cents"], 3000)
+        today = timezone.localdate()
+        old = today - timedelta(days=40)
+        custom = self.stats(period="custom", **{"from": old.isoformat(), "to": old.isoformat()})
+        self.assertEqual(custom["revenue_ttc_cents"], 4000)
+
+    def test_top_products_by_quantity(self):
+        self.order_with([("Maki", 650, 3, "10.0"), ("Gyoza", 500, 1, "10.0")])
+        self.order_with([("Gyoza", 500, 1, "10.0"), ("Maki", 650, 2, "10.0")])
+        top = self.stats(period="today")["top_products"]
+        self.assertEqual([(p["name"], p["quantity"]) for p in top], [("Maki", 5), ("Gyoza", 2)])
+
+    def test_average_basket_and_empty_period(self):
+        data = self.stats(period="today")
+        self.assertEqual((data["order_count"], data["average_basket_cents"]), (0, 0))
+        self.order_with([("A", 1000, 1, "10.0")])
+        self.order_with([("B", 2000, 1, "10.0")])
+        self.assertEqual(self.stats(period="today")["average_basket_cents"], 1500)
+
+    def test_bad_period_is_400(self):
+        self.assertEqual(self.staff_client.get("/api/staff/stats/", {"period": "year"}).status_code, 400)
+        res = self.staff_client.get("/api/staff/stats/", {"period": "custom", "from": "2026-12-01", "to": "2026-11-01"})
+        self.assertEqual(res.status_code, 400)
+
+    def test_vat_rate_is_frozen_at_checkout(self):
+        self.product.vat_rate = Decimal("5.5")
+        self.product.save()
+        with patch("orders.views.payplug.Payment.create", return_value=fake_payment_created()), \
+                override_settings(PAYPLUG_SECRET_KEY="sk_test_dummy"):
+            res = self.client.post("/api/checkout/", self.checkout_payload(), format="json")
+        item = Order.objects.get(id=res.data["order_id"]).items.get()
+        self.product.vat_rate = Decimal("20.0")
+        self.product.save()
+        item.refresh_from_db()
+        self.assertEqual(item.vat_rate, Decimal("5.5"))
+
+    def test_requires_staff(self):
+        self.assertEqual(self.client.get("/api/staff/stats/").status_code, 401)
+
+
+class RefundTrackingTests(OrderFixturesMixin, TestCase):
+    """Lot A7 : remboursements à faire après l'annulation d'une commande payée."""
+
+    def setUp(self):
+        super().setUp()
+        staff = User.objects.create_user("chef-remb", password="motdepasse-solide-1", is_staff=True)
+        self.staff_client = APIClient()
+        self.staff_client.credentials(HTTP_AUTHORIZATION=f"Token {Token.objects.create(user=staff).key}")
+
+    @patch("orders.views_staff.send_order_status_email")
+    def test_cancelling_paid_order_adds_it_to_refunds_then_done(self, _send):
+        order = self.make_order(status="paid")
+        with self.captureOnCommitCallbacks(execute=True):
+            self.staff_client.patch(f"/api/staff/orders/{order.id}/status/", {"status": "cancelled"}, format="json")
+        data = self.staff_client.get("/api/staff/refunds/").data
+        self.assertEqual([o["id"] for o in data["to_refund"]], [order.id])
+        self.assertEqual(data["to_refund"][0]["payment_id"], "pay_test_1")
+
+        res = self.staff_client.post(f"/api/staff/refunds/{order.id}/done/")
+        self.assertEqual(res.status_code, 200)
+        data = self.staff_client.get("/api/staff/refunds/").data
+        self.assertEqual(data["to_refund"], [])
+        self.assertEqual([o["id"] for o in data["refunded"]], [order.id])
+        self.assertEqual(self.staff_client.post(f"/api/staff/refunds/{order.id}/done/").status_code, 400)
+
+    @patch("orders.views_staff.send_order_status_email")
+    def test_cancelling_unpaid_order_needs_no_refund(self, _send):
+        order = self.make_order(status="pending")
+        with self.captureOnCommitCallbacks(execute=True):
+            self.staff_client.patch(f"/api/staff/orders/{order.id}/status/", {"status": "cancelled"}, format="json")
+        self.assertEqual(self.staff_client.get("/api/staff/refunds/").data["to_refund"], [])
+
+    @override_settings(PAYPLUG_SECRET_KEY="sk_test_dummy")
+    def test_payment_arriving_on_cancelled_order_needs_refund(self):
+        order = self.make_order(status="cancelled")
+        with patch("orders.views.payplug.Payment.retrieve", return_value=fake_payment(order)):
+            self.client.post("/api/payplug/ipn/", {"id": order.payment_id}, format="json")
+        self.assertEqual([o["id"] for o in self.staff_client.get("/api/staff/refunds/").data["to_refund"]], [order.id])

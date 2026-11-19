@@ -14,6 +14,9 @@ from .views_staff import (
     staff_order_mark_printed,
     staff_order_delete,
     staff_ordering_pause,
+    staff_stats,
+    staff_refunds,
+    staff_refund_done,
 )
 
 urlpatterns = [
@@ -40,4 +43,9 @@ urlpatterns = [
 
     # Staff — pause des commandes en ligne (lot A3)
     path("staff/ordering-pause/",                      staff_ordering_pause),
+
+    # Staff — pilotage (lot A7)
+    path("staff/stats/",                               staff_stats),
+    path("staff/refunds/",                             staff_refunds),
+    path("staff/refunds/<int:order_id>/done/",         staff_refund_done),
 ]

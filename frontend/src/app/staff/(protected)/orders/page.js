@@ -614,7 +614,10 @@ export default function StaffOrdersPage() {
         )}
         {refundNotice && (
           <div role="alert" className="mx-4 mt-4 flex items-start justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-            <span>{refundNotice}</span>
+            <span>
+              {refundNotice}{" "}
+              <Link href="/staff/pilotage#remboursements" className="font-semibold underline">Voir les remboursements à faire</Link>
+            </span>
             <button type="button" onClick={() => setRefundNotice("")} className="min-h-11 shrink-0 cursor-pointer px-2 text-amber-100 underline">
               Compris
             </button>

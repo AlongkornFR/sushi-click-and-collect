@@ -52,6 +52,7 @@ class StaffProductSerializer(serializers.ModelSerializer):
             "description",
             "price",
             "price_cents",
+            "vat_rate",
             "stock",
             "is_available",
             "image_main",

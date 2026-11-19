@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from functools import partial
@@ -18,14 +19,18 @@ from backend.throttles import LoginThrottle
 from .models import Order
 from .serializers_staff import OrderStaffSerializer
 from .emails import send_order_status_email
+from .stats import PERIODS, PeriodError, compute_stats, period_bounds
 from .services import (
     PAUSE_DURATIONS_MINUTES,
+    mark_refunded,
     expire_stale_pending_orders_throttled,
     on_paid_order_cancelled,
     ordering_pause_state,
     pause_ordering,
     resume_ordering,
 )
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_STATUSES = {"pending", "paid", "preparing", "ready", "collected", "cancelled"}
 
@@ -251,3 +256,50 @@ def staff_ordering_pause(request):
         return Response({"detail": "Durée de pause invalide (15 ou 60 minutes, ou sans limite)."},
                         status=status.HTTP_400_BAD_REQUEST)
     return Response({"detail": "Action inconnue (pause ou resume)."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ── Pilotage (lot A7) ─────────────────────────────────────────────────────────
+
+@api_view(["GET"])
+@permission_classes([IsAdminUser])
+def staff_stats(request):
+    """?period=today|7d|month|custom (&from=AAAA-MM-JJ&to=AAAA-MM-JJ)."""
+    period = request.query_params.get("period", "today")
+    if period not in PERIODS:
+        return Response({"detail": "Période inconnue."}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        start, end, first, last = period_bounds(period, request.query_params.get("from"),
+                                                request.query_params.get("to"))
+    except PeriodError as e:
+        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    return Response({"period": period, "from": first.isoformat(), "to": last.isoformat(), **compute_stats(start, end)})
+
+
+@api_view(["GET"])
+@permission_classes([IsAdminUser])
+def staff_refunds(request):
+    """Commandes payées puis annulées : à rembourser, et les 20 dernières remboursées."""
+    def row(o):
+        return {
+            "id": o.id, "full_name": o.full_name, "email": o.email, "phone": o.phone,
+            "total_cents": o.total_cents, "payment_id": o.payment_id,
+            "created_at": o.created_at, "refunded_at": o.refunded_at,
+        }
+    to_refund = Order.objects.filter(refund_status="to_refund").order_by("created_at")
+    done = Order.objects.filter(refund_status="refunded").order_by("-refunded_at")[:20]
+    return Response({"to_refund": [row(o) for o in to_refund], "refunded": [row(o) for o in done]})
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def staff_refund_done(request, order_id: int):
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response({"detail": "Commande introuvable."}, status=status.HTTP_404_NOT_FOUND)
+    if order.refund_status != "to_refund":
+        return Response({"detail": "Cette commande n'est pas en attente de remboursement."},
+                        status=status.HTTP_400_BAD_REQUEST)
+    mark_refunded(order)
+    logger.info("Remboursement de la commande #%s marqué fait par %s.", order.id, request.user.username)
+    return Response({"ok": True, "id": order.id, "refund_status": "refunded"})

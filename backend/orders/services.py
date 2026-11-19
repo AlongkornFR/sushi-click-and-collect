@@ -12,10 +12,24 @@ def on_paid_order_cancelled(order, actor=None):
     """
     logger.warning("Commande payée #%s annulée par %s : remboursement Payplug à faire (paiement %s).",
                    order.id, getattr(actor, "username", "?"), order.payment_id or "inconnu")
+    mark_refund_needed(order)
 
     # Lot M11 : le point de fidélité gagné par cette commande est retiré.
     from loyalty.services import revoke_point_for_order  # import local : évite un import circulaire
     revoke_point_for_order(order, actor=actor)
+
+
+def mark_refund_needed(order):
+    """Lot A7 : la commande apparaît dans « Remboursements à faire »."""
+    from .models import Order
+    Order.objects.filter(pk=order.pk, refund_status="").update(refund_status="to_refund")
+
+
+def mark_refunded(order):
+    from django.utils import timezone as tz
+    from .models import Order
+    return Order.objects.filter(pk=order.pk, refund_status="to_refund").update(
+        refund_status="refunded", refunded_at=tz.now())
 
 
 # ── Expiration des commandes non payées (lot M3) ────────────────────────────

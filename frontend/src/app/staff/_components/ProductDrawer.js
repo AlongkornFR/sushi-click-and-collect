@@ -124,6 +124,14 @@ export default function ProductDrawer({
               />
             </Field>
 
+            <Field id="product-vat" label="Taux de TVA" hint="Sert à calculer le chiffre d'affaires HT. Les ventes passées gardent leur taux.">
+              <select id="product-vat" value={form.vat_rate} onChange={set("vat_rate")} className={inputCls}>
+                <option value="5.5">5,5 %</option>
+                <option value="10.0">10 %</option>
+                <option value="20.0">20 %</option>
+              </select>
+            </Field>
+
             <Field id="product-image" label="Photo">
               <ImageUploader value={form.image_main} onChange={(url) => setForm((prev) => ({ ...prev, image_main: url }))} />
             </Field>

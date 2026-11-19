@@ -11,6 +11,7 @@ const emptyForm = {
   description: "",
   price: "",
   is_available: true,
+  vat_rate: "10.0",
   image_main: "",
   category_id: "",
   subcategory_id: "",
@@ -23,6 +24,12 @@ function parsePrice(raw) {
   const value = Number(cleaned);
   return value > 0 ? cleaned : null;
 }
+
+// L'API renvoie le taux sous forme de nombre (10, 5.5) : on le ramène à la
+// valeur exacte d'une option du menu. Sans cela, « 10 » ne correspondait à
+// aucune option et le menu affichait 5,5 % (le premier choix).
+const VAT_OPTIONS = ["5.5", "10.0", "20.0"];
+const toVatOption = (v) => VAT_OPTIONS.find((o) => Number(o) === Number(v)) ?? "10.0";
 
 const normalize = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
@@ -116,6 +123,7 @@ export default function StaffProductsPage() {
       description: product.description || "",
       price: String(product.price ?? "").replace(".", ","),
       is_available: !!product.is_available,
+      vat_rate: toVatOption(product.vat_rate),
       image_main: product.image_main || "",
       category_id: product.category?.id ? String(product.category.id) : "",
       subcategory_id: product.subcategory?.id ? String(product.subcategory.id) : "",
@@ -141,6 +149,7 @@ export default function StaffProductsPage() {
         description: form.description.trim(),
         price,
         is_available: form.is_available,
+        vat_rate: form.vat_rate,
         image_main: form.image_main,
         category_id: Number(form.category_id),
         subcategory_id: form.subcategory_id ? Number(form.subcategory_id) : null,
