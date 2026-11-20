@@ -1,26 +1,51 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import Logo from "../../../../public/Surice_logo.webp";
+import AuthIllustration from "./AuthIllustration";
 
 // Éléments communs aux pages connexion, inscription et mot de passe.
 
 export const inputCls =
-  "min-h-11 w-full rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-base sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-white/30 outline-none focus:border-[#FFC366] focus:ring-2 focus:ring-[#FFC366]/20 aria-[invalid=true]:border-red-400";
+  "min-h-12 w-full rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-base sm:text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-white/30 outline-none focus:border-[#FFC366] focus:ring-2 focus:ring-[#FFC366]/20 aria-[invalid=true]:border-red-400";
 
 export const primaryBtnCls =
-  "min-h-11 w-full cursor-pointer rounded-xl bg-[#FFC366] px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-[.98] disabled:cursor-wait disabled:opacity-60";
+  "min-h-12 w-full cursor-pointer rounded-xl bg-[#FFC366] px-6 py-3 text-base font-bold text-black transition hover:bg-[#ffb347] active:scale-[.98] disabled:cursor-wait disabled:opacity-60";
 
 export const linkCls = "font-semibold text-amber-700 dark:text-[#FFC366] underline-offset-2 hover:underline";
 
 export function AuthShell({ title, intro, children, footer }) {
   return (
-    <div className="flex min-h-[100vh] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-zinc-100 dark:border-white/10 bg-white dark:bg-[#1D1D1D] p-6 sm:p-8">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{title}</h1>
-        {intro && <div className="mt-1.5 text-sm text-zinc-500 dark:text-white/60">{intro}</div>}
-        <div className="mt-7">{children}</div>
-        {footer && <div className="mt-6 border-t border-zinc-100 dark:border-white/10 pt-5 text-sm text-zinc-500 dark:text-white/60">{footer}</div>}
+    <div className="px-4 pb-10 pt-16 sm:px-6 lg:px-8 lg:pt-20">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-2 lg:items-start lg:gap-12">
+        {/* Formulaire */}
+        <div className="flex flex-col justify-center py-4 lg:min-h-[calc(100vh-8rem)] lg:px-6 xl:px-12">
+          {/* Téléphone et tablette en portrait : illustration recadrée */}
+          <div className="relative mb-8 h-44 w-full max-w-md overflow-hidden rounded-3xl sm:h-56 lg:hidden">
+            <AuthIllustration className="absolute inset-0 h-full w-full" align="xMidYMin" />
+          </div>
+          <Link href="/" className="mb-10 hidden w-fit items-center gap-3 lg:inline-flex" aria-label="Su-Rice, retour à l'accueil">
+            <Image src={Logo} alt="" width={44} height={44} className="h-11 w-11 rounded-full object-cover" priority />
+            <span className="text-lg font-bold text-zinc-900 dark:text-white">Su-Rice</span>
+          </Link>
+
+          <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight text-zinc-900 dark:text-white sm:text-5xl">
+            {title}
+          </h1>
+          {intro && <div className="mt-4 max-w-md text-base leading-relaxed text-zinc-500 dark:text-white/60">{intro}</div>}
+
+          <div className="mt-9 w-full max-w-md">{children}</div>
+
+          {footer && <div className="mt-10 text-sm text-zinc-500 dark:text-white/60">{footer}</div>}
+        </div>
+
+        {/* Illustration (ordinateur et tablette en paysage) */}
+        <div className="relative hidden overflow-hidden rounded-[2rem] lg:sticky lg:top-24 lg:block lg:h-[calc(100vh-8rem)] lg:max-h-[52rem]">
+          <AuthIllustration className="absolute inset-0 h-full w-full" />
+        </div>
       </div>
     </div>
   );

@@ -76,8 +76,8 @@ function RegisterForm() {
 
   return (
     <AuthShell
-      title="Créer un compte"
-      intro="Commandez plus vite, suivez vos commandes et cumulez des points fidélité."
+      title={<>Bienvenue<br />chez Su-Rice</>}
+      intro="Créez votre compte pour commander plus vite, suivre vos commandes et cumuler des points fidélité."
       footer={
         <>
           Déjà un compte ?{" "}

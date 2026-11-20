@@ -48,8 +48,8 @@ function LoginForm() {
 
   return (
     <AuthShell
-      title="Connexion"
-      intro="Retrouvez vos commandes et vos points fidélité."
+      title={<>Bon retour<br />chez Su-Rice</>}
+      intro="Connectez-vous pour commander plus vite, suivre vos commandes et retrouver vos points fidélité."
       footer={
         <>
           Pas encore de compte ?{" "}
