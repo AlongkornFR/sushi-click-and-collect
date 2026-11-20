@@ -48,6 +48,10 @@ class Order(models.Model):
     refund_status = models.CharField(max_length=12, choices=REFUND_CHOICES, blank=True, default="", db_index=True)
     refunded_at   = models.DateTimeField(null=True, blank=True)
 
+    # Date à laquelle le client a coché « J'accepte les CGV » avant de payer.
+    # Vide pour les commandes passées avant l'ajout de la case.
+    cgv_accepted_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

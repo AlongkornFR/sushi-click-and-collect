@@ -11,7 +11,7 @@ export default function FormField({ id, label, error, children }) {
     ? cloneElement(children, {
         id,
         "aria-invalid": error ? true : undefined,
-        "aria-describedby": error ? errorId : undefined,
+        "aria-describedby": error ? errorId : children.props["aria-describedby"],
       })
     : children;
 

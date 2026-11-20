@@ -68,6 +68,9 @@ class CheckoutItemSerializer(serializers.Serializer):
     )
 
 
+CGV_REQUIRED = "Acceptez les conditions générales de vente pour commander."
+
+
 class CheckoutSerializer(serializers.Serializer):
     customer = CheckoutCustomerSerializer()
     pickup_time = serializers.CharField(max_length=20, error_messages={"blank": "Choisissez un créneau de retrait.",
@@ -76,6 +79,12 @@ class CheckoutSerializer(serializers.Serializer):
                                   error_messages={"max_length": "La note est limitée à 500 caractères."})
     items = CheckoutItemSerializer(many=True, allow_empty=False,
                                    error_messages={"empty": "Panier vide.", "not_a_list": "Panier invalide."})
+    accept_cgv = serializers.BooleanField(error_messages={"required": CGV_REQUIRED, "invalid": CGV_REQUIRED})
+
+    def validate_accept_cgv(self, value):
+        if value is not True:
+            raise serializers.ValidationError(CGV_REQUIRED)
+        return value
 
     def validate(self, attrs):
         # Un même produit envoyé deux fois : quantités additionnées.

@@ -153,135 +153,16 @@ export default function Mentionslegales() {
         </p>
 
         <h4 className="text-xl font-semibold mb-3 mt-6">Art. 4 Cookies</h4>
-        <p className="mb-4">
-          Lors de la navigation sur le Site, des cookies sont implantés dans
-          votre ordinateur. Un cookie ne nous permet pas de vous identifier : en
-          revanche, il enregistre des informations relatives à la navigation de
-          votre ordinateur sur notre Site (les pages que vous avez consultées,
-          la date et l'heure de la consultation, etc.) que nous pourrons lire
-          lors de vos visites ultérieures. La durée de conservation de ces
-          informations dans votre ordinateur est de six mois.
-        </p>
-        <p className="mb-4">
-          De plus, le site utilise Google Analytics, un service d'analyse de
-          site Internet fourni par Google Inc. (ci-après «&nbsp;Google&nbsp;»).
-          Google Analytics utilise des&nbsp;cookies<em>&nbsp;</em> pour aider
-          SU-RICE et l'hébergeur à analyser l'utilisation du Site par ses
-          utilisateurs. Les données générées par les&nbsp;cookies<em>&nbsp;</em>
-          concernant votre utilisation du Site (y compris votre adresse IP)
-          seront transmises et stockées par Google sur des serveurs situés aux
-          Etats-Unis. Google utilisera cette information dans le but d'évaluer
-          votre utilisation du Site, de compiler des rapports sur l'activité du
-          Site à destination de SU-RICE et de l'hébergeur et de fournir d'autres
-          services relatifs à l'activité du site et à l'utilisation d'Internet.
-          Google est susceptible de communiquer ces données à des tiers en cas
-          d'obligation légale ou lorsque ces tiers traitent ces données pour le
-          compte de Google, y compris notamment SU-RICE, l'éditeur du&nbsp; Site
-          et à l'hébergeur. Google ne recoupera pas votre adresse IP avec toute
-          autre donnée détenue par Google. En utilisant le Site, vous consentez
-          expressément au traitement de vos données nominatives par Google dans
-          les conditions et pour les finalités décrites ci-dessus.
-        </p>
-        <p className="mb-4">
-          Nous vous informons que vous pouvez vous opposer à l'enregistrement de
-          cookies en configurant votre navigateur de la manière suivante :
-        </p>
-        <h4 className="text-lg font-semibold mb-3">
-          Pour Microsoft Internet Explorer 7.0 et suivant:
-        </h4>
-        <ol className="list-decimal list-inside mb-6 space-y-2 ml-4">
-          <li>
-            Dans la barre de menu, choisir le menu <strong>outils</strong>;
-          </li>
-          <li>
-            Dans le menu déroulant, choisir <strong>options internet</strong>;
-          </li>
-          <li>
-            Cliquer sur l'onglet <strong>confidentialité</strong>;
-          </li>
-          <li>
-            Cliquer sur le bouton <strong>avancé</strong> de la section
-            paramètres;
-          </li>
-          <li>
-            Dans la fenêtre <em>paramètres de confidentialité avancés</em>{" "}
-            vérifier que l'option{" "}
-            <strong>ignorer la gestion automatique des cookies</strong> n'est
-            pas cochée.
-          </li>
-        </ol>
-
-        <h5 className="text-lg font-semibold mb-3">
-          Pour Firefox à partir de la version 12 :
-        </h5>
-        <ol className="list-decimal list-inside mb-6 space-y-2 ml-4">
-          <li>
-            Dans la barre de menu, choisir le menu <strong>outils;</strong>
-          </li>
-          <li>
-            Dans le menu déroulant, choisir <strong>options;</strong>
-          </li>
-          <li>
-            Cliquer sur l'icone <strong>vie privée;</strong>
-          </li>
-          <li>
-            Cliquer sur le lien{" "}
-            <strong>supprimer des cookies spécifiques</strong>;
-          </li>
-          <li>
-            Dans la fenêtre <strong>Cookies</strong>, cliquer sur le bouton{" "}
-            <strong>Supprimer tous les cookies</strong>.
-          </li>
-        </ol>
-
-        <h5 className="text-lg font-semibold mb-3">
-          Pour Opéra à partir de la version 11&nbsp;:
-        </h5>
-        <ol className="list-decimal list-inside mb-6 space-y-2 ml-4">
-          <li>
-            Choisissez le <strong>menu</strong>;
-          </li>
-          <li>
-            Dans la liste, choisir <strong>réglages</strong> puis{" "}
-            <strong>supprimer les informations privées...</strong>;
-          </li>
-          <li>
-            Cliquer sur le bouton <strong>supprimer</strong>.
-          </li>
-        </ol>
-
-        <h5 className="text-lg font-semibold mb-3">
-          Pour Google Chrome&nbsp;:
-        </h5>
-        <ol className="list-decimal list-inside mb-6 space-y-2 ml-4">
-          <li>
-            Cliquer sur l'icone{" "}
-            <strong>Personnaliser et configurer Google Chrome</strong>;
-          </li>
-          <li>
-            Choisir dans la liste <strong>Paramètres;</strong>
-          </li>
-          <li>
-            Cliquer sur <strong>Afficher les paramètres avancés...;</strong>
-          </li>
-          <li>
-            Cliquer sur le bouton <strong>Paramètres de contenu</strong>
-            <strong>;</strong>
-          </li>
-          <li>
-            Cliquer sur le bouton{" "}
-            <strong> Cookies et données de site...</strong>;
-          </li>
-          <li>
-            <strong></strong>Cliquer sur le bouton{" "}
-            <strong>Tout supprimer.</strong>
-          </li>
-        </ol>
-
         <p className="mb-6">
-          Nous vous informons néanmoins que l'accès à certains services et
-          rubriques du Site pourra être altéré voire impossible du fait de la
-          suppression des cookies.
+          Le seul service du Site qui dépose des cookies est la carte Google
+          Maps du bas de page, chargée uniquement avec votre accord. La mesure
+          d&apos;audience (Vercel Analytics) n&apos;utilise pas de cookies. Le
+          détail et la façon de changer votre choix figurent dans la{" "}
+          <a href="/politique-de-confidentialite#cookies" className="text-blue-600 dark:text-blue-400 hover:underline">
+            politique de confidentialité
+          </a>
+          . Vous pouvez aussi utiliser le lien « Gérer les cookies » en bas de
+          chaque page.
         </p>
 
         <h4 className="text-xl font-semibold mb-3 mt-6">
@@ -378,8 +259,8 @@ export default function Mentionslegales() {
         <p className="mb-6">
           Les traitements reposent sur l'exécution du contrat (commandes),
           l'obligation légale (comptabilité), l'intérêt légitime (sécurité,
-          amélioration du service) et le consentement pour les cookies
-          d'analyse.
+          amélioration du service) et le consentement pour la carte Google
+          Maps.
         </p>
 
         <h4 className="text-xl font-semibold mb-3 mt-6">

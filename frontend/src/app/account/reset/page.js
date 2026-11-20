@@ -5,9 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/services/api";
 import FormField from "@/components/common/FormField";
-
-const inputCls =
-  "w-full rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-zinc-900 dark:text-white outline-none focus:border-zinc-400 dark:focus:border-white/30";
+import { AuthShell, PasswordInput, apiErrorMessage, linkCls, primaryBtnCls } from "../_components/AuthUI";
 
 function ResetPasswordForm() {
   const sp = useSearchParams();
@@ -32,7 +30,7 @@ function ResetPasswordForm() {
       const res = await api.post("/auth/password-reset/confirm/", { uid, token, new_password: password });
       setDone(res.data.detail);
     } catch (err) {
-      setError(err.response?.data?.detail || "Le mot de passe n'a pas pu être modifié. Réessayez.");
+      setError(apiErrorMessage(err, "Le mot de passe n'a pas pu être modifié. Réessayez."));
     } finally {
       setLoading(false);
     }
@@ -42,7 +40,7 @@ function ResetPasswordForm() {
     return (
       <p role="alert" className="text-sm text-zinc-600 dark:text-white/60">
         Ce lien est incomplet.{" "}
-        <Link href="/account/forgot" className="font-medium text-amber-700 dark:text-[#FFC366] hover:underline">Faire une nouvelle demande</Link>
+        <Link href="/account/forgot" className={linkCls}>Faire une nouvelle demande</Link>
       </p>
     );
   }
@@ -51,7 +49,7 @@ function ResetPasswordForm() {
     return (
       <div role="status" className="space-y-4">
         <p className="rounded-xl bg-emerald-50 dark:bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">{done}</p>
-        <Link href="/account/login" className="block w-full rounded-xl bg-[#FFC366] px-4 py-2.5 text-center text-sm font-semibold text-black">
+        <Link href="/account/login" className={`${primaryBtnCls} flex items-center justify-center`}>
           Se connecter
         </Link>
       </div>
@@ -61,27 +59,23 @@ function ResetPasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <FormField id="new-password" label="Nouveau mot de passe">
-        <input
-          type="password"
+        <PasswordInput
           name="new-password"
           autoComplete="new-password"
           required
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className={inputCls}
           placeholder="8 caractères minimum"
         />
       </FormField>
       <FormField id="confirm-password" label="Confirmer le mot de passe">
-        <input
-          type="password"
+        <PasswordInput
           name="confirm-password"
           autoComplete="new-password"
           required
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className={inputCls}
         />
       </FormField>
 
@@ -94,11 +88,7 @@ function ResetPasswordForm() {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full cursor-pointer rounded-xl bg-[#FFC366] px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] disabled:opacity-50"
-      >
+      <button type="submit" disabled={loading} className={primaryBtnCls}>
         {loading ? "Enregistrement…" : "Enregistrer le mot de passe"}
       </button>
     </form>
@@ -107,13 +97,10 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="flex min-h-[100vh] items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <h1 className="mb-8 text-2xl font-bold text-zinc-900 dark:text-white">Nouveau mot de passe</h1>
-        <Suspense fallback={<p className="text-sm text-zinc-400">Chargement…</p>}>
-          <ResetPasswordForm />
-        </Suspense>
-      </div>
-    </div>
+    <AuthShell title="Nouveau mot de passe" intro="Choisissez un mot de passe d'au moins 8 caractères.">
+      <Suspense fallback={<p className="text-sm text-zinc-400">Chargement…</p>}>
+        <ResetPasswordForm />
+      </Suspense>
+    </AuthShell>
   );
 }

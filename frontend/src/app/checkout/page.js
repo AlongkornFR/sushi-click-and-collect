@@ -111,6 +111,7 @@ export default function CheckoutPage() {
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
+  const [acceptCgv, setAcceptCgv] = useState(false);
 
   // Pre-fill form from customer account when logged in
   useEffect(() => {
@@ -146,8 +147,9 @@ export default function CheckoutPage() {
     if (!customer && !isValidPhone(form.phone)) e.phone = "Téléphone invalide";
     if (!form.pickup_time)         e.pickup_time  = "Choisissez un créneau";
     if (items.length === 0)        e.cart         = "Panier vide";
+    if (!acceptCgv)                e.accept_cgv   = "Acceptez les CGV";
     return e;
-  }, [form, items.length, customer]);
+  }, [form, items.length, customer, acceptCgv]);
 
   const canSubmit = Object.keys(validation).length === 0 && !loading;
 
@@ -157,11 +159,12 @@ export default function CheckoutPage() {
     phone: "votre téléphone",
     email: "votre email",
     pickup_time: "l'heure de retrait",
+    accept_cgv: "votre accord sur les CGV",
   };
   const missing = Object.keys(validation).filter(k => MISSING_LABELS[k]).map(k => MISSING_LABELS[k]);
 
   function focusFirstInvalid() {
-    const order = ["full_name", "phone", "email", "pickup_time"];
+    const order = ["full_name", "phone", "email", "pickup_time", "accept_cgv"];
     const first = order.find(k => validation[k]);
     const el = first && document.getElementById(first === "pickup_time" ? "pickup-section" : first);
     if (!el) return;
@@ -193,6 +196,7 @@ export default function CheckoutPage() {
         pickup_time: form.pickup_time, // "AAAA-MM-JJ HH:MM", validé par le serveur
         notes: form.notes?.trim() || "",
         items: items.map(x => ({ product_id: x.id, quantity: x.quantity })),
+        accept_cgv: acceptCgv,
       };
       const res = await api.post("checkout/", payload, { headers: authHeaders() });
       const paymentUrl = res?.data?.payment_url;
@@ -282,7 +286,7 @@ export default function CheckoutPage() {
                     Vous avez un compte ? Gagnez du temps.
                   </p>
                   <Link
-                    href="/account/login"
+                    href="/account/login?next=/checkout"
                     className="text-xs font-semibold text-amber-700 dark:text-[#FFC366] transition hover:text-[#ffb347]"
                   >
                     Se connecter →
@@ -471,12 +475,33 @@ export default function CheckoutPage() {
                 </div>
               )}
 
+              <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-100 dark:border-white/10 px-3 py-3 text-xs leading-relaxed text-zinc-600 dark:text-white/70">
+                <input
+                  id="accept_cgv"
+                  type="checkbox"
+                  checked={acceptCgv}
+                  onChange={e => { setError(""); setAcceptCgv(e.target.checked); }}
+                  className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-[#FFC366]"
+                />
+                <span>
+                  J&apos;ai lu et j&apos;accepte les{" "}
+                  <Link href="/cgv" target="_blank" className="font-semibold text-amber-700 dark:text-[#FFC366] underline underline-offset-2">
+                    conditions générales de vente
+                  </Link>
+                  . Mes données servent à préparer ma commande, voir la{" "}
+                  <Link href="/politique-de-confidentialite" target="_blank" className="font-semibold text-amber-700 dark:text-[#FFC366] underline underline-offset-2">
+                    politique de confidentialité
+                  </Link>
+                  .
+                </span>
+              </label>
+
               <button
                 type="button"
                 onClick={handlePay}
                 disabled={loading || orderingPause.paused}
                 aria-describedby="pay-hint"
-                className="mt-5 w-full cursor-pointer rounded-xl bg-[#FFC366] py-3.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-[.98] disabled:cursor-wait disabled:opacity-70"
+                className="mt-3 w-full cursor-pointer rounded-xl bg-[#FFC366] py-3.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-[.98] disabled:cursor-wait disabled:opacity-70"
               >
                 {loading ? "Redirection…" : "Payer maintenant"}
               </button>

@@ -11,6 +11,7 @@ from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
@@ -41,7 +42,8 @@ def register(request):
         first_name=data["first_name"],
         last_name=data["last_name"],
     )
-    customer = Customer.objects.create(user=user, phone=data.get("phone", ""))
+    customer = Customer.objects.create(user=user, phone=data.get("phone", ""),
+                                       privacy_accepted_at=timezone.now())
     token, _ = Token.objects.get_or_create(user=user)
     return Response({"token": token.key, "customer_id": customer.id}, status=201)
 
@@ -57,7 +59,9 @@ def login(request):
     if not user:
         return Response({"detail": "Identifiants invalides."}, status=401)
     if not hasattr(user, "customer"):
-        return Response({"detail": "Compte non client."}, status=403)
+        # Même réponse qu'un mauvais mot de passe : la page publique ne doit
+        # pas révéler qu'une adresse correspond à un compte du staff.
+        return Response({"detail": "Identifiants invalides."}, status=401)
     if not user.is_active:
         return Response({"detail": "Compte désactivé."}, status=403)
 
@@ -109,6 +113,10 @@ def change_password(request):
 
     if not authenticate(username=request.user.username, password=current):
         return Response({"detail": "Mot de passe actuel incorrect."}, status=400)
+    try:
+        validate_password(new_pw, user=request.user)
+    except ValidationError as e:
+        return Response({"detail": " ".join(e.messages)}, status=400)
 
     request.user.set_password(new_pw)
     request.user.save()
