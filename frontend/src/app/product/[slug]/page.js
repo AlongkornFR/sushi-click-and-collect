@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/images";
 import { formatEUR } from "@/utils/formatting";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -28,7 +29,7 @@ export default function ProductPage() {
   return (
     <div className="mx-auto grid max-w-4xl grid-cols-1 gap-10 p-10 md:grid-cols-2">
       <img
-        src={product.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
+        src={optimizedImage(product.image_main, 700) || DEFAULT_PRODUCT_IMAGE}
         onError={(e) => {
           e.currentTarget.src = DEFAULT_PRODUCT_IMAGE;
         }}

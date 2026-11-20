@@ -15,7 +15,7 @@ from .views_staff import (
     staff_subcategory_create,
     staff_subcategory_reorder,
     staff_subcategory_reorder_bulk,
-    cloudflare_upload_url,
+    cloudinary_signature,
     staff_category_update,
     staff_subcategory_update,
 )
@@ -49,6 +49,6 @@ urlpatterns = [
     # STAFF PRODUCTS BULK
     path("staff/products/reorder-bulk/", staff_product_reorder_bulk),
 
-    # CLOUDFLARE IMAGES
-    path("staff/cloudflare-upload-url/", cloudflare_upload_url),
+    # Envoi de photos signé vers Cloudinary
+    path("staff/cloudinary-signature/", cloudinary_signature),
 ]

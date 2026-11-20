@@ -156,3 +156,33 @@ class VatRateTests(StaffCatalogBase):
         for rate in ("5", "15", "7.0"):
             res = self.client.patch(f"/api/staff/products/{self.p.id}/", {"vat_rate": rate}, format="json")
             self.assertEqual(res.status_code, 400)
+
+
+import hashlib
+from django.test import override_settings
+
+
+class CloudinarySignatureTests(StaffCatalogBase):
+    """Envoi de photos signé : seul le staff obtient une signature."""
+
+    @override_settings(CLOUDINARY_CLOUD_NAME="demo", CLOUDINARY_API_KEY="123456", CLOUDINARY_API_SECRET="abcd",
+                       CLOUDINARY_FOLDER="su-rice/produits")
+    def test_signature_matches_cloudinary_rules(self):
+        res = self.client.post("/api/staff/cloudinary-signature/")
+        self.assertEqual(res.status_code, 200)
+        expected = hashlib.sha1(f"folder=su-rice/produits&timestamp={res.data['timestamp']}abcd".encode()).hexdigest()
+        self.assertEqual(res.data["signature"], expected)
+        self.assertEqual((res.data["cloud_name"], res.data["api_key"], res.data["folder"]), ("demo", "123456", "su-rice/produits"))
+        self.assertNotIn("abcd", str(res.data))          # le secret ne sort jamais
+
+    @override_settings(CLOUDINARY_API_KEY="", CLOUDINARY_API_SECRET="")
+    def test_not_configured_is_503_with_readable_message(self):
+        res = self.client.post("/api/staff/cloudinary-signature/")
+        self.assertEqual(res.status_code, 503)
+        self.assertIn("adresse d'une image", res.data["detail"])
+
+    def test_requires_staff(self):
+        self.assertEqual(APIClient().post("/api/staff/cloudinary-signature/").status_code, 401)
+
+    def test_old_cloudflare_route_is_gone(self):
+        self.assertEqual(self.client.post("/api/staff/cloudflare-upload-url/").status_code, 404)

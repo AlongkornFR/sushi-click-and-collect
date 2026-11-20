@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/images";
 import { formatEUR } from "@/utils/formatting";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -113,7 +114,7 @@ export default function ProductCard({ product }) {
         {/* Image */}
         <div className="relative aspect-square overflow-hidden rounded-2xl bg-zinc-100 dark:bg-[#1D1D1D]">
           <img
-            src={product.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
+            src={optimizedImage(product.image_main, 400) || DEFAULT_PRODUCT_IMAGE}
             loading="lazy"
             decoding="async"
             onError={(e) => {
@@ -194,7 +195,7 @@ export default function ProductCard({ product }) {
                 {/* ── Image ── */}
                 <div className="relative h-[220px] shrink-0 bg-zinc-100 dark:bg-zinc-900 sm:h-65 lg:h-full lg:w-[46%]">
                   <img
-                    src={displayedProduct.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
+                    src={optimizedImage(displayedProduct.image_main, 700) || DEFAULT_PRODUCT_IMAGE}
                     loading="lazy"
             decoding="async"
             onError={(e) => {

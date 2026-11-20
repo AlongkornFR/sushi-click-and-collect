@@ -1,7 +1,6 @@
-import json as _json
+import hashlib
 import logging
-import urllib.error
-import urllib.request
+import time
 
 from django.conf import settings
 from django.db.models import Q
@@ -227,50 +226,38 @@ def staff_subcategory_reorder(request, subcategory_id: int):
     return Response(StaffSubCategorySerializer(qs, many=True).data)
 
 
+# ── Envoi de photos signé vers Cloudinary ──────────────────────────────────
+# Avant, l'envoi utilisait un « preset » non signé dont le nom figurait dans
+# le code public du site : n'importe qui pouvait déposer des fichiers sur le
+# compte. Désormais, seul un membre du staff connecté obtient une signature,
+# valable pour un envoi dans le dossier prévu. Le secret reste sur le serveur.
+
+def _cloudinary_signature(params, api_secret):
+    """Signature Cloudinary : SHA-1 de « clé=valeur&… » (clés triées) + secret."""
+    to_sign = "&".join(f"{k}={params[k]}" for k in sorted(params))
+    return hashlib.sha1((to_sign + api_secret).encode("utf-8")).hexdigest()
+
+
 @api_view(["POST"])
 @permission_classes([IsAdminUser])
-def cloudflare_upload_url(request):
-    """
-    Génère une URL d'upload directe Cloudflare Images (one-time).
-    Le frontend upload ensuite l'image directement à cette URL (sans passer par le backend).
-    """
-    account_id = getattr(settings, "CLOUDFLARE_ACCOUNT_ID", "")
-    token      = getattr(settings, "CLOUDFLARE_IMAGES_TOKEN", "")
+def cloudinary_signature(request):
+    cloud_name = settings.CLOUDINARY_CLOUD_NAME
+    api_key = settings.CLOUDINARY_API_KEY
+    api_secret = settings.CLOUDINARY_API_SECRET
+    if not (cloud_name and api_key and api_secret):
+        logger.error("Cloudinary non configuré (CLOUDINARY_CLOUD_NAME / API_KEY / API_SECRET).")
+        return Response({"detail": "L'envoi de photos n'est pas encore configuré. Vous pouvez coller l'adresse d'une image."},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-    if not account_id or not token:
-        return Response(
-            {"detail": "Cloudflare Images non configuré. Ajoutez CLOUDFLARE_ACCOUNT_ID et CLOUDFLARE_IMAGES_TOKEN."},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-    cf_url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/images/v2/direct_upload"
-    req = urllib.request.Request(
-        cf_url,
-        method="POST",
-        headers={"Authorization": f"Bearer {token}"},
-        data=b"",          # body vide obligatoire pour urllib POST
-    )
-
-    try:
-        with urllib.request.urlopen(req) as resp:
-            data = _json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        logger.error("Cloudflare Images HTTP %s : %s", e.code, e.read().decode("utf-8", errors="replace")[:500])
-        return Response({"detail": "Le service d'images ne répond pas. Réessayez."}, status=status.HTTP_502_BAD_GATEWAY)
-    except Exception:
-        logger.exception("Cloudflare Images injoignable.")
-        return Response({"detail": "Le service d'images ne répond pas. Réessayez."}, status=status.HTTP_502_BAD_GATEWAY)
-
-    if not data.get("success"):
-        return Response(
-            {"detail": "Cloudflare API error", "errors": data.get("errors")},
-            status=status.HTTP_502_BAD_GATEWAY,
-        )
-
+    params = {"folder": settings.CLOUDINARY_FOLDER, "timestamp": int(time.time())}
     return Response({
-        "upload_url": data["result"]["uploadURL"],
-        "id":         data["result"]["id"],
+        "cloud_name": cloud_name,
+        "api_key": api_key,
+        "folder": params["folder"],
+        "timestamp": params["timestamp"],
+        "signature": _cloudinary_signature(params, api_secret),
     })
+
 
 # ── Modification des catégories et sous-catégories (lot A4) ────────────────
 # Renommer et masquer / afficher. Pas de suppression : une catégorie masquée

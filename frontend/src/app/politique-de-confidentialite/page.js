@@ -101,13 +101,16 @@ export default function PolitiqueConfidentialite() {
             <strong>Vercel</strong> — hébergement du site et analytics
           </li>
           <li>
+            <strong>Render</strong> — hébergement du serveur qui traite les commandes
+          </li>
+          <li>
             <strong>Neon</strong> — hébergement de la base de données
           </li>
           <li>
             <strong>Resend</strong> — envoi d'e-mails transactionnels
           </li>
           <li>
-            <strong>Cloudflare</strong> — hébergement des images
+            <strong>Cloudinary</strong> — hébergement des photos des produits
           </li>
         </ul>
         <p className="mb-6">
