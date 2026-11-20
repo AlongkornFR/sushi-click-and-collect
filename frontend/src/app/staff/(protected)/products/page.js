@@ -1,5 +1,6 @@
 "use client";
 
+import { optimizedImage } from "@/lib/images";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useStaffAuth } from "../../_components/useStaffAuth";
 import ProductDrawer from "../../_components/ProductDrawer";
@@ -264,7 +265,7 @@ export default function StaffProductsPage() {
             {filtered.map((p) => (
               <li key={p.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-white/5">
-                  {p.image_main && <img src={p.image_main} alt="" loading="lazy" className="h-full w-full object-cover" />}
+                  {p.image_main && <img src={optimizedImage(p.image_main, 48)} alt="" loading="lazy" className="h-full w-full object-cover" />}
                 </div>
 
                 <button

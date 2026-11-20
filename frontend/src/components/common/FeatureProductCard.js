@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { optimizedImage } from "@/lib/images";
 import { formatEUR } from "@/utils/formatting";
 import { DEFAULT_PRODUCT_IMAGE } from "@/utils/constant";
 
@@ -11,7 +12,7 @@ export default function FeaturedProductCard({ product }) {
     <div className="group relative overflow-hidden rounded-3xl bg-zinc-100 min-h-105 md:min-h-140">
       {/* Image with subtle zoom on hover */}
       <img
-        src={product.image_main?.trim() || DEFAULT_PRODUCT_IMAGE}
+        src={optimizedImage(product.image_main, 700) || DEFAULT_PRODUCT_IMAGE}
         onError={(e) => (e.currentTarget.src = DEFAULT_PRODUCT_IMAGE)}
         alt={product.name}
         className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-105"

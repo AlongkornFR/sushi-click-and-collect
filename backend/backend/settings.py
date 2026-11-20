@@ -229,9 +229,13 @@ ADMIN_URL = os.environ.get("ADMIN_URL", "admin/").strip("/") + "/"
 PAYPLUG_SECRET_KEY  = os.environ.get("PAYPLUG_SECRET_KEY", "")
 PAYPLUG_API_VERSION = os.environ.get("PAYPLUG_API_VERSION", "2019-08-06")
 
-# Cloudflare Images — direct upload
-CLOUDFLARE_ACCOUNT_ID    = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
-CLOUDFLARE_IMAGES_TOKEN  = os.environ.get("CLOUDFLARE_IMAGES_TOKEN", "")
+# Photos produits : Cloudinary, avec envoi signé par le backend.
+# Le nom du compte n'est pas secret ; la clé et le secret API se trouvent dans
+# le tableau de bord Cloudinary (Settings > API Keys) et vont sur Render.
+CLOUDINARY_CLOUD_NAME = os.environ.get("CLOUDINARY_CLOUD_NAME", "dqeereccn")
+CLOUDINARY_API_KEY    = os.environ.get("CLOUDINARY_API_KEY", "")
+CLOUDINARY_API_SECRET = os.environ.get("CLOUDINARY_API_SECRET", "")
+CLOUDINARY_FOLDER     = os.environ.get("CLOUDINARY_FOLDER", "su-rice/produits")
 
 # Email — Resend (legacy)
 RESEND_API_KEY         = os.environ.get("RESEND_API_KEY", "")
