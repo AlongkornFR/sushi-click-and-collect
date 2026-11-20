@@ -184,3 +184,66 @@ class StaffClientPageTests(TestCase):
 
     def test_routes_require_staff(self):
         self.assertEqual(APIClient().get(f"/api/staff/users/{self.customer.id}/").status_code, 401)
+
+
+class RegisterAndLoginTests(TestCase):
+    """Inscription : politique de confidentialité acceptée et date
+    enregistrée, règles de mot de passe de Django. Connexion : un compte
+    staff ne se distingue pas d'un mauvais mot de passe."""
+
+    def setUp(self):
+        cache.clear()
+        self.client = APIClient()
+
+    def register(self, **overrides):
+        payload = {
+            "first_name": "Marie", "last_name": "Dupont", "email": "Marie@Example.com",
+            "phone": "", "password": NEW_PASSWORD, "accept_privacy": True,
+        }
+        payload.update(overrides)
+        return self.client.post("/api/auth/register/", payload, format="json")
+
+    def test_register_records_privacy_acceptance(self):
+        res = self.register()
+        self.assertEqual(res.status_code, 201)
+        customer = Customer.objects.get(user__email="marie@example.com")
+        self.assertIsNotNone(customer.privacy_accepted_at)
+
+    def test_register_without_privacy_acceptance_is_refused(self):
+        for value in (False, None):
+            payload = {} if value is None else {"accept_privacy": value}
+            res = self.register(**payload) if value is not None else self.client.post(
+                "/api/auth/register/",
+                {"first_name": "M", "last_name": "D", "email": "x@example.com", "password": NEW_PASSWORD},
+                format="json")
+            self.assertEqual(res.status_code, 400)
+            self.assertIn("accept_privacy", res.data)
+        self.assertFalse(User.objects.exists())
+
+    def test_register_rejects_weak_password(self):
+        for weak in ("12345678", "password", "marie@example.com"):
+            res = self.register(password=weak)
+            self.assertEqual(res.status_code, 400, weak)
+            self.assertIn("password", res.data)
+        self.assertFalse(User.objects.exists())
+
+    def test_register_existing_email_gives_clear_message(self):
+        self.register()
+        res = self.register()
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("Connectez-vous", str(res.data["email"][0]))
+
+    def test_staff_account_on_customer_login_looks_like_bad_password(self):
+        User.objects.create_user("chef@example.com", email="chef@example.com", password=NEW_PASSWORD, is_staff=True)
+        staff = self.client.post("/api/auth/login/", {"email": "chef@example.com", "password": NEW_PASSWORD}, format="json")
+        wrong = self.client.post("/api/auth/login/", {"email": "chef@example.com", "password": "mauvais"}, format="json")
+        self.assertEqual(staff.status_code, 401)
+        self.assertEqual(staff.data, wrong.data)
+
+    def test_change_password_applies_password_rules(self):
+        self.register()
+        token = Token.objects.get(user__email="marie@example.com")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
+        res = self.client.post("/api/auth/change-password/",
+                               {"current_password": NEW_PASSWORD, "new_password": "12345678"}, format="json")
+        self.assertEqual(res.status_code, 400)

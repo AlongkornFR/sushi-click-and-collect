@@ -1,8 +1,13 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import Customer
 from orders.models import Order
 from orders.opening_hours import pickup_label
+
+
+PRIVACY_REQUIRED = "Acceptez la politique de confidentialité pour créer un compte."
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -11,11 +16,31 @@ class RegisterSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=50)
     last_name = serializers.CharField(max_length=50)
     phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
+    accept_privacy = serializers.BooleanField(
+        error_messages={"required": PRIVACY_REQUIRED, "invalid": PRIVACY_REQUIRED})
 
     def validate_email(self, value):
         if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError("Email déjà utilisé.")
+            raise serializers.ValidationError(
+                "Un compte existe déjà avec cet email. Connectez-vous ou réinitialisez votre mot de passe.")
         return value.lower()
+
+    def validate_accept_privacy(self, value):
+        if value is not True:
+            raise serializers.ValidationError(PRIVACY_REQUIRED)
+        return value
+
+    def validate(self, attrs):
+        # Règles de mot de passe de Django (trop courant, trop proche du nom
+        # ou de l'email, uniquement des chiffres), comme pour la
+        # réinitialisation.
+        probe = User(username=attrs.get("email", ""), email=attrs.get("email", ""),
+                     first_name=attrs.get("first_name", ""), last_name=attrs.get("last_name", ""))
+        try:
+            validate_password(attrs["password"], user=probe)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({"password": list(e.messages)})
+        return attrs
 
 
 class CustomerProfileSerializer(serializers.ModelSerializer):

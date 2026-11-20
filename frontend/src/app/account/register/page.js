@@ -1,135 +1,160 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/context/AuthContext";
 import { api } from "@/services/api";
+import FormField from "@/components/common/FormField";
+import { AuthShell, FormError, PasswordInput, apiErrorMessage, inputCls, linkCls, primaryBtnCls, safeNext } from "../_components/AuthUI";
 
-export default function RegisterPage() {
+const FIELDS = ["first_name", "last_name", "email", "phone", "password", "accept_privacy"];
+
+function firstMessage(value) {
+  return Array.isArray(value) ? String(value[0]) : value ? String(value) : "";
+}
+
+function RegisterForm() {
   const router = useRouter();
-  const { saveToken } = useAuth();
-  const [form, setForm] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirm: "",
-  });
+  const next = safeNext(useSearchParams().get("next"));
+  const { token, loading: authLoading, saveToken } = useAuth();
+  const [form, setForm] = useState({ first_name: "", last_name: "", email: "", phone: "", password: "" });
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function set(field) {
-    return (e) => setForm((p) => ({ ...p, [field]: e.target.value }));
-  }
+  useEffect(() => {
+    if (!authLoading && token) router.replace(next);
+  }, [authLoading, token, next, router]);
+
+  const set = (field) => (e) => {
+    setError("");
+    setFieldErrors((p) => ({ ...p, [field]: "" }));
+    setForm((p) => ({ ...p, [field]: e.target.value }));
+  };
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-
-    if (form.password !== form.confirm) {
-      setError("Les mots de passe ne correspondent pas.");
-      return;
-    }
-    if (form.password.length < 8) {
-      setError("Mot de passe minimum 8 caractères.");
+    const local = {};
+    if (form.password.length < 8) local.password = "8 caractères minimum.";
+    if (!acceptPrivacy) local.accept_privacy = "Cochez cette case pour créer votre compte.";
+    if (Object.keys(local).length) {
+      setFieldErrors(local);
+      document.getElementById(Object.keys(local)[0])?.focus();
       return;
     }
 
     setLoading(true);
     try {
       const res = await api.post("/auth/register/", {
-        first_name: form.first_name,
-        last_name: form.last_name,
-        email: form.email,
-        phone: form.phone,
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
         password: form.password,
+        accept_privacy: acceptPrivacy,
       });
       saveToken(res.data.token);
-      router.replace("/account");
+      router.replace(next);
     } catch (err) {
-      const data = err.response?.data;
-      if (data?.email) setError(data.email[0]);
-      else setError(data?.detail || "Erreur d'inscription.");
-    } finally {
+      const data = err.response?.status === 400 ? err.response.data : null;
+      const byField = {};
+      if (data) FIELDS.forEach((f) => { if (data[f]) byField[f] = firstMessage(data[f]); });
+      if (Object.keys(byField).length) {
+        setFieldErrors(byField);
+        document.getElementById(FIELDS.find((f) => byField[f]))?.focus();
+      } else {
+        setError(apiErrorMessage(err, "Le compte n'a pas pu être créé. Réessayez."));
+      }
       setLoading(false);
     }
   }
 
-  const inputClass =
-    "w-full rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-white/30 outline-none focus:border-[#FFC366] focus:ring-2 focus:ring-[#FFC366]/20";
+  const loginHref = next === "/account" ? "/account/login" : `/account/login?next=${encodeURIComponent(next)}`;
 
   return (
-    <div className="flex min-h-[100vh] items-center justify-center px-4 py-12">
-      <div className="w-full max-w-sm">
-        <h1 className="mb-1 text-2xl font-bold text-zinc-900 dark:text-white">Créer un compte</h1>
-        <p className="mb-8 text-sm text-zinc-500 dark:text-white/50">
-          Déjà inscrit ?{" "}
-          <Link href="/account/login" className="font-medium text-amber-700 dark:text-[#FFC366] hover:underline">
-            Se connecter
-          </Link>
-        </p>
+    <AuthShell
+      title="Créer un compte"
+      intro="Commandez plus vite, suivez vos commandes et cumulez des points fidélité."
+      footer={
+        <>
+          Déjà un compte ?{" "}
+          <Link href={loginHref} className={linkCls}>Se connecter</Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField id="first_name" label="Prénom" error={fieldErrors.first_name}>
+            <input type="text" name="first_name" autoComplete="given-name" required maxLength={50}
+              value={form.first_name} onChange={set("first_name")} className={inputCls} />
+          </FormField>
+          <FormField id="last_name" label="Nom" error={fieldErrors.last_name}>
+            <input type="text" name="last_name" autoComplete="family-name" required maxLength={50}
+              value={form.last_name} onChange={set("last_name")} className={inputCls} />
+          </FormField>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-white/70">
-                Prénom
-              </label>
-              <input type="text" required value={form.first_name} onChange={set("first_name")} className={inputClass} placeholder="Jean" />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-white/70">
-                Nom
-              </label>
-              <input type="text" required value={form.last_name} onChange={set("last_name")} className={inputClass} placeholder="Dupont" />
-            </div>
-          </div>
+        <FormField id="email" label="Email" error={fieldErrors.email}>
+          <input type="email" name="email" autoComplete="email" inputMode="email" autoCapitalize="none"
+            spellCheck={false} required value={form.email} onChange={set("email")} className={inputCls}
+            placeholder="votre@email.com" />
+        </FormField>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-white/70">
-              Email
-            </label>
-            <input type="email" required value={form.email} onChange={set("email")} className={inputClass} placeholder="votre@email.com" />
-          </div>
+        <FormField id="phone" label="Téléphone (facultatif)" error={fieldErrors.phone}>
+          <input type="tel" name="phone" autoComplete="tel" inputMode="tel" maxLength={30}
+            value={form.phone} onChange={set("phone")} className={inputCls} placeholder="06 12 34 56 78" />
+        </FormField>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-white/70">
-              Téléphone <span className="text-zinc-500 dark:text-white/60">(optionnel)</span>
-            </label>
-            <input type="tel" value={form.phone} onChange={set("phone")} className={inputClass} placeholder="+33 6 00 00 00 00" />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-white/70">
-              Mot de passe
-            </label>
-            <input type="password" required value={form.password} onChange={set("password")} className={inputClass} placeholder="Minimum 8 caractères" />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-white/70">
-              Confirmer le mot de passe
-            </label>
-            <input type="password" required value={form.confirm} onChange={set("confirm")} className={inputClass} placeholder="••••••••" />
-          </div>
-
-          {error && (
-            <p className="rounded-lg bg-red-50 dark:bg-red-900/20 px-4 py-2.5 text-sm text-red-600 dark:text-red-400">
-              {error}
+        <div>
+          <FormField id="password" label="Mot de passe" error={fieldErrors.password}>
+            <PasswordInput name="password" autoComplete="new-password" required minLength={8}
+              value={form.password} onChange={set("password")} aria-describedby="password-hint" />
+          </FormField>
+          {!fieldErrors.password && (
+            <p id="password-hint" className="mt-1.5 text-xs text-zinc-500 dark:text-white/50">
+              8 caractères minimum. Évitez les mots de passe courants, ceux faits uniquement de chiffres ou proches de votre nom.
             </p>
           )}
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-[#FFC366] px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-[#ffb347] active:scale-95 disabled:opacity-50"
-          >
-            {loading ? "Inscription…" : "Créer mon compte"}
-          </button>
-        </form>
-      </div>
-    </div>
+        <div>
+          <label className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-zinc-600 dark:text-white/70">
+            <input
+              id="accept_privacy"
+              type="checkbox"
+              checked={acceptPrivacy}
+              onChange={(e) => { setAcceptPrivacy(e.target.checked); setFieldErrors((p) => ({ ...p, accept_privacy: "" })); }}
+              aria-invalid={fieldErrors.accept_privacy ? true : undefined}
+              aria-describedby={fieldErrors.accept_privacy ? "accept_privacy-error" : undefined}
+              className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-[#FFC366]"
+            />
+            <span>
+              J&apos;accepte que Su-Rice conserve mes informations pour gérer mon compte et mes commandes, comme décrit dans la{" "}
+              <Link href="/politique-de-confidentialite" target="_blank" className={linkCls}>politique de confidentialité</Link>.
+            </span>
+          </label>
+          {fieldErrors.accept_privacy && (
+            <p id="accept_privacy-error" role="alert" className="mt-1.5 text-xs text-red-500">{fieldErrors.accept_privacy}</p>
+          )}
+        </div>
+
+        <FormError>{error}</FormError>
+
+        <button type="submit" disabled={loading} className={primaryBtnCls}>
+          {loading ? "Création du compte…" : "Créer mon compte"}
+        </button>
+      </form>
+    </AuthShell>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[100vh]" aria-busy="true" />}>
+      <RegisterForm />
+    </Suspense>
   );
 }

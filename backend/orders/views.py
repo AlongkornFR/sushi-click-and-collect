@@ -5,6 +5,7 @@ from functools import partial
 import payplug
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -53,7 +54,7 @@ def checkout(request):
     serializer = CheckoutSerializer(data=request.data or {}, context={"user": user})
     if not serializer.is_valid():
         errors = serializer.errors
-        field = "pickup_time" if "pickup_time" in errors else None
+        field = "pickup_time" if "pickup_time" in errors else ("accept_cgv" if "accept_cgv" in errors else None)
         return Response({"detail": first_error_message(errors), "field": field, "errors": errors}, status=400)
 
     data = serializer.validated_data
@@ -115,6 +116,7 @@ def checkout(request):
             notes=notes,
             status="pending",
             total_cents=total_cents,
+            cgv_accepted_at=timezone.now(),
         )
 
         for p, qty, unit_cents in line_items:

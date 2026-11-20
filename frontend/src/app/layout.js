@@ -6,6 +6,7 @@ import "./globals.css";
 import Footer from "@/components/common/Footer";
 import OrderingPausedBanner from "@/components/common/OrderingPausedBanner";
 import { Analytics } from "@vercel/analytics/next";
+import CookieConsent from "@/components/common/CookieConsent";
 
 import { INDEXABLE, SITE_URL } from "@/lib/site";
 
@@ -88,6 +89,7 @@ export default function RootLayout({ children }) {
                 {children}
               </div>
               <Footer />
+              <CookieConsent />
             </CartProvider>
           </AuthProvider>
         </ThemeProvider>

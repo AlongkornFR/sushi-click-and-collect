@@ -8,7 +8,7 @@ export default function PolitiqueConfidentialite() {
           Politique de confidentialité
         </h1>
         <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
-          Dernière mise à jour : 2026
+          Dernière mise à jour : novembre 2026
         </p>
 
         <h2 className="text-2xl font-semibold mb-4 mt-8">
@@ -36,7 +36,7 @@ export default function PolitiqueConfidentialite() {
           <li>Nom, prénom</li>
           <li>Adresse e-mail</li>
           <li>Numéro de téléphone</li>
-          <li>Données de connexion et de navigation (cookies)</li>
+          <li>Données de connexion à votre compte</li>
           <li>
             Données de paiement (traitées exclusivement par PayPlug — non
             conservées par SU-RICE)
@@ -51,7 +51,7 @@ export default function PolitiqueConfidentialite() {
           <li>Communication avec le client (confirmation, notification)</li>
           <li>Amélioration du service et du site</li>
           <li>Respect des obligations légales et comptables</li>
-          <li>Analyse de la fréquentation du site (Vercel Analytics)</li>
+          <li>Mesure anonyme de la fréquentation du site (Vercel Analytics)</li>
         </ul>
 
         <h2 className="text-2xl font-semibold mb-4 mt-8">
@@ -70,7 +70,7 @@ export default function PolitiqueConfidentialite() {
             comptables
           </li>
           <li>
-            <strong>Consentement</strong> : cookies d'analyse (si applicable)
+            <strong>Consentement</strong> : affichage de la carte Google Maps
           </li>
         </ul>
 
@@ -82,7 +82,7 @@ export default function PolitiqueConfidentialite() {
             Données de commande : 5 ans (obligation comptable et fiscale)
           </li>
           <li>Données de compte client : jusqu'à suppression du compte</li>
-          <li>Données de navigation (cookies) : 13 mois maximum</li>
+          <li>Choix sur les cookies : 6 mois</li>
         </ul>
 
         <h2 className="text-2xl font-semibold mb-4 mt-8">
@@ -111,6 +111,10 @@ export default function PolitiqueConfidentialite() {
           </li>
           <li>
             <strong>Cloudinary</strong> — hébergement des photos des produits
+          </li>
+          <li>
+            <strong>Google</strong> — carte Google Maps, seulement si vous
+            l&apos;acceptez
           </li>
         </ul>
         <p className="mb-6">
@@ -170,16 +174,31 @@ export default function PolitiqueConfidentialite() {
           .
         </p>
 
-        <h2 className="text-2xl font-semibold mb-4 mt-8">8. Cookies</h2>
+        <h2 id="cookies" className="text-2xl font-semibold mb-4 mt-8 scroll-mt-24">8. Cookies et stockage local</h2>
         <p className="mb-4">
-          Le site utilise des cookies de mesure d'audience via Vercel
-          Analytics. Ces cookies permettent d'analyser la fréquentation du
-          site de manière anonymisée.
+          Le seul service du site qui dépose des cookies est la carte Google
+          Maps affichée en bas de page. Elle ne se charge qu&apos;après votre
+          accord, donné dans la bannière « Cookies » ou avec le bouton « Afficher
+          la carte ». Si vous refusez, la carte reste masquée et le reste du
+          site fonctionne normalement. Google traite alors ces données selon
+          sa propre politique de confidentialité.
+        </p>
+        <p className="mb-4">
+          Votre choix est gardé 6 mois, puis la bannière vous est de nouveau
+          proposée. Vous pouvez le changer à tout moment avec le lien « Gérer
+          les cookies » en bas de chaque page.
+        </p>
+        <p className="mb-4">
+          La mesure d&apos;audience (Vercel Analytics) ne dépose aucun cookie et
+          ne permet pas de vous identifier : elle compte les pages vues de
+          manière anonyme.
         </p>
         <p className="mb-6">
-          Vous pouvez configurer votre navigateur pour refuser les cookies à
-          tout moment. Le refus des cookies d'analyse n'affecte pas le
-          fonctionnement du site.
+          Le site garde aussi dans votre navigateur (stockage local) les
+          informations nécessaires à son fonctionnement : votre panier, votre
+          connexion à votre compte, le thème clair ou sombre et votre choix sur
+          les cookies. Ces informations ne quittent pas votre appareil et ne
+          demandent pas de consentement.
         </p>
 
         <h2 className="text-2xl font-semibold mb-4 mt-8">9. Sécurité</h2>

@@ -72,6 +72,7 @@ class OrderFixturesMixin:
             "pickup_time": next_weekday_slot(),
             "notes": "",
             "items": items if items is not None else [{"product_id": self.product.id, "quantity": 2}],
+            "accept_cgv": True,
         }
         payload.update(overrides)
         return payload
@@ -959,3 +960,28 @@ class RefundTrackingTests(OrderFixturesMixin, TestCase):
         with patch("orders.views.payplug.Payment.retrieve", return_value=fake_payment(order)):
             self.client.post("/api/payplug/ipn/", {"id": order.payment_id}, format="json")
         self.assertEqual([o["id"] for o in self.staff_client.get("/api/staff/refunds/").data["to_refund"]], [order.id])
+
+
+
+@override_settings(PAYPLUG_SECRET_KEY="sk_test_dummy")
+@patch("orders.views.payplug.Payment.create", return_value=fake_payment_created())
+class CheckoutCgvTests(OrderFixturesMixin, TestCase):
+    """Le client doit cocher les CGV avant de payer ; la date est gardée."""
+
+    def test_missing_or_false_cgv_is_refused(self, _create):
+        for value in (None, False):
+            payload = self.checkout_payload()
+            if value is None:
+                payload.pop("accept_cgv")
+            else:
+                payload["accept_cgv"] = value
+            res = self.client.post("/api/checkout/", payload, format="json")
+            self.assertEqual(res.status_code, 400)
+            self.assertEqual(res.data["field"], "accept_cgv")
+            self.assertIn("conditions générales", res.data["detail"])
+        self.assertFalse(Order.objects.exists())
+
+    def test_accepted_cgv_date_is_recorded(self, _create):
+        res = self.client.post("/api/checkout/", self.checkout_payload(), format="json")
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertIsNotNone(Order.objects.get().cgv_accepted_at)

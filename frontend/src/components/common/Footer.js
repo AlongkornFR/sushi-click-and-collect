@@ -4,6 +4,54 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FaFacebookF, FaInstagram } from "react-icons/fa";
+import { openCookieSettings, setCookieConsent, useCookieConsent } from "@/lib/consent";
+
+const MAP_EMBED_URL =
+  "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2891.540492354732!2d7.0166553!3d43.5585884!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x12ce816d613a0a6d%3A0xccffb8a670629cf8!2sSu-Rice!5e0!3m2!1sfr!2sfr!4v1";
+const MAP_LINK_URL = "https://www.google.com/maps/search/?api=1&query=Su-Rice%2053%20boulevard%20Carnot%20Cannes";
+
+// La carte Google Maps dépose des cookies Google : elle ne se charge
+// qu'avec l'accord du visiteur (bannière ou bouton ci-dessous).
+function MapEmbed() {
+  const consent = useCookieConsent();
+  if (consent === "accepted") {
+    return (
+      <iframe
+        title="Plan d'accès Su-Rice Cannes"
+        className="w-full h-60 rounded-lg border border-gray-700"
+        src={MAP_EMBED_URL}
+        loading="lazy"
+      />
+    );
+  }
+  return (
+    <div className="flex h-60 flex-col items-center justify-center gap-3 rounded-lg border border-gray-700 bg-white/5 px-6 text-center">
+      <p className="text-sm text-gray-300">
+        53 boulevard Carnot, 06400 Cannes
+      </p>
+      <p className="text-xs text-gray-400">
+        La carte Google Maps dépose des cookies Google. Elle s&apos;affiche si vous les acceptez.
+      </p>
+      <div className="flex flex-wrap justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => setCookieConsent("accepted")}
+          className="min-h-11 cursor-pointer rounded-xl bg-[#FFC366] px-4 text-sm font-semibold text-black transition hover:bg-[#ffb347]"
+        >
+          Afficher la carte
+        </button>
+        <a
+          href={MAP_LINK_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-11 items-center rounded-xl border border-white/20 px-4 text-sm font-semibold text-white transition hover:bg-white/10"
+        >
+          Ouvrir dans Google Maps
+        </a>
+      </div>
+    </div>
+  );
+}
 
 const Footer = () => {
   const pathname = usePathname();
@@ -45,6 +93,15 @@ const Footer = () => {
               <Link href="/politique-de-confidentialite" className="text-white font-semibold hover:text-gray-400 transition">
                 Politique de confidentialité
               </Link>
+            </li>
+            <li>
+              <button
+                type="button"
+                onClick={openCookieSettings}
+                className="cursor-pointer text-white font-semibold hover:text-gray-400 transition"
+              >
+                Gérer les cookies
+              </button>
             </li>
           </ul>
         </div>
@@ -100,12 +157,7 @@ const Footer = () => {
         </div>
         <div>
           <h3 className="text-3xl font-bold mb-6">Localisation</h3>
-          <iframe
-            title="Su-Rice Cannes Location"
-            className="w-full h-60 rounded-lg border border-gray-700"
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2891.540492354732!2d7.0166553!3d43.5585884!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x12ce816d613a0a6d%3A0xccffb8a670629cf8!2sSu-Rice!5e0!3m2!1sfr!2sfr!4v1"
-            loading="lazy"
-          />
+          <MapEmbed />
         </div>
       </div>
       <div className="border-t border-gray-700 pt-6 text-center max-w-7xl mx-auto mt-5">

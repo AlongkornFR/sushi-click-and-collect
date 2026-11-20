@@ -56,12 +56,12 @@ class OrderAdmin(admin.ModelAdmin):
     search_fields = ("id", "full_name", "email", "phone", "payment_id")
     ordering = ("-created_at",)
 
-    readonly_fields = ("created_at", "total_eur", "payplug_link", "payment_id", "payment_url")
+    readonly_fields = ("created_at", "total_eur", "payplug_link", "payment_id", "payment_url", "cgv_accepted_at")
 
     fieldsets = (
         ("Client", {"fields": ("user", "full_name", "email", "phone")}),
         ("Retrait", {"fields": ("pickup_time", "notes")}),
-        ("Commande", {"fields": ("status", "total_cents", "total_eur", "created_at")}),
+        ("Commande", {"fields": ("status", "total_cents", "total_eur", "created_at", "cgv_accepted_at")}),
         ("Paiement", {"fields": ("payment_provider", "payment_id", "payment_url", "payplug_link")}),
     )
 
